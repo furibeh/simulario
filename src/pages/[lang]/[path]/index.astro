@@ -1,0 +1,122 @@
+---
+import PathMap from "../../../components/site/PathMap.astro";
+import { type Locale, locales } from "../../../i18n/config";
+import { useTranslations } from "../../../i18n/t";
+import Page from "../../../layouts/Page.astro";
+import { firstLessonSlug, getCatalog, lessonHref, splitLessonId } from "../../../lib/catalog";
+
+export async function getStaticPaths() {
+  const { paths } = await getCatalog();
+  return paths.flatMap((p) => locales.map((lang) => ({ params: { lang, path: p.id } })));
+}
+
+const lang = Astro.params.lang as Locale;
+const pathId = Astro.params.path as string;
+const t = useTranslations(lang);
+const { paths, modules, lessons } = await getCatalog();
+const path = paths.find((p) => p.id === pathId);
+if (!path) throw new Error(`Unknown path ${pathId}`);
+
+const pathModules = modules.filter((m) => m.data.path.id === pathId);
+const mapModules = pathModules.map((m) => {
+  const slug = firstLessonSlug(lessons, m.id);
+  return {
+    id: m.id,
+    order: m.data.order,
+    title: m.data.title[lang],
+    status: m.data.status,
+    href: slug && m.data.status === "available" ? lessonHref(lang, pathId, slug) : undefined,
+  };
+});
+
+// Lessons per module, one entry per slug, preferring this locale's content.
+const lessonsByModule = pathModules.map((m) => {
+  const slugs = [
+    ...new Set(
+      lessons.filter((l) => l.data.module.id === m.id).map((l) => splitLessonId(l.id).slug),
+    ),
+  ];
+  return {
+    module: m,
+    lessons: slugs.map((slug) => {
+      const entry =
+        lessons.find((l) => l.id === `${lang}/${slug}`) ??
+        lessons.find((l) => splitLessonId(l.id).slug === slug);
+      return { slug, title: entry?.data.title ?? slug, minutes: entry?.data.minutes ?? 0 };
+    }),
+  };
+});
+---
+
+<Page lang={lang} title={`${path.data.title[lang]} | ${t("site.name")}`} description={path.data.summary[lang]}>
+  <header class="head">
+    <h1>{path.data.title[lang]}</h1>
+    <p class="summary">{path.data.summary[lang]}</p>
+  </header>
+
+  <PathMap lang={lang} modules={mapModules} label={t("path.modules")} />
+
+  <section class="list" aria-labelledby="modules-title">
+    <h2 id="modules-title">{t("path.modules")}</h2>
+    <ol>
+      {
+        lessonsByModule.map(({ module, lessons: moduleLessons }) => (
+          <li>
+            <h3>
+              {t("path.module", { n: module.data.order })}: {module.data.title[lang]}
+            </h3>
+            {moduleLessons.length > 0 ? (
+              <ul>
+                {moduleLessons.map((l) => (
+                  <li>
+                    <a href={lessonHref(lang, pathId, l.slug)}>{l.title}</a>{" "}
+                    <span class="meta">{t("lesson.minutes", { n: l.minutes })}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="meta">{t("path.status.planned")}</p>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+</Page>
+
+<style>
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .summary {
+    font-size: 1.1875rem;
+  }
+
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .list > ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .list ul {
+    margin: var(--space-2) 0 0;
+    padding-left: 1.2em;
+  }
+
+  .meta {
+    color: var(--color-ink-muted);
+    font-size: var(--text-small);
+  }
+</style>

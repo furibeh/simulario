@@ -1,0 +1,137 @@
+---
+import { stepperStages } from "../components/lesson/stages";
+import { type Locale, localizedPath } from "../i18n/config";
+import { useTranslations } from "../i18n/t";
+import Page from "./Page.astro";
+
+interface Props {
+  lang: Locale;
+  /** Language the lesson content is written in (differs from `lang` on a fallback page). */
+  contentLang: Locale;
+  isFallback: boolean;
+  title: string;
+  summary: string;
+  minutes: number;
+  pathId: string;
+  moduleTitle: string;
+  moduleOrder: number;
+}
+
+const { lang, contentLang, isFallback, title, summary, minutes, pathId, moduleTitle, moduleOrder } =
+  Astro.props;
+const t = useTranslations(lang);
+---
+
+<Page lang={lang} title={`${title} | ${t("site.name")}`} description={summary}>
+  <header class="lesson-head" lang={contentLang}>
+    <a class="module" href={localizedPath(lang, pathId)}>
+      {t("path.module", { n: moduleOrder })}: {moduleTitle}
+    </a>
+    <h1>{title}</h1>
+    <p class="summary">{summary}</p>
+    <p class="meta">{t("lesson.minutes", { n: minutes })}</p>
+  </header>
+
+  {
+    isFallback && (
+      <p class="fallback" role="note">
+        {t("lesson.fallback")}
+      </p>
+    )
+  }
+
+  <nav class="stepper" aria-label={t("lesson.stages")}>
+    <ol>
+      {
+        stepperStages.map((stage, i) => (
+          <li>
+            <a href={`#${stage}`}>
+              {i + 1}. {t(`lesson.stage.${stage}`)}
+            </a>
+          </li>
+        ))
+      }
+    </ol>
+    <a class="skip" href="#predict">{t("lesson.skipTheory")}</a>
+  </nav>
+
+  <article class="lesson-body" lang={contentLang}>
+    <slot />
+  </article>
+</Page>
+
+<style>
+  .lesson-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .module {
+    color: var(--color-ink-muted);
+  }
+
+  .summary {
+    font-size: 1.1875rem;
+  }
+
+  .meta {
+    color: var(--color-ink-muted);
+    font-size: var(--text-small);
+  }
+
+  .fallback {
+    padding: var(--space-4) var(--space-5);
+    border: var(--outline-waiting);
+    border-radius: var(--radius-card);
+  }
+
+  .stepper {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+    background: var(--color-ground);
+  }
+
+  .stepper ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .stepper ol a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
+    padding: 0 var(--space-4);
+    border: var(--outline);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    font-size: var(--text-small);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .stepper ol a:hover {
+    background: var(--color-slot);
+  }
+
+  .skip {
+    font-size: var(--text-small);
+    font-weight: 700;
+  }
+
+  .lesson-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+</style>

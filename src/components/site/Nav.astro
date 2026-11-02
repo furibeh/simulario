@@ -1,0 +1,146 @@
+---
+import { type Locale, locales, localizedPath, switchLocale } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import { shapePaths } from "../token/shapes";
+import ThemeToggle from "./ThemeToggle.svelte";
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const pathname = Astro.url.pathname;
+const logo = [
+  { slot: 1, x: 0, y: 0 },
+  { slot: 2, x: 14, y: 0 },
+  { slot: 3, x: 0, y: 14 },
+  { slot: 4, x: 14, y: 14 },
+] as const;
+---
+
+<header class="site-header">
+  <nav class="page nav" aria-label={t("nav.label")}>
+    <a class="brand" href={localizedPath(lang)} aria-label={t("nav.home")}>
+      <svg width="32" height="32" viewBox="0 0 28 28" aria-hidden="true">
+        {
+          logo.map((l) => (
+            <path
+              d={shapePaths[l.slot]}
+              transform={`translate(${l.x} ${l.y}) scale(0.55)`}
+              fill={`var(--entity-${l.slot})`}
+            />
+          ))
+        }
+      </svg>
+      <span>{t("site.name")}</span>
+    </a>
+    <ul class="links">
+      <li><a href={`${localizedPath(lang)}#rutas`}>{t("nav.paths")}</a></li>
+      <li><a href={localizedPath(lang, "acerca")}>{t("nav.about")}</a></li>
+    </ul>
+    <div class="tools">
+      <ul class="langs" aria-label={t("lang.label")}>
+        {
+          locales.map((locale) => (
+            <li>
+              <a
+                href={switchLocale(pathname, locale)}
+                hreflang={locale}
+                lang={locale}
+                data-remember-lang={locale}
+                aria-current={locale === lang ? "true" : undefined}
+              >
+                {locale}
+                <span class="visually-hidden">{t(`lang.${locale}`)}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <ThemeToggle
+        client:load
+        labels={{ system: t("theme.toSystem"), light: t("theme.toLight"), dark: t("theme.toDark") }}
+      />
+    </div>
+  </nav>
+</header>
+
+<script>
+  import { rememberLanguage } from "../../lib/language";
+
+  for (const link of document.querySelectorAll<HTMLAnchorElement>("[data-remember-lang]")) {
+    link.addEventListener("click", () => {
+      rememberLanguage(globalThis.localStorage, link.dataset["rememberLang"] ?? "");
+    });
+  }
+</script>
+
+<style>
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) var(--space-6);
+    padding-block: var(--space-4);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 800;
+    font-size: 1.5rem;
+    text-decoration: none;
+  }
+
+  .links,
+  .langs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .links {
+    gap: var(--space-5);
+  }
+
+  .links a {
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .links a:hover {
+    text-decoration: underline;
+  }
+
+  .tools {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .langs {
+    padding: 3px;
+    border: var(--outline);
+    border-radius: var(--radius-pill);
+  }
+
+  .langs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+  }
+
+  .langs a[aria-current="true"] {
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+    font-weight: 700;
+  }
+</style>

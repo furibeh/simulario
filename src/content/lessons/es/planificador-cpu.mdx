@@ -1,0 +1,194 @@
+---
+title: Planificador de CPU
+summary: Define una carga de procesos, elige un algoritmo y míralo decidir turno a turno quién usa la CPU.
+module: planificacion-cpu
+order: 1
+minutes: 35
+prerequisites:
+  - procesos-estados
+---
+
+import CpuScheduler from "../../../components/cpu-scheduler/CpuScheduler.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Saber qué es un **proceso**: un programa en ejecución. Un proceso está **listo** cuando podría usar la CPU y espera su turno, y **en ejecución** cuando la tiene.
+- Leer una línea de tiempo de izquierda a derecha. No necesitas programar.
+
+</Stage>
+
+<Stage stage="theory">
+
+Una computadora con una sola CPU solo puede ejecutar un proceso a la vez. Cuando varios procesos están listos, el **planificador** decide a cuál le toca. En esta lección el tiempo avanza en unidades y cambiar de proceso no cuesta nada.
+
+Cada proceso tiene tres datos:
+
+- **Llegada**: el instante en que entra a la fila de espera.
+- **Ráfaga**: cuántas unidades de CPU necesita para terminar.
+- **Prioridad**: un número de 1 a 9. El 1 es el más urgente.
+
+Los algoritmos se dividen en dos familias. Los **no expropiativos** dejan que el proceso que tiene la CPU termine su ráfaga. Los **expropiativos** pueden quitársela a mitad de camino.
+
+| Algoritmo | Regla | Tipo |
+| --- | --- | --- |
+| FCFS | El primero en la fila va primero. | No expropiativo |
+| SJF | La ráfaga más corta entre los listos. | No expropiativo |
+| SRTF | El menor tiempo restante; si llega alguien con menos, le quita la CPU. | Expropiativo |
+| Prioridad | El número de prioridad más bajo. | No expropiativo |
+| Round Robin | Orden de la fila, pero cada turno dura como máximo un **cuanto**; después vuelve al final. | Expropiativo |
+
+Para comparar algoritmos se usan tres métricas por proceso:
+
+- **Retorno** = fin − llegada: cuánto tardó desde que llegó hasta que terminó.
+- **Espera** = retorno − ráfaga: cuánto tiempo pasó en la fila sin usar la CPU.
+- **Respuesta** = primer turno − llegada: cuánto tardó en recibir la CPU por primera vez.
+
+> Ejemplo: P1 llega en 0 con ráfaga 3 y P2 llega en 1 con ráfaga 1. Con FCFS, P1 corre de 0 a 3 y P2 de 3 a 4. P2 esperó 2 unidades: llegó en 1 y empezó en 3.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero de abajo empieza con el escenario **Efecto convoy** y el algoritmo **FCFS**:
+
+| Proceso | Llegada | Ráfaga |
+| --- | --- | --- |
+| P1 | 0 | 10 |
+| P2 | 1 | 2 |
+| P3 | 2 | 1 |
+| P4 | 3 | 3 |
+
+**¿En qué orden terminarán los cuatro procesos?** Antes de ejecutar, toca las fichas en el orden que creas en el panel *Tu predicción*. Piensa en la regla de FCFS, no en lo que te parecería justo.
+
+</Stage>
+
+<Stage stage="run">
+
+<CpuScheduler client:visible lang="es" />
+
+Mientras avanza, fíjate en dos momentos:
+
+- En los instantes 1 y 2 llegan P2 y P3, que son mucho más cortos que P1. ¿Le pasa algo a P1?
+- En el instante 10 termina P1. ¿Cuánto llevaba esperando P2 para un trabajo de solo 2 unidades?
+
+</Stage>
+
+<Stage stage="explain">
+
+Con FCFS el orden real es **P1, P2, P3, P4**. Si predijiste que los cortos terminarían primero, tu idea no era mala: es justo lo que hace SJF. Pero FCFS nunca mira la ráfaga, solo el orden de llegada.
+
+**Efecto convoy.** Un proceso largo al frente de la fila hace esperar a todos los cortos que vienen detrás, como un camión lento en una carretera de un carril. Con esta carga, FCFS da una espera promedio de 7,25 unidades. Cambia a SRTF en el tablero y baja a 2.
+
+**SJF es óptimo** para la espera promedio entre los algoritmos no expropiativos cuando todos los procesos están disponibles a la vez. La idea de la prueba: si un trabajo largo va antes que uno corto, intercambiarlos nunca aumenta la espera total.
+
+**SRTF** es la versión expropiativa de SJF: minimiza la espera promedio, pero necesita conocer el tiempo restante de cada proceso y puede dejar a los largos esperando sin fin.
+
+**Inanición y envejecimiento.** Con prioridad o SJF, un proceso puede quedar postergado indefinidamente si siempre llega alguien "mejor". La solución clásica es el **envejecimiento**: subir la prioridad de un proceso cuanto más tiempo espera.
+
+**Respuesta no es lo mismo que espera.** En los algoritmos no expropiativos coinciden. Con expropiación, un proceso puede recibir la CPU pronto y aun así esperar mucho en total: con Round Robin en el escenario convoy, P1 tiene respuesta 0 pero espera 6.
+
+**El cuanto de Round Robin.** Si el cuanto es mayor que todas las ráfagas, Round Robin se comporta como FCFS. Si es muy pequeño, el sistema pasa más tiempo cambiando de proceso que trabajando (en este simulador el cambio es gratis, en la realidad no). Una regla práctica: alrededor del 80 % de las ráfagas debería caber en un cuanto.
+
+**En sistemas reales.** Linux usó durante años CFS, que reparte la CPU según el tiempo de ejecución acumulado, y desde la versión 6.6 usa EEVDF. Ninguno es uno de los cinco algoritmos clásicos, pero ambos equilibran las mismas tensiones: espera, respuesta y justicia.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Consigue que Round Robin se comporte exactamente como FCFS.</summary>
+
+Carga el escenario *Ráfagas parecidas* y pon el cuanto en 5 o 6. Si todas las ráfagas caben en un cuanto, ningún turno se corta y Round Robin es FCFS.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Encuentra una carga en la que SJF y SRTF den planificaciones distintas.</summary>
+
+El *Efecto convoy* sirve: P2 llega mientras corre P1 y solo SRTF lo interrumpe (P1 corre de 0 a 1, P2 de 1 a 3…).
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Encuentra una carga en la que Round Robin tenga más espera promedio que FCFS.</summary>
+
+*Ráfagas parecidas* con cuanto 2: Round Robin espera 9,5 y FCFS 5,75. Cuando las ráfagas se parecen, intercalarlas hace que todas terminen tarde.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Con prioridad, haz que el proceso de prioridad 9 espere lo máximo posible.</summary>
+
+Dale una llegada temprana y agrega procesos de prioridad 1 o 2 que lleguen antes de que la CPU se libere. La planificación por prioridad siempre elige a los otros primero: es la inanición en miniatura.
+
+</details>
+
+<details>
+<summary><strong>5.</strong> Logra una espera promedio de 0 con cualquier algoritmo.</summary>
+
+Separa las llegadas para que cada proceso llegue cuando el anterior ya terminó, por ejemplo P1 llega en 0 con ráfaga 2, P2 en 2 con ráfaga 3 y P3 en 5 con ráfaga 1. Nadie espera en la fila.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="planificador-cpu"
+  questions={[
+    {
+      question: "Con FCFS en el escenario Efecto convoy, ¿cuál es la espera promedio?",
+      options: ["2", "7", "7,25", "11,25"],
+      answer: 2,
+      explanation: "Las esperas son 0, 9, 10 y 10. Su promedio es 29 / 4 = 7,25. 11,25 es el retorno promedio.",
+    },
+    {
+      question: "Entre los algoritmos no expropiativos, ¿cuál minimiza la espera promedio?",
+      options: ["FCFS", "SJF", "Prioridad"],
+      answer: 1,
+      explanation: "SJF: atender primero los trabajos cortos reduce la espera de todos los demás.",
+    },
+    {
+      question: "P1 (ráfaga 8) está corriendo con SJF y llega P2 (ráfaga 1). ¿Cuándo empieza P2?",
+      options: ["En cuanto llega", "Cuando P1 termina", "Después de un cuanto"],
+      answer: 1,
+      explanation: "SJF no expropia: elige el más corto solo cuando la CPU queda libre.",
+    },
+    {
+      question: "Con Round Robin en el Efecto convoy, P1 tiene respuesta 0. ¿Su espera también es 0?",
+      options: ["Sí", "No, es 6"],
+      answer: 1,
+      explanation: "Recibe la CPU de inmediato, pero después pasa 6 unidades en la fila entre sus turnos.",
+    },
+    {
+      question: "Los procesos A (prioridad 1) y B (prioridad 4) están listos. ¿Cuál corre primero?",
+      options: ["A", "B"],
+      answer: 0,
+      explanation: "En este simulador el número más bajo es la prioridad más urgente.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Estimar la próxima ráfaga.** Un sistema real no conoce las ráfagas por adelantado. Las estima con un promedio exponencial: τₙ₊₁ = α·tₙ + (1 − α)·τₙ, donde tₙ es la última ráfaga medida y α suele ser 0,5.
+- **Colas multinivel con retroalimentación.** Varias filas con distintas prioridades; un proceso que usa todo su cuanto baja de nivel. Así se aproxima SJF sin conocer las ráfagas.
+- **Costo del cambio de contexto.** Guardar y restaurar el estado de un proceso toma tiempo: por eso un cuanto diminuto reduce el trabajo útil.
+
+Para leer más:
+
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., cap. 5.
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, caps. 7 y 8. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Tanenbaum y Bos, *Modern Operating Systems*, 4.ª ed., sección 2.4.
+- Documentación del kernel de Linux: [EEVDF Scheduler](https://docs.kernel.org/scheduler/sched-eevdf.html).
+
+</Stage>

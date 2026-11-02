@@ -1,0 +1,116 @@
+---
+import { defaultLocale, isLocale } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import { type StageId, stageIds } from "./stages";
+
+interface Props {
+  stage: StageId;
+  /** Language of the content; defaults to the page's locale. */
+  lang?: string;
+}
+
+const { stage, lang } = Astro.props;
+const locale = isLocale(lang)
+  ? lang
+  : isLocale(Astro.currentLocale)
+    ? Astro.currentLocale
+    : defaultLocale;
+const t = useTranslations(locale);
+if (!stageIds.includes(stage)) throw new Error(`Unknown lesson stage "${stage}"`);
+const optional = stage === "deeper";
+---
+
+{
+  optional ? (
+    <details class="stage deeper" id={stage}>
+      <summary>
+        <h2>{t(`lesson.stage.${stage}`)}</h2>
+      </summary>
+      <div class="body">
+        <slot />
+      </div>
+    </details>
+  ) : (
+    <section class:list={["stage", stage]} id={stage} aria-labelledby={`${stage}-title`}>
+      <h2 id={`${stage}-title`}>{t(`lesson.stage.${stage}`)}</h2>
+      <div class="body">
+        <slot />
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .stage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    scroll-margin-top: var(--space-6);
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .body :global(ul),
+  .body :global(ol) {
+    margin: 0;
+    padding-left: 1.4em;
+    max-width: var(--measure);
+  }
+
+  .body :global(li + li) {
+    margin-top: var(--space-2);
+  }
+
+  .body :global(table) {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .body :global(th),
+  .body :global(td) {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--color-slot);
+    text-align: left;
+  }
+
+  .body :global(blockquote) {
+    margin: 0;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-card);
+    background: var(--color-slot);
+    max-width: var(--measure);
+  }
+
+  .body :global(pre) {
+    margin: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    border: var(--outline);
+    overflow-x: auto;
+  }
+
+  .deeper {
+    border: var(--outline-waiting);
+    border-radius: var(--radius-card);
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .deeper summary {
+    cursor: pointer;
+    list-style-position: outside;
+  }
+
+  .deeper summary h2 {
+    display: inline;
+    font-size: var(--text-h3);
+  }
+
+  .deeper .body {
+    margin-top: var(--space-4);
+  }
+</style>

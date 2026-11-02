@@ -1,0 +1,170 @@
+---
+import type { Locale } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import { shapePaths, slotForIndex } from "../token/shapes";
+
+export interface PathMapModule {
+  id: string;
+  order: number;
+  title: string;
+  status: "planned" | "available";
+  /** First lesson of the module, when there is one. */
+  href?: string | undefined;
+}
+
+interface Props {
+  lang: Locale;
+  modules: PathMapModule[];
+  /** Accessible name of the list. */
+  label: string;
+}
+
+const { lang, modules, label } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<ol class="map" aria-label={label}>
+  {
+    modules.map((m, i) => {
+      const slot = slotForIndex(i);
+      const body = (
+        <>
+          <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d={shapePaths[slot]}
+              fill={m.status === "available" ? `var(--entity-${slot})` : "none"}
+              stroke={m.status === "available" ? "var(--color-ink)" : `var(--entity-${slot})`}
+              stroke-width={m.status === "available" ? 1.2 : 2}
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="number">{t("path.module", { n: m.order })}</span>
+          <span class="title">{m.title}</span>
+          <span class="status">
+            {m.status === "available" ? t("path.status.available") : t("path.status.planned")}
+          </span>
+        </>
+      );
+      return (
+        <li class:list={["space", m.status]}>
+          {m.href ? (
+            <a class="inner" href={m.href}>
+              {body}
+            </a>
+          ) : (
+            <div class="inner">{body}</div>
+          )}
+        </li>
+      );
+    })
+  }
+</ol>
+
+<style>
+  .map {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-5);
+    position: relative;
+  }
+
+  .space {
+    position: relative;
+    min-width: 0;
+  }
+
+  /* The path: a thick line joining each space to the next. */
+  .space:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: calc(-1 * var(--space-5));
+    width: var(--space-5);
+    height: 6px;
+    margin-top: -3px;
+    background: var(--color-ink-muted);
+    border-radius: 3px;
+  }
+
+  .space:nth-child(4n)::after {
+    display: none;
+  }
+
+  .inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    border-radius: var(--radius-card);
+    text-decoration: none;
+  }
+
+  .available .inner {
+    background: var(--color-surface);
+    border: var(--outline);
+    box-shadow: var(--shadow-board);
+  }
+
+  .planned .inner {
+    border: var(--outline-waiting);
+    color: var(--color-ink-muted);
+  }
+
+  a.inner:hover .title {
+    text-decoration: underline;
+  }
+
+  .number,
+  .status {
+    font-size: var(--text-small);
+  }
+
+  .title {
+    font-weight: 800;
+    color: var(--color-ink);
+  }
+
+  .available .status {
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .map {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .space:nth-child(4n)::after {
+      display: block;
+    }
+
+    .space:nth-child(2n)::after {
+      display: none;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .map {
+      grid-template-columns: 1fr;
+    }
+
+    .space::after,
+    .space:nth-child(4n)::after {
+      display: block;
+      top: auto;
+      bottom: calc(-1 * var(--space-5));
+      right: auto;
+      left: 40px;
+      width: 6px;
+      height: var(--space-5);
+      margin-top: 0;
+    }
+
+    .space:last-child::after {
+      display: none;
+    }
+  }
+</style>

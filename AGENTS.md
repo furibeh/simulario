@@ -30,7 +30,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 6. **No literal colors, fonts or radii in components.** Use the CSS custom properties from `src/styles/tokens.css`. Entities use the `Token` component and the entity slots (shape + color), never a color alone.
 7. **Accessibility is not optional.** Real `<button>`, `<a>` and `<input>` elements; visible focus; 44px touch targets; keyboard operation for every simulation; `aria-live` for step explanations; respect `prefers-reduced-motion`.
 8. **No backend, no tracking.** Do not add servers, cookies, accounts or third-party scripts beyond Cloudflare Web Analytics.
-9. **Wrap browser storage.** Any `localStorage` access goes through `src/lib/progress.ts` or `src/lib/theme.ts`, inside `try/catch`.
+9. **Wrap browser storage.** Any `localStorage` access goes through a module in `src/lib/` (`progress.ts`, `theme.ts`, `language.ts`), inside `try/catch`.
 
 ## Conventions
 

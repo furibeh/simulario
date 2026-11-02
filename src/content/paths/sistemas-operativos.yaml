@@ -1,0 +1,7 @@
+order: 1
+title:
+  es: "Sistemas operativos"
+  en: "Operating systems"
+summary:
+  es: "Cómo un sistema operativo reparte la CPU, la memoria y los archivos entre muchos programas a la vez."
+  en: "How an operating system shares the CPU, memory and files among many programs at once."

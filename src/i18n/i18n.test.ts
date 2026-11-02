@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isLocale, locales, localizedPath, switchLocale } from "./config";
-import { dictionaries, useTranslations } from "./t";
+import { dictionaries, format, formatNumber, useTranslations } from "./t";
 
 describe("localizedPath", () => {
   it("prefixes the locale and normalizes slashes", () => {
@@ -43,5 +43,22 @@ describe("ui dictionaries", () => {
   it("translates through useTranslations", () => {
     expect(useTranslations("en")("nav.paths")).toBe("Paths");
     expect(useTranslations("es")("nav.paths")).toBe("Rutas");
+  });
+});
+
+describe("format", () => {
+  it("replaces known placeholders and keeps unknown ones", () => {
+    expect(format("{a} de {b}", { a: 1, b: "dos" })).toBe("1 de dos");
+    expect(format("{x}")).toBe("{x}");
+  });
+
+  it("formats numbers per locale", () => {
+    expect(formatNumber("es", 7.25)).toBe("7,25");
+    expect(formatNumber("en", 7.25)).toBe("7.25");
+    expect(formatNumber("en", 11)).toBe("11");
+  });
+
+  it("interpolates through useTranslations", () => {
+    expect(useTranslations("es")("cpu.board.at", { t: 12 })).toBe("El tablero en el instante 12");
   });
 });

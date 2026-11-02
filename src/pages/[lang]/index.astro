@@ -1,8 +1,11 @@
 ---
-import ThemeToggle from "../../components/site/ThemeToggle.svelte";
-import { type Locale, locales } from "../../i18n/config";
+import CpuScheduler from "../../components/cpu-scheduler/CpuScheduler.svelte";
+import PathMap from "../../components/site/PathMap.astro";
+import { shapePaths } from "../../components/token/shapes";
+import { type Locale, locales, localizedPath } from "../../i18n/config";
 import { useTranslations } from "../../i18n/t";
-import Base from "../../layouts/Base.astro";
+import Page from "../../layouts/Page.astro";
+import { firstLessonSlug, getCatalog, lessonHref } from "../../lib/catalog";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang } }));
@@ -10,15 +13,153 @@ export function getStaticPaths() {
 
 const lang = Astro.params.lang as Locale;
 const t = useTranslations(lang);
+const { paths, modules, lessons } = await getCatalog();
+
+const pathCards = paths.map((p) => ({
+  id: p.id,
+  title: p.data.title[lang],
+  summary: p.data.summary[lang],
+  modules: modules
+    .filter((m) => m.data.path.id === p.id)
+    .map((m) => {
+      const slug = firstLessonSlug(lessons, m.id);
+      return {
+        id: m.id,
+        order: m.data.order,
+        title: m.data.title[lang],
+        status: m.data.status,
+        href: slug && m.data.status === "available" ? lessonHref(lang, p.id, slug) : undefined,
+      };
+    }),
+}));
+
+const steps = [
+  { slot: 1, title: t("home.how.predict"), body: t("home.how.predict.body") },
+  { slot: 2, title: t("home.how.run"), body: t("home.how.run.body") },
+  { slot: 3, title: t("home.how.explain"), body: t("home.how.explain.body") },
+] as const;
 ---
 
-<Base lang={lang} title={t("site.name")} description={t("site.tagline")}>
-  <main class="page" style="padding-block: 64px;">
-    <ThemeToggle
-      client:load
-      labels={{ system: t("theme.toSystem"), light: t("theme.toLight"), dark: t("theme.toDark") }}
-    />
-    <h1>{t("site.name")}</h1>
-    <p>{t("site.tagline")}</p>
-  </main>
-</Base>
+<Page lang={lang} title={t("site.name")} description={t("site.tagline")}>
+  <section class="hero" aria-labelledby="home-title">
+    <div class="intro">
+      <h1 id="home-title">{t("site.name")}</h1>
+      <p class="lead">{t("home.lead")}</p>
+    </div>
+    <div class="demo">
+      <h2>{t("home.demo.title")}</h2>
+      <p class="hint">{t("home.demo.hint")}</p>
+      <CpuScheduler client:visible lang={lang} variant="demo" preset="convoy" algorithm="rr" quantum={2} />
+    </div>
+  </section>
+
+  <section id="rutas" class="paths" aria-labelledby="paths-title">
+    <h2 id="paths-title">{t("home.paths.title")}</h2>
+    {
+      pathCards.map((p) => (
+        <article class="path">
+          <div class="path-head">
+            <h3>
+              <a href={localizedPath(lang, p.id)}>{p.title}</a>
+            </h3>
+            <p>{p.summary}</p>
+          </div>
+          <PathMap lang={lang} modules={p.modules} label={p.title} />
+        </article>
+      ))
+    }
+  </section>
+
+  <section class="how" aria-labelledby="how-title">
+    <h2 id="how-title">{t("home.how.title")}</h2>
+    <ol>
+      {
+        steps.map((s) => (
+          <li>
+            <svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d={shapePaths[s.slot]}
+                fill={`var(--entity-${s.slot})`}
+                stroke="var(--color-ink)"
+                stroke-width="1.2"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <h3>{s.title}</h3>
+            <p>{s.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+</Page>
+
+<style>
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .lead {
+    font-size: 1.25rem;
+    max-width: 52ch;
+  }
+
+  .demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .hint {
+    color: var(--color-ink-muted);
+  }
+
+  .paths,
+  .path,
+  .path-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .path-head {
+    gap: var(--space-1);
+  }
+
+  .path-head a {
+    text-decoration: none;
+  }
+
+  .path-head a:hover {
+    text-decoration: underline;
+  }
+
+  .how {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .how ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-6);
+  }
+
+  .how li {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+</style>

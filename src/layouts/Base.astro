@@ -7,7 +7,7 @@ import { type Locale, locales, switchLocale } from "../i18n/config";
 interface Props {
   lang: Locale;
   title: string;
-  description?: string;
+  description?: string | undefined;
 }
 
 const { lang, title, description } = Astro.props;
