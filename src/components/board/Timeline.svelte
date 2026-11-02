@@ -65,7 +65,7 @@ const ticks = $derived(
   .track {
     position: relative;
     height: 64px;
-    border-radius: 14px;
+    border-radius: var(--radius-card);
     background: var(--color-ground);
   }
 
@@ -101,7 +101,7 @@ const ticks = $derived(
     bottom: -6px;
     width: 4px;
     margin-left: -2px;
-    border-radius: 2px;
+    border-radius: var(--radius-pill);
     background: var(--color-ink);
     transition: left var(--duration-move) var(--ease-move);
   }

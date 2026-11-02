@@ -133,7 +133,7 @@ function check(index: number, event: SubmitEvent) {
     min-height: var(--target-min);
     padding: var(--space-2) var(--space-4);
     border: 2px solid var(--color-slot);
-    border-radius: 12px;
+    border-radius: var(--radius-field);
     cursor: pointer;
   }
 

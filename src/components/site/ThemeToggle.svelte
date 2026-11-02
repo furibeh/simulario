@@ -53,7 +53,7 @@ function toggle() {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
     border: var(--outline);
     background: var(--color-surface);
     color: var(--color-ink);

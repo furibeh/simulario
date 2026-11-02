@@ -78,7 +78,7 @@ One family, **Lexend**, designed to improve reading fluency, at four weights. A 
 ## Space, shape and depth
 
 - **Spacing scale** (px): 4, 8, 12, 16, 20, 24, 32, 48, 64. Sections are separated by 32; board internals by 20–22.
-- **Radii** encode hierarchy: board 22, zones and cards 16–18, entity bars 10, controls fully rounded (pills and circles).
+- **Radii** encode hierarchy: board 22, zones and cards 16–18, fields (number inputs, quiz options) 12, entity bars 10, controls fully rounded (pills and circles). Thin rules and lines are fully rounded too.
 - **Outlines**: 2.5px solid ink on interactive containers (board, cards, buttons, selects). 2.5px dashed muted ink on zones where things wait (queues, ready lists).
 - **Depth**: one solid offset shadow, `0 6px 0 var(--color-ink)`, only on the board and on the page's primary surface. The primary button uses `0 4px 0 var(--color-action)`. No other shadows.
 

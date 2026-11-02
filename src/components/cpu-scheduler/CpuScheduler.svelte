@@ -573,7 +573,7 @@ const labels = $derived({
     min-height: var(--target-min);
     padding: 0 var(--space-2);
     border: var(--outline);
-    border-radius: 12px;
+    border-radius: var(--radius-field);
     background: var(--color-surface);
     text-align: right;
   }
@@ -609,7 +609,7 @@ const labels = $derived({
   .icon {
     width: var(--target-min);
     height: var(--target-min);
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
     display: inline-flex;
     align-items: center;
     justify-content: center;
