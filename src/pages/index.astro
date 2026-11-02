@@ -4,6 +4,7 @@ import "../styles/tokens.css";
 import "../styles/base.css";
 import { defaultLocale, localizedPath } from "../i18n/config";
 import { dictionaries } from "../i18n/t";
+import { LANGUAGE_KEY } from "../lib/language";
 
 // Static root: picks the language on the client (Cloudflare Pages cannot redirect by Accept-Language).
 ---
@@ -16,11 +17,11 @@ import { dictionaries } from "../i18n/t";
     <title>{dictionaries[defaultLocale]["site.name"]}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="robots" content="noindex" />
-    <script is:inline>
+    <script is:inline define:vars={{ languageKey: LANGUAGE_KEY }}>
       (() => {
         let lang = null;
         try {
-          lang = localStorage.getItem("simulario:lang");
+          lang = localStorage.getItem(languageKey);
         } catch {}
         if (lang !== "es" && lang !== "en") {
           const prefs = navigator.languages ?? [navigator.language];
