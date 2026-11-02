@@ -911,9 +911,14 @@ const labels = $derived({
       padding: var(--space-4);
     }
 
+    /* The headers are wider than the inputs: keep them small so all five columns fit at 360px. */
     .workload th,
     .workload td {
-      padding: 4px 3px;
+      padding: 4px 2px;
+    }
+
+    .workload thead th {
+      font-size: var(--text-data);
     }
 
     .workload input {
