@@ -13,6 +13,19 @@ export const es = {
   "theme.toDark": "Cambiar a tema oscuro",
   "theme.toSystem": "Usar el tema del sistema",
   "redirect.choose": "Elige tu idioma",
+  "player.region": "Reproductor de la simulación",
+  "player.run": "Ejecutar",
+  "player.pause": "Pausar",
+  "player.resume": "Continuar",
+  "player.replay": "Repetir",
+  "player.stepBack": "Turno anterior",
+  "player.stepForward": "Siguiente turno",
+  "player.toStart": "Ir al inicio",
+  "player.toEnd": "Ir al final",
+  "player.speed": "Velocidad",
+  "player.slow": "Lenta",
+  "player.normal": "Normal",
+  "player.fast": "Rápida",
 } as const;
 
 export type UiKey = keyof typeof es;

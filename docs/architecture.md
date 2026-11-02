@@ -65,7 +65,7 @@ Arrows point to what a layer may import. `engines/` imports nothing from the pro
 ## The trace contract
 
 ```ts
-// src/player/types.ts
+// src/engines/trace.ts (shared by engines and the player)
 export interface Explanation<K extends string = string> {
   key: K; // e.g. "fcfs.pick"
   params?: Record<string, string | number>; // e.g. { id: "P2", arrival: 1 }
