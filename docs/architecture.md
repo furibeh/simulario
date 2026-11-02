@@ -48,6 +48,7 @@ src/
   lib/                progress.ts, theme.ts
   styles/             tokens.css, base.css
 docs/                 design.md, architecture.md
+  lessons/            One spec per lesson (_template.md, planificador-cpu.md)
 .github/workflows/    ci.yml
 ```
 
@@ -136,7 +137,7 @@ A lesson's MDX body follows the PEE structure with layout components: `<Prerequi
 `src/lib/progress.ts` stores progress in `localStorage` under `simulario:progress:v1`:
 
 ```json
-{ "v": 1, "lessons": { "cpu-scheduling": { "step": "run", "completedAt": "2026-11-02T10:00:00Z" } } }
+{ "v": 1, "lessons": { "planificador-cpu": { "step": "run", "completedAt": "2026-11-02T10:00:00Z" } } }
 ```
 
 - Every read and write is wrapped in `try/catch`. Without storage (private mode, blocked cookies) the site works and simply forgets.
@@ -156,7 +157,7 @@ A lesson's MDX body follows the PEE structure with layout components: `<Prerequi
 | Unit tests | `pnpm test` (`vitest run`) | yes |
 | Build | `pnpm build` | yes |
 
-Engine tests cover every preset × algorithm against hand-computed metrics and finish orders, plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left.
+Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left.
 
 ## Decisions
 
