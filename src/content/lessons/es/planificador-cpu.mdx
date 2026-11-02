@@ -25,7 +25,7 @@ Una computadora con una sola CPU solo puede ejecutar un proceso a la vez. Cuando
 
 Cada proceso tiene tres datos:
 
-- **Llegada**: el instante en que entra a la fila de espera.
+- **Llegada**: el instante en que entra a la cola de listos.
 - **Ráfaga**: cuántas unidades de CPU necesita para terminar.
 - **Prioridad**: un número de 1 a 9. El 1 es el más urgente.
 
@@ -33,16 +33,16 @@ Los algoritmos se dividen en dos familias. Los **no expropiativos** dejan que el
 
 | Algoritmo | Regla | Tipo |
 | --- | --- | --- |
-| FCFS | El primero en la fila va primero. | No expropiativo |
+| FCFS | El primero en la cola va primero. | No expropiativo |
 | SJF | La ráfaga más corta entre los listos. | No expropiativo |
 | SRTF | El menor tiempo restante; si llega alguien con menos, le quita la CPU. | Expropiativo |
 | Prioridad | El número de prioridad más bajo. | No expropiativo |
-| Round Robin | Orden de la fila, pero cada turno dura como máximo un **cuanto**; después vuelve al final. | Expropiativo |
+| Round Robin | Orden de la cola, pero cada turno dura como máximo un **cuanto**; después vuelve al final. | Expropiativo |
 
 Para comparar algoritmos se usan tres métricas por proceso:
 
 - **Retorno** = fin − llegada: cuánto tardó desde que llegó hasta que terminó.
-- **Espera** = retorno − ráfaga: cuánto tiempo pasó en la fila sin usar la CPU.
+- **Espera** = retorno − ráfaga: cuánto tiempo pasó en la cola sin usar la CPU.
 - **Respuesta** = primer turno − llegada: cuánto tardó en recibir la CPU por primera vez.
 
 > Ejemplo: P1 llega en 0 con ráfaga 3 y P2 llega en 1 con ráfaga 1. Con FCFS, P1 corre de 0 a 3 y P2 de 3 a 4. P2 esperó 2 unidades: llegó en 1 y empezó en 3.
@@ -77,9 +77,9 @@ Mientras avanza, fíjate en dos momentos:
 
 <Stage stage="explain">
 
-Con FCFS el orden real es **P1, P2, P3, P4**. Si predijiste que los cortos terminarían primero, tu idea no era mala: es justo lo que hace SJF. Pero FCFS nunca mira la ráfaga, solo el orden de llegada.
+Con FCFS el orden real es **P1, P2, P3, P4**. Si predijiste que los cortos terminarían primero, pensaste en la ráfaga, pero FCFS nunca la mira: solo atiende en orden de llegada. P1 llegó solo en t = 0, tomó la CPU y no la suelta hasta terminar, aunque P2 y P3 lleguen después con trabajos mucho más cortos. Ni siquiera SJF lo evitaría: tampoco expropia, así que también deja terminar a P1.
 
-**Efecto convoy.** Un proceso largo al frente de la fila hace esperar a todos los cortos que vienen detrás, como un camión lento en una carretera de un carril. Con esta carga, FCFS da una espera promedio de 7,25 unidades. Cambia a SRTF en el tablero y baja a 2.
+**Efecto convoy.** Un proceso largo al frente de la cola hace esperar a todos los cortos que vienen detrás, como un camión lento en una carretera de un carril. Con esta carga, FCFS da una espera promedio de 7,25 unidades. Cambia a SRTF en el tablero y baja a 2.
 
 **SJF es óptimo** para la espera promedio entre los algoritmos no expropiativos cuando todos los procesos están disponibles a la vez. La idea de la prueba: si un trabajo largo va antes que uno corto, intercambiarlos nunca aumenta la espera total.
 
@@ -89,7 +89,7 @@ Con FCFS el orden real es **P1, P2, P3, P4**. Si predijiste que los cortos termi
 
 **Respuesta no es lo mismo que espera.** En los algoritmos no expropiativos coinciden. Con expropiación, un proceso puede recibir la CPU pronto y aun así esperar mucho en total: con Round Robin en el escenario convoy, P1 tiene respuesta 0 pero espera 6.
 
-**El cuanto de Round Robin.** Si el cuanto es mayor que todas las ráfagas, Round Robin se comporta como FCFS. Si es muy pequeño, el sistema pasa más tiempo cambiando de proceso que trabajando (en este simulador el cambio es gratis, en la realidad no). Una regla práctica: alrededor del 80 % de las ráfagas debería caber en un cuanto.
+**El cuanto de Round Robin.** Si el cuanto es mayor o igual que la ráfaga más larga, Round Robin se comporta como FCFS. Si es muy pequeño, el sistema pasa más tiempo cambiando de proceso que trabajando (en este simulador el cambio es gratis, en la realidad no). Una regla práctica: alrededor del 80 % de las ráfagas debería caber en un cuanto.
 
 **En sistemas reales.** Linux usó durante años CFS, que reparte la CPU según el tiempo de ejecución acumulado, y desde la versión 6.6 usa EEVDF. Ninguno es uno de los cinco algoritmos clásicos, pero ambos equilibran las mismas tensiones: espera, respuesta y justicia.
 
@@ -130,7 +130,7 @@ Dale una llegada temprana y agrega procesos de prioridad 1 o 2 que lleguen antes
 <details>
 <summary><strong>5.</strong> Logra una espera promedio de 0 con cualquier algoritmo.</summary>
 
-Separa las llegadas para que cada proceso llegue cuando el anterior ya terminó, por ejemplo P1 llega en 0 con ráfaga 2, P2 en 2 con ráfaga 3 y P3 en 5 con ráfaga 1. Nadie espera en la fila.
+Separa las llegadas para que cada proceso llegue cuando el anterior ya terminó, por ejemplo P1 llega en 0 con ráfaga 2, P2 en 2 con ráfaga 3 y P3 en 5 con ráfaga 1. Nadie espera en la cola.
 
 </details>
 
@@ -165,7 +165,7 @@ Separa las llegadas para que cada proceso llegue cuando el anterior ya terminó,
       question: "Con Round Robin en el Efecto convoy, P1 tiene respuesta 0. ¿Su espera también es 0?",
       options: ["Sí", "No, es 6"],
       answer: 1,
-      explanation: "Recibe la CPU de inmediato, pero después pasa 6 unidades en la fila entre sus turnos.",
+      explanation: "Recibe la CPU de inmediato, pero después pasa 6 unidades en la cola entre sus turnos.",
     },
     {
       question: "Los procesos A (prioridad 1) y B (prioridad 4) están listos. ¿Cuál corre primero?",
@@ -181,7 +181,7 @@ Separa las llegadas para que cada proceso llegue cuando el anterior ya terminó,
 <Stage stage="deeper">
 
 - **Estimar la próxima ráfaga.** Un sistema real no conoce las ráfagas por adelantado. Las estima con un promedio exponencial: τₙ₊₁ = α·tₙ + (1 − α)·τₙ, donde tₙ es la última ráfaga medida y α suele ser 0,5.
-- **Colas multinivel con retroalimentación.** Varias filas con distintas prioridades; un proceso que usa todo su cuanto baja de nivel. Así se aproxima SJF sin conocer las ráfagas.
+- **Colas multinivel con retroalimentación.** Varias colas con distintas prioridades; un proceso que usa todo su cuanto baja de nivel. Así se aproxima SJF sin conocer las ráfagas.
 - **Costo del cambio de contexto.** Guardar y restaurar el estado de un proceso toma tiempo: por eso un cuanto diminuto reduce el trabajo útil.
 
 Para leer más:

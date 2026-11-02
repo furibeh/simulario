@@ -102,10 +102,10 @@ export const es = {
   "cpu.algo.srtf.rule":
     "elige el menor tiempo restante; si llega alguien con menos, le quita la CPU.",
   "cpu.algo.priority.rule": "elige la prioridad más urgente (número menor) y la deja terminar.",
-  "cpu.algo.rr.rule": "cada proceso corre como máximo un cuanto y vuelve al final de la fila.",
+  "cpu.algo.rr.rule": "cada proceso corre como máximo un cuanto y vuelve al final de la cola.",
   "cpu.board.start": "El tablero antes de empezar",
   "cpu.board.at": "El tablero en el instante {t}",
-  "cpu.zone.waiting": "Fila de espera",
+  "cpu.zone.waiting": "Cola de listos",
   "cpu.zone.cpu": "CPU",
   "cpu.zone.done": "Terminaron",
   "cpu.zone.empty": "Vacía",

@@ -5,7 +5,7 @@ export const algorithmNames: Record<Algorithm, string> = {
   fcfs: "FCFS",
   sjf: "SJF",
   srtf: "SRTF",
-  priority: "La planificación por prioridad",
+  priority: "la planificación por prioridad",
   rr: "Round Robin",
 };
 
