@@ -53,27 +53,33 @@ const t = useTranslations(lang);
   }
 
   <div class="lesson" data-lesson={lessonId}>
-    <nav class="stepper" aria-label={t("lesson.stages")}>
+    <nav class="track" aria-label={t("lesson.stages")}>
       <ol>
         {
           stepperStages.map((stage, i) => (
             <li>
               <a href={`#${stage}`} data-stage-link={stage} data-gated={isGated(stage) ? "" : undefined}>
-                {isGated(stage) && (
-                  <svg class="lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
-                    <rect x="5" y="11" width="14" height="10" rx="2" />
-                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                  </svg>
-                )}
-                {i + 1}. {t(`lesson.stage.${stage}`)}
+                <span class="space" aria-hidden="true">
+                  {isGated(stage) && (
+                    <svg class="lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                    </svg>
+                  )}
+                </span>
+                <span class="label">
+                  <span class="n">{i + 1}.</span> {t(`lesson.stage.${stage}`)}
+                </span>
                 {isGated(stage) && <span class="visually-hidden lock-label">({t("lesson.locked")})</span>}
               </a>
             </li>
           ))
         }
       </ol>
-      <a class="skip" href="#predict">{t("lesson.skipTheory")}</a>
-      <button type="button" class="show-all" data-show-all>{t("lesson.showAll")}</button>
+      <div class="track-actions">
+        <a class="skip" href="#predict">{t("lesson.skipTheory")}</a>
+        <button type="button" class="show-all" data-show-all>{t("lesson.showAll")}</button>
+      </div>
     </nav>
 
     <p class="visually-hidden" aria-live="polite" data-unlock-status data-message={t("lesson.unlocked")}></p>
@@ -157,7 +163,14 @@ const t = useTranslations(lang);
     border-radius: var(--radius-card);
   }
 
-  .stepper {
+  /* Narrow screens: the track is a sticky row of pills above the content. */
+  .lesson {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .track {
     position: sticky;
     top: 0;
     z-index: 2;
@@ -169,7 +182,7 @@ const t = useTranslations(lang);
     background: var(--color-ground);
   }
 
-  .stepper ol {
+  .track ol {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -178,11 +191,12 @@ const t = useTranslations(lang);
     gap: var(--space-2);
   }
 
-  .stepper ol a {
+  .track ol a {
     display: inline-flex;
     align-items: center;
+    gap: var(--space-2);
     min-height: var(--target-min);
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-4) 0 var(--space-2);
     border: var(--outline);
     border-radius: var(--radius-pill);
     background: var(--color-surface);
@@ -191,54 +205,72 @@ const t = useTranslations(lang);
     text-decoration: none;
   }
 
-  .stepper ol a:hover {
-    background: var(--color-slot);
+  .space {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2.5px solid currentColor;
+    background: var(--color-surface);
   }
 
-  .stepper ol a[aria-current="step"] {
-    background: var(--color-ink);
-    color: var(--color-on-ink);
+  .n {
+    font-variant-numeric: tabular-nums;
   }
 
-  .lock {
-    display: none;
-    margin-right: 6px;
-  }
-
+  .lock,
   .lock-label {
     display: none;
   }
 
+  .track ol a[aria-current="step"] {
+    color: var(--color-ink);
+  }
+
+  .track ol a[aria-current="step"] .space {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+  }
+
+  /* Gated stages while closed: dashed space with a lock, muted label. */
   :global(.js) .lesson:not([data-unlocked]) [data-gated] {
-    border-style: dashed;
     color: var(--color-ink-muted);
   }
 
-  :global(.js) .lesson:not([data-unlocked]) [data-gated] .lock {
-    display: inline;
+  :global(.js) .lesson:not([data-unlocked]) [data-gated] .space {
+    border-style: dashed;
   }
 
+  :global(.js) .lesson:not([data-unlocked]) [data-gated] .lock,
   :global(.js) .lesson:not([data-unlocked]) [data-gated] .lock-label {
     display: inline;
   }
 
-  .skip {
+  .track-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .skip,
+  .show-all {
     font-size: var(--text-small);
     font-weight: 700;
+    text-underline-offset: 3px;
   }
 
   .show-all {
     display: none;
-    margin-left: auto;
     min-height: var(--target-min);
-    padding: 0 var(--space-4);
+    padding: 0;
     border: 0;
     background: none;
     color: var(--color-ink);
-    font-size: var(--text-small);
-    font-weight: 700;
     text-decoration: underline;
-    text-underline-offset: 3px;
     cursor: pointer;
   }
 
@@ -247,15 +279,83 @@ const t = useTranslations(lang);
     align-items: center;
   }
 
-  .lesson {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-  }
-
   .lesson-body {
     display: flex;
     flex-direction: column;
     gap: var(--space-8);
+    min-width: 0;
+  }
+
+  /*
+   * Wide screens: the track becomes the lesson's path, a vertical line of spaces
+   * beside the text, like the path map. The board keeps the full main column.
+   */
+  @media (min-width: 1080px) {
+    .lesson {
+      display: grid;
+      grid-template-columns: 12.5rem minmax(0, 1fr);
+      column-gap: var(--space-8);
+      align-items: start;
+    }
+
+    .track {
+      top: var(--space-6);
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--space-5);
+      padding-block: 0;
+      background: none;
+    }
+
+    .track ol {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .track li {
+      position: relative;
+    }
+
+    /* The line joining each space to the next. */
+    .track li:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 34px;
+      bottom: -10px;
+      width: 3px;
+      border-radius: 2px;
+      background: var(--color-slot);
+    }
+
+    .track ol a {
+      min-height: 0;
+      padding: 10px 0;
+      border: 0;
+      border-radius: 0;
+      background: none;
+      font-size: var(--text-body);
+      font-weight: 500;
+      color: var(--color-ink-muted);
+      gap: var(--space-3);
+    }
+
+    .track ol a:hover .label {
+      text-decoration: underline;
+    }
+
+    .track ol a[aria-current="step"] {
+      font-weight: 800;
+    }
+
+    .n {
+      display: none;
+    }
+
+    .track-actions {
+      flex-direction: column;
+      align-items: flex-start;
+      padding-left: 34px;
+    }
   }
 </style>
