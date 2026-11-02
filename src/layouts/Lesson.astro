@@ -148,6 +148,10 @@ const t = useTranslations(lang);
   }
 
   .module {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
     color: var(--color-ink-muted);
   }
 
@@ -269,6 +273,9 @@ const t = useTranslations(lang);
 
   .skip,
   .show-all {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
     font-size: var(--text-small);
     font-weight: 700;
     text-underline-offset: 3px;
@@ -276,7 +283,6 @@ const t = useTranslations(lang);
 
   .show-all {
     display: none;
-    min-height: 32px;
     padding: 0;
     border: 0;
     background: none;
@@ -333,16 +339,15 @@ const t = useTranslations(lang);
       content: "";
       position: absolute;
       left: 10px;
-      top: 34px;
-      bottom: -10px;
+      top: 35px;
+      bottom: -11px;
       width: 3px;
       border-radius: var(--radius-pill);
       background: var(--color-slot);
     }
 
     .track ol a {
-      min-height: 0;
-      padding: 10px 0;
+      padding: 0;
       border: 0;
       border-radius: 0;
       background: none;
@@ -372,8 +377,6 @@ const t = useTranslations(lang);
     }
 
     .show-all {
-      min-height: 0;
-      padding-block: var(--space-1);
       text-align: left;
     }
   }
