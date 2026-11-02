@@ -121,7 +121,8 @@ A Svelte component, `Player.svelte`, driven by a pure reducer in `state.ts` (`pl
 - **Engine explanations**: `src/i18n/engines/<engine>.<lang>.ts` maps every engine key to a template function `(params) => string`. Typed as `Record<CpuExplainKey, …>`, so a new key without both translations fails type checking.
 - **Content**: lessons live in `src/content/lessons/<lang>/<id>.mdx`, and the same `id` in both folders links the translations. Paths and modules are single YAML entries with localized fields (`title: { es, en }`).
 - **Missing translation**: the page renders the available language with a notice and a link. `lang` on the content wrapper reflects the language actually shown.
-- **SEO**: `<link rel="alternate" hreflang>` for both locales plus `x-default` pointing at `/`; `lang` on `<html>`; localized sitemap through `@astrojs/sitemap`.
+- **SEO**: `<link rel="alternate" hreflang>` for both locales plus `x-default` pointing at the default locale's version of the same page (`/es/…`); `lang` on `<html>`; localized sitemap through `@astrojs/sitemap`. The root `/` is `noindex` and left out of the sitemap, since it only picks a language.
+- **URLs**: no trailing slash anywhere (`trailingSlash: "never"`). The build emits files (`build.format: "file"`, e.g. `es/acerca.html`), which Cloudflare Pages serves at `/es/acerca` without redirecting; a directory build would make Pages answer every slashless URL with a 308. Canonical, `hreflang` and language-switch links use `pagePathname()` (`src/i18n/config.ts`) to drop the `.html` that `Astro.url.pathname` carries at build time.
 - **Formatting**: numbers and dates through `Intl` with the active locale.
 - **Language switch**: it keeps the current page (`/es/sistemas-operativos/planificador-cpu` ↔ `/en/sistemas-operativos/planificador-cpu`). Slugs are shared ids, not translated.
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isLocale, locales, localizedPath, switchLocale } from "./config";
+import { isLocale, locales, localizedPath, pagePathname, switchLocale } from "./config";
 import { dictionaries, format, formatNumber, useTranslations } from "./t";
 
 describe("localizedPath", () => {
@@ -19,6 +19,18 @@ describe("switchLocale", () => {
   it("handles the locale root and unprefixed paths", () => {
     expect(switchLocale("/en", "es")).toBe("/es");
     expect(switchLocale("/", "en")).toBe("/en");
+  });
+});
+
+describe("pagePathname", () => {
+  it("drops the .html extension, a trailing index and trailing slashes", () => {
+    expect(pagePathname("/es/sistemas-operativos/planificador-cpu.html")).toBe(
+      "/es/sistemas-operativos/planificador-cpu",
+    );
+    expect(pagePathname("/es.html")).toBe("/es");
+    expect(pagePathname("/es/acerca/")).toBe("/es/acerca");
+    expect(pagePathname("/index.html")).toBe("/");
+    expect(pagePathname("/")).toBe("/");
   });
 });
 

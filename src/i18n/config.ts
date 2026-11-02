@@ -12,6 +12,18 @@ export function localizedPath(locale: Locale, path = "/"): string {
   return clean ? `/${locale}/${clean}` : `/${locale}`;
 }
 
+/**
+ * Public path of a page from Astro.url.pathname. The build emits files ("/es/acerca.html"),
+ * which Cloudflare Pages serves without the extension: "/es/acerca".
+ */
+export function pagePathname(pathname: string): string {
+  const clean = pathname
+    .replace(/\.html$/, "")
+    .replace(/\/index$/, "")
+    .replace(/\/+$/, "");
+  return clean || "/";
+}
+
 /** Swaps the locale prefix of a pathname, keeping the rest: "/es/a/b" → "/en/a/b". */
 export function switchLocale(pathname: string, to: Locale): string {
   const [, first, ...rest] = pathname.split("/");

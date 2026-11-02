@@ -11,10 +11,15 @@ export default defineConfig({
   site,
   output: "static",
   trailingSlash: "never",
+  // Emit /es/acerca.html instead of /es/acerca/index.html: Cloudflare Pages serves it at
+  // /es/acerca with no redirect, matching trailingSlash "never" and the canonical URLs.
+  build: { format: "file" },
   integrations: [
     svelte(),
     mdx(),
     sitemap({
+      // `/` only picks a language and is noindex.
+      filter: (page) => new URL(page).pathname !== "/",
       i18n: {
         defaultLocale: "es",
         locales: { es: "es", en: "en" },

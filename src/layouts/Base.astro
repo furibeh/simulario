@@ -2,7 +2,7 @@
 import "@fontsource-variable/lexend";
 import "../styles/tokens.css";
 import "../styles/base.css";
-import { type Locale, locales, switchLocale } from "../i18n/config";
+import { defaultLocale, type Locale, locales, pagePathname, switchLocale } from "../i18n/config";
 import { THEME_KEY } from "../lib/theme";
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 
 const { lang, title, description } = Astro.props;
 const site = Astro.site ?? new URL(Astro.url.origin);
-const pathname = Astro.url.pathname;
+const pathname = pagePathname(Astro.url.pathname);
 const alternates = locales.map((locale) => ({
   locale,
   href: new URL(switchLocale(pathname, locale), site).href,
@@ -31,7 +31,11 @@ const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     {description && <meta name="description" content={description} />}
     <link rel="canonical" href={new URL(pathname, site).href} />
     {alternates.map((alt) => <link rel="alternate" hreflang={alt.locale} href={alt.href} />)}
-    <link rel="alternate" hreflang="x-default" href={new URL("/", site).href} />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={new URL(switchLocale(pathname, defaultLocale), site).href}
+    />
     <script is:inline define:vars={{ themeKey: THEME_KEY }}>
       // Lets CSS tell that scripts run (gated lesson stages stay open without JS).
       document.documentElement.classList.add("js");

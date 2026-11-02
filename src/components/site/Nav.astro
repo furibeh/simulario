@@ -1,5 +1,5 @@
 ---
-import { type Locale, locales, localizedPath, switchLocale } from "../../i18n/config";
+import { type Locale, locales, localizedPath, pagePathname, switchLocale } from "../../i18n/config";
 import { useTranslations } from "../../i18n/t";
 import { shapePaths } from "../token/shapes";
 import ThemeToggle from "./ThemeToggle.svelte";
@@ -10,7 +10,7 @@ interface Props {
 
 const { lang } = Astro.props;
 const t = useTranslations(lang);
-const pathname = Astro.url.pathname;
+const pathname = pagePathname(Astro.url.pathname);
 const logo = [
   { slot: 1, x: 0, y: 0 },
   { slot: 2, x: 14, y: 0 },
