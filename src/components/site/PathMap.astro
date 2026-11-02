@@ -151,8 +151,10 @@ const t = useTranslations(lang);
       grid-template-columns: 1fr;
     }
 
-    .space::after,
-    .space:nth-child(4n)::after {
+    /* Same specificity as the base and tablet rules, so these win for every space. */
+    .space:not(:last-child)::after,
+    .space:nth-child(2n):not(:last-child)::after,
+    .space:nth-child(4n):not(:last-child)::after {
       display: block;
       top: auto;
       bottom: calc(-1 * var(--space-5));
