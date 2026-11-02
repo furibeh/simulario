@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`sistemas-operativos`) / 2, CPU scheduling |
 | Engine         | `src/engines/cpu-scheduling/`                                 |
 | Estimated time | 30–40 minutes                                                 |
-| Status         | Written, in review                                            |
+| Status         | Written                                                       |
 
 Origin: the single-file prototype _Planificador de CPU_ (claude.ai artifact). This spec fixes its behavior so the engine port can be tested against hand-computed values.
 
@@ -143,7 +143,7 @@ Metrics: `finish` is the end of the last unit; `turnaround = finish − arrival`
 | `srtf.keep`              | `id`, `remaining`                                    | Sigue P1: nadie en la cola tiene menos tiempo restante (3).        | P1 keeps running: nobody in the queue has less remaining time (3). |
 | `priority.pick`          | `id`, `priority`                                     | P2 tiene la prioridad más alta entre los listos (1).               | P2 has the highest priority among ready processes (1).             |
 | `rr.pick`                | `id`, `quantum`                                      | Turno de P1, el primero de la cola: puede correr hasta 2 unidades. | P1's turn, first in the queue: it may run up to 2 units.           |
-| `rr.continue`            | `id`, `used`, `quantum`                              | P1 continúa: lleva 1 de 2 unidades de su cuanto.                   | P1 continues: 1 of its 2 quantum units used.                       |
+| `rr.continue`            | `id`, `used`, `quantum`                              | P1 continúa: lleva 1 de 2 unidades de su cuanto.                   | P1 continues: 1 of its 2 units of quantum used.                    |
 | `rr.expire`              | `id`                                                 | Se agota el cuanto de P1: vuelve al final de la cola.              | P1's quantum runs out: back to the end of the queue.               |
 | `nonpreemptive.continue` | `id`, `algorithm`                                    | Sigue P1: FCFS no expropia, así que corre hasta terminar.          | P1 keeps running: FCFS does not preempt, so it runs to completion. |
 | `finish`                 | `id`, `time`                                         | P2 termina en t = 12.                                              | P2 finishes at t = 12.                                             |
@@ -220,7 +220,7 @@ Notes: P1 and P2 arrive together and enter the queue in input order. In SJF and 
 | SRTF tie keeps the runner      | SRTF; P1 0/3, P2 1/2     | At t = 1 both have 2 left; P1 keeps the CPU: P1 0–3, P2 3–5.                       |
 | Quantum 1                      | RR q = 1; P1 0/2, P2 0/2 | P1 0–1, P2 1–2, P1 2–3, P2 3–4. Finish 3, 4. Response 0, 1.                        |
 | RR expiry vs arrival           | RR q = 2; P1 0/3, P2 2/1 | At t = 2, P2 (arrival) is queued before P1 (expired): P1 0–2, P2 2–3, P1 3–4.      |
-| Last process with quantum left | RR q = 4; P1 0/2         | P1 0–2, finishes at 2 with no `rr.expire`.                                         |
+| Last process with quantum left | RR q = 4; P1 0/2, P2 5/1 | P1 0–2, finishes at 2 with no `rr.expire` (P2 only makes the input valid).         |
 
 ## Go deeper (optional section)
 
@@ -238,7 +238,7 @@ Notes: P1 and P2 arrive together and enter the queue in input order. In SJF and 
 
 ## Translations
 
-| Language | File                                          | Status                |
-| -------- | --------------------------------------------- | --------------------- |
-| es       | `src/content/lessons/es/planificador-cpu.mdx` | Written, needs review |
-| en       | `src/content/lessons/en/planificador-cpu.mdx` | Written, needs review |
+| Language | File                                          | Status             |
+| -------- | --------------------------------------------- | ------------------ |
+| es       | `src/content/lessons/es/planificador-cpu.mdx` | Written, in review |
+| en       | `src/content/lessons/en/planificador-cpu.mdx` | Written, in review |

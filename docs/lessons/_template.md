@@ -7,13 +7,13 @@ for both MDX translations and for the engine tests. Write it in English.
 Lesson prose does not belong here; the MDX files hold it.
 -->
 
-| Field          | Value                              |
-| -------------- | ---------------------------------- |
-| Id             | `<id>`                             |
-| Path / module  | <path> / <module number and name>  |
-| Engine         | `src/engines/<engine>/`            |
-| Estimated time | <minutes>                          |
-| Status         | Draft / Ready to write / Published |
+| Field          | Value                                        |
+| -------------- | -------------------------------------------- |
+| Id             | `<id>`                                       |
+| Path / module  | <path> / <module number and name>            |
+| Engine         | `src/engines/<engine>/`                      |
+| Estimated time | <minutes>                                    |
+| Status         | Draft / Ready to write / Written / Published |
 
 ## Learning objectives
 

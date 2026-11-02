@@ -24,12 +24,14 @@ Simulario is a static, bilingual (Spanish/English) site built with Astro. Lesson
 src/
   engines/            Pure simulation engines. No DOM, no Svelte, no UI strings.
     cpu-scheduling/   simulate.ts, types.ts, presets.ts, simulate.test.ts
-  player/             Generic trace player (Svelte) and its types
+    trace.ts          Trace contract shared by engines and the player
+  player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
     token/            Token, shapes
-    board/            Board, Zone, Timeline, PredictionCard, Explanation, DataTable
-    cpu-scheduler/    Views specific to the CPU scheduling engine
-    site/             Nav, LanguageSwitch, ThemeToggle, Stepper, PathMap
+    board/            Timeline (shared board pieces)
+    cpu-scheduler/    CpuScheduler: board, zones, prediction, metrics for this engine
+    lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
+    site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
     config.ts         Locales, default locale, helpers for localized paths
     ui/es.ts, ui/en.ts               Interface strings
@@ -39,13 +41,16 @@ src/
     paths/            One YAML file per learning path
     modules/          One YAML file per module
     lessons/es/, lessons/en/         One MDX file per lesson and language
-  layouts/            Base.astro, Lesson.astro
+    pages/es/, pages/en/             Standalone pages (about)
+  layouts/            Base.astro, Page.astro, Lesson.astro
   pages/
     index.astro                      Language redirect
     [lang]/index.astro               Home
+    [lang]/acerca.astro              About
     [lang]/[path]/index.astro        Path page
     [lang]/[path]/[lesson].astro     Lesson page
-  lib/                progress.ts, theme.ts
+  lib/                progress.ts, theme.ts, language.ts (browser storage),
+                      catalog.ts (content queries), events.ts (island → page events)
   styles/             tokens.css, base.css
 docs/                 design.md, architecture.md
   lessons/            One spec per lesson (_template.md, planificador-cpu.md)
@@ -68,28 +73,30 @@ Arrows point to what a layer may import. `engines/` imports nothing from the pro
 // src/engines/trace.ts (shared by engines and the player)
 export interface Explanation<K extends string = string> {
   key: K; // e.g. "fcfs.pick"
-  params?: Record<string, string | number>; // e.g. { id: "P2", arrival: 1 }
+  params?: Readonly<Record<string, string | number>>; // e.g. { id: "P2", arrival: 1 }
 }
 
-export interface Step<S, K extends string = string> {
+export interface Step<S, E extends Explanation = Explanation> {
   t: number; // simulated time at the start of the step
   state: S; // complete state after the step, never a diff
-  explain: Explanation<K>[]; // why this step happened, in order
+  explain: readonly E[]; // why this step happened, in order
 }
 
-export interface Trace<S, R, K extends string = string> {
-  steps: Step<S, K>[];
+export interface Trace<S, R, E extends Explanation = Explanation> {
+  steps: readonly Step<S, E>[];
   result: R; // final metrics and orders, used by Predict and Check
 }
 
-export type Engine<I, S, R, K extends string = string> = (input: I) => Trace<S, R, K>;
+export type Engine<I, S, R, E extends Explanation = Explanation> = (input: I) => Trace<S, R, E>;
 ```
+
+Steps are generic over the explanation type, not only its key, so an engine can tie each key to its params. The CPU engine declares `CpuExplainParams` (key → params) and derives `CpuExplanation`, a union in which `params` is required and typed per key.
 
 Rules:
 
 - Engines are deterministic, synchronous and pure: same input, same trace.
 - Each step stores the whole state, so the player can jump to any step without replaying. Traces are small (hundreds of steps).
-- Engines never produce prose. An explanation is a key plus parameters, and each engine declares its keys as a string-literal union (`CpuExplainKey`).
+- Engines never produce prose. An explanation is a key plus parameters, and each engine declares its keys and their params (`CpuExplainParams`, `CpuExplainKey`).
 - A step's explanations may contain several entries, for example "P1 finishes" followed by "P2 is first in the queue".
 
 ### CPU scheduling engine
@@ -98,12 +105,12 @@ Port of the prototype's `simulate()`. Input: processes `{ id, arrival, burst, pr
 
 ## Player
 
-A Svelte component, `Player.svelte`, plus a runes-based controller, `usePlayer.svelte.ts`:
+A Svelte component, `Player.svelte`, driven by a pure reducer in `state.ts` (`playerReducer`, `actionForKey`), which is unit-tested without the DOM:
 
 - State: `cursor` (0…steps.length), `status` (`idle | playing | paused | ended`), `speed`.
 - Controls: play/pause, step back/forward, jump to start/end, speed. Keyboard: Space, ←, →, Home, End, active while focus is inside the board.
-- Prediction gate: when a lesson defines a prediction, the first play locks the learner's guess. Afterwards the guess is compared with `trace.result`.
-- Rendering: the player receives the trace and a Svelte snippet that draws the board for `steps[cursor - 1]`. The player holds no knowledge of processes, queues or CPUs.
+- Hooks: `onfirstplay` runs before the first step is shown (the CPU board locks the prediction there) and `onend` runs each time playback reaches the last step (the lesson board unlocks the gated stages). Comparing the guess with `trace.result` is the specific view's job.
+- Rendering: the player receives the number of steps (`total`), a `traceKey` that rewinds it when the trace changes, and a Svelte snippet that draws the board for a cursor (the view reads `steps[cursor - 1]`). The player holds no knowledge of processes, queues or CPUs.
 - Accessibility: explanations of the current step are rendered into an `aria-live="polite"` region. Reduced motion disables easing.
 
 ## Internationalization
@@ -123,12 +130,15 @@ A Svelte component, `Player.svelte`, plus a runes-based controller, `usePlayer.s
 Ruta → Módulo → Lección → Componente (path → module → lesson → component).
 
 ```ts
-// src/content.config.ts (sketch)
-paths:   { id, title: {es,en}, summary: {es,en}, modules: reference('modules')[] }
+// src/content.config.ts (summary)
+paths:   { id, order, title: {es,en}, summary: {es,en} }
 modules: { id, path: reference('paths'), order, title: {es,en}, status: 'planned' | 'available' }
-lessons: { id, module: reference('modules'), order, title, summary, minutes,
-           prerequisites: reference('lessons')[] }   // MDX, one per language
+lessons: { id: "<lang>/<slug>", module: reference('modules'), order, title, summary, minutes,
+           prerequisites: string[] }   // MDX, one per language
+pages:   { id: "<lang>/<slug>", title, description }   // standalone MDX pages
 ```
+
+A path's modules are the modules whose `path` points to it, sorted by `order`. Lesson `prerequisites` are lesson slugs kept as plain strings, not references, so a lesson can name a prerequisite that is still planned (`planificador-cpu` lists `procesos-estados`). Pages must not assume every prerequisite exists.
 
 A lesson's MDX body wraps each PEE stage in `<Stage stage="…">`: `prerequisites`, `theory`, `predict`, `run`, `explain`, `experiment`, `check` and `deeper` (`src/components/lesson/stages.ts`). `Lesson.astro` builds the stepper from them. "I already know the theory" is an in-page link to the Predict stage.
 

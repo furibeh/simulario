@@ -35,7 +35,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 ## Conventions
 
 - Code, comments, commit messages, PRs and project docs are written in English. Learner-facing content is written in both Spanish and English.
-- TypeScript `strict`. Prefer `type` imports, named exports and small pure functions. No `any`; use `unknown` and narrow it.
+- TypeScript with Astro's `strictest` preset. Prefer `type` imports, named exports and small pure functions. No `any`; use `unknown` and narrow it.
 - Svelte 5 runes (`$state`, `$derived`, `$props`); no legacy stores in new code.
 - File names: `kebab-case.ts`, `PascalCase.svelte` / `.astro` for components.
 - URL slugs and content ids are shared across languages and written in Spanish kebab-case (`planificador-cpu`).
@@ -45,14 +45,14 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 
 1. Create `src/engines/<name>/` with `types.ts` (input, state, result, explanation key union), `simulate.ts` returning a `Trace` and `simulate.test.ts`.
 2. Add `src/i18n/engines/<name>.es.ts` and `.en.ts` covering every key.
-3. Build the views in `src/components/<name>/` using `Board`, `Zone`, `Token`, `Timeline` and the generic `Player`.
-4. Embed it in a lesson MDX file inside `<Run>`.
+3. Build the views in `src/components/<name>/` using `Token`, `Timeline` and the generic `Player` (`src/player/`). Board and zone styles live inside the first view (`CpuScheduler.svelte`); extract them to `src/components/board/` when a second engine needs them.
+4. Embed it in a lesson MDX file inside `<Stage stage="run">`.
 
 ## Adding a lesson
 
 0. Write the lesson spec first: copy `docs/lessons/_template.md` to `docs/lessons/<id>.md` and fill it in (objectives, misconceptions, prediction, experiments, checks, engine rules and hand-computed expected results). The MDX files and the engine tests follow it.
 1. Add `src/content/lessons/es/<id>.mdx` and `src/content/lessons/en/<id>.mdx` with the frontmatter required by `src/content.config.ts`.
-2. Follow the PEE sections in order: `<Prerequisites>`, `<Theory>` (3–5 minutes), `<Predict>`, `<Run>`, `<Explain>`, `<Experiment>`, `<Check>`, `<Deeper>` (optional).
+2. Wrap each PEE section in `<Stage stage="…">`, in this order: `prerequisites`, `theory` (3–5 minutes), `predict`, `run`, `explain`, `experiment`, `check`, `deeper` (optional). The ids live in `src/components/lesson/stages.ts`.
 3. Keep theory before Predict minimal, just enough to reason. Put depth in Explain.
 
 ## Definition of done
