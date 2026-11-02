@@ -524,12 +524,17 @@ const labels = $derived({
   .setup {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-start;
     gap: var(--space-5);
   }
 
   .setup > .card {
-    flex: 1 1 340px;
+    flex: 2 1 280px;
     min-width: 0;
+  }
+
+  .setup > .card:first-child {
+    flex: 3 1 420px;
   }
 
   .row {
@@ -565,7 +570,7 @@ const labels = $derived({
   }
 
   .workload input {
-    width: 4.5rem;
+    width: 3.5rem;
     min-height: var(--target-min);
     padding: 0 var(--space-2);
     border: var(--outline);
@@ -674,6 +679,10 @@ const labels = $derived({
 
   .token-button.placed {
     padding-right: var(--space-3);
+  }
+
+  .order li {
+    display: flex;
   }
 
   .order {
@@ -897,6 +906,20 @@ const labels = $derived({
   @media (max-width: 600px) {
     .board {
       padding: var(--space-4);
+    }
+
+    .card {
+      padding: var(--space-4);
+    }
+
+    .workload th,
+    .workload td {
+      padding: 4px 3px;
+    }
+
+    .workload input {
+      width: 2.75rem;
+      padding: 0 4px;
     }
   }
 </style>

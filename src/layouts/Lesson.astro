@@ -125,7 +125,10 @@ const t = useTranslations(lang);
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           for (const link of links.values()) link.removeAttribute("aria-current");
-          links.get(entry.target.id)?.setAttribute("aria-current", "step");
+          const current = links.get(entry.target.id);
+          current?.setAttribute("aria-current", "step");
+          // On phones the track is a sideways row: keep the current stage visible.
+          current?.scrollIntoView({ block: "nearest", inline: "nearest" });
         }
       },
       { rootMargin: "-30% 0px -60% 0px" },
@@ -182,13 +185,21 @@ const t = useTranslations(lang);
     background: var(--color-ground);
   }
 
+  /* One row that scrolls sideways, so the sticky track stays short on phones. */
   .track ol {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--space-2);
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .track li {
+    flex: none;
   }
 
   .track ol a {
@@ -253,7 +264,7 @@ const t = useTranslations(lang);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-1) var(--space-4);
+    gap: 0 var(--space-4);
   }
 
   .skip,
@@ -265,7 +276,7 @@ const t = useTranslations(lang);
 
   .show-all {
     display: none;
-    min-height: var(--target-min);
+    min-height: 32px;
     padding: 0;
     border: 0;
     background: none;
@@ -310,6 +321,7 @@ const t = useTranslations(lang);
     .track ol {
       flex-direction: column;
       gap: 0;
+      overflow: visible;
     }
 
     .track li {
@@ -356,6 +368,13 @@ const t = useTranslations(lang);
       flex-direction: column;
       align-items: flex-start;
       padding-left: 34px;
+      text-align: left;
+    }
+
+    .show-all {
+      min-height: 0;
+      padding-block: var(--space-1);
+      text-align: left;
     }
   }
 </style>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>Simulario</title>
+  <circle cx="8.5" cy="8.5" r="6.5" fill="#c93d27"/>
+  <rect x="18" y="2" width="12" height="13" rx="1" fill="#11806f"/>
+  <path d="M8.5 17l7.5 13H1z" fill="#e0a100"/>
+  <path d="M24 17l7 7-7 7-7-7z" fill="#4b3fc4"/>
+</svg>
