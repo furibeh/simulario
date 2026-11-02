@@ -70,6 +70,7 @@ export function markCompleted(storage: Writer, lessonId: string, now: Date): Pro
   return stamp(storage, lessonId, "completedAt", now);
 }
 
+/** For the path map's "done" state (design.md, PathMap); not wired yet. */
 export function isCompleted(progress: Progress, lessonId: string): boolean {
   return Boolean(progress.lessons[lessonId]?.completedAt);
 }

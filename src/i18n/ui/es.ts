@@ -86,6 +86,7 @@ export const es = {
   "cpu.fieldOf": "{field} de {id}",
   "cpu.addProcess": "Agregar proceso",
   "cpu.removeProcess": "Quitar {id}",
+  "cpu.removeColumn": "Quitar proceso",
   "cpu.presets": "Escenarios",
   "cpu.preset.convoy": "Efecto convoy",
   "cpu.preset.staggered": "Llegadas escalonadas",

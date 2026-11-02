@@ -216,7 +216,7 @@ const labels = $derived({
                 <th scope="col">{t("cpu.arrival")}</th>
                 <th scope="col">{t("cpu.burst")}</th>
                 <th scope="col">{t("cpu.priority")}</th>
-                <th scope="col"><span class="visually-hidden">{t("cpu.removeProcess", { id: "" })}</span></th>
+                <th scope="col"><span class="visually-hidden">{t("cpu.removeColumn")}</span></th>
               </tr>
             </thead>
             <tbody>

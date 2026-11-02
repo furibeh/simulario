@@ -85,6 +85,7 @@ export const en = {
   "cpu.fieldOf": "{field} of {id}",
   "cpu.addProcess": "Add process",
   "cpu.removeProcess": "Remove {id}",
+  "cpu.removeColumn": "Remove process",
   "cpu.presets": "Scenarios",
   "cpu.preset.convoy": "Convoy effect",
   "cpu.preset.staggered": "Staggered arrivals",
