@@ -1,0 +1,46 @@
+---
+import "@fontsource-variable/lexend";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import { defaultLocale, localizedPath } from "../i18n/config";
+import { dictionaries } from "../i18n/t";
+
+// Static root: picks the language on the client (Cloudflare Pages cannot redirect by Accept-Language).
+---
+
+<!doctype html>
+<html lang={defaultLocale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Simulario</title>
+    <meta name="robots" content="noindex" />
+    <script is:inline>
+      (() => {
+        let lang = null;
+        try {
+          lang = localStorage.getItem("simulario:lang");
+        } catch {}
+        if (lang !== "es" && lang !== "en") {
+          const prefs = navigator.languages ?? [navigator.language];
+          lang = "es";
+          for (const pref of prefs) {
+            const code = String(pref).slice(0, 2).toLowerCase();
+            if (code === "es" || code === "en") {
+              lang = code;
+              break;
+            }
+          }
+        }
+        location.replace(`/${lang}${location.search}${location.hash}`);
+      })();
+    </script>
+  </head>
+  <body>
+    <main class="page" style="padding-block: 64px;">
+      <h1>Simulario</h1>
+      <p lang="es">{dictionaries.es["redirect.choose"]}: <a href={localizedPath("es")}>Español</a></p>
+      <p lang="en">{dictionaries.en["redirect.choose"]}: <a href={localizedPath("en")}>English</a></p>
+    </main>
+  </body>
+</html>

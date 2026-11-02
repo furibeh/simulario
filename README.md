@@ -8,7 +8,7 @@ The first path is **Operating systems**. Its first lesson is a CPU scheduler: de
 
 ## Stack
 
-Astro 5 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest. Static output for Cloudflare Pages.
+Astro 7 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest. Static output for Cloudflare Pages.
 
 ## Getting started
 
@@ -39,12 +39,12 @@ Read more in [`docs/architecture.md`](docs/architecture.md) and [`docs/design.md
 
 ## Roadmap
 
-| Phase | Goal |
-|---|---|
+| Phase          | Goal                                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | 0, foundations | Astro project with i18n, design system, generic player, CPU scheduler lesson in both languages, progress in the browser, CI |
-| 1, first path | The 8 modules of Operating systems; public launch |
-| 2, listen | Share with students and universities, measure, adjust |
-| 3, grow | Next path (Networks or Databases), open to contributors |
+| 1, first path  | The 8 modules of Operating systems; public launch                                                                           |
+| 2, listen      | Share with students and universities, measure, adjust                                                                       |
+| 3, grow        | Next path (Networks or Databases), open to contributors                                                                     |
 
 ## License
 

@@ -1,0 +1,132 @@
+/* Design tokens. Source of truth: docs/design.md. Components use these, never literals. */
+
+:root {
+  color-scheme: light;
+
+  /* Interface */
+  --color-ground: #efedf9;
+  --color-surface: #ffffff;
+  --color-slot: #e0dcf5;
+  --color-ink: #231d3d;
+  --color-ink-muted: #5a5475;
+  --color-action: #7b6cf0;
+  --color-on-ink: #efedf9;
+  --color-good: #1d7a46;
+  --color-bad: #b42318;
+
+  /* Entities: fill and label color per slot */
+  --entity-1: #c93d27;
+  --entity-1-on: #ffffff;
+  --entity-2: #11806f;
+  --entity-2-on: #ffffff;
+  --entity-3: #e0a100;
+  --entity-3-on: #231d3d;
+  --entity-4: #4b3fc4;
+  --entity-4-on: #ffffff;
+  --entity-5: #b2327a;
+  --entity-5-on: #ffffff;
+  --entity-6: #3f7d20;
+  --entity-6-on: #ffffff;
+
+  /* Typography */
+  --font-sans: "Lexend Variable", "Lexend", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --text-display: clamp(2.5rem, 1.6rem + 3.2vw, 3.75rem);
+  --text-h2: 1.625rem;
+  --text-h3: 1.375rem;
+  --text-body: 1.0625rem;
+  --text-small: 0.9375rem;
+  --text-data: 0.875rem;
+  --leading-body: 1.55;
+  --measure: 65ch;
+
+  /* Space */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+  --space-9: 64px;
+  --page-max: 1180px;
+  --gutter: 24px;
+
+  /* Shape and depth */
+  --radius-board: 22px;
+  --radius-card: 16px;
+  --radius-bar: 10px;
+  --radius-pill: 999px;
+  --outline: 2.5px solid var(--color-ink);
+  --outline-waiting: 2.5px dashed var(--color-ink-muted);
+  --shadow-board: 0 6px 0 var(--color-ink);
+  --shadow-primary: 0 4px 0 var(--color-action);
+  --target-min: 44px;
+
+  /* Motion */
+  --duration-move: 200ms;
+  --ease-move: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --gutter: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --color-ground: #1b1730;
+    --color-surface: #262040;
+    --color-slot: #332b57;
+    --color-ink: #f1eefc;
+    --color-ink-muted: #b4adcf;
+    --color-on-ink: #1b1730;
+    --color-good: #5fd394;
+    --color-bad: #ff8a7a;
+    --entity-1: #ff8268;
+    --entity-1-on: #1b1730;
+    --entity-2: #3cc9b2;
+    --entity-2-on: #1b1730;
+    --entity-3: #ffc93d;
+    --entity-3-on: #1b1730;
+    --entity-4: #9d93ff;
+    --entity-4-on: #1b1730;
+    --entity-5: #ff8fc8;
+    --entity-5-on: #1b1730;
+    --entity-6: #9ad66b;
+    --entity-6-on: #1b1730;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ground: #1b1730;
+  --color-surface: #262040;
+  --color-slot: #332b57;
+  --color-ink: #f1eefc;
+  --color-ink-muted: #b4adcf;
+  --color-on-ink: #1b1730;
+  --color-good: #5fd394;
+  --color-bad: #ff8a7a;
+  --entity-1: #ff8268;
+  --entity-1-on: #1b1730;
+  --entity-2: #3cc9b2;
+  --entity-2-on: #1b1730;
+  --entity-3: #ffc93d;
+  --entity-3-on: #1b1730;
+  --entity-4: #9d93ff;
+  --entity-4-on: #1b1730;
+  --entity-5: #ff8fc8;
+  --entity-5-on: #1b1730;
+  --entity-6: #9ad66b;
+  --entity-6-on: #1b1730;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-move: 0ms;
+  }
+}

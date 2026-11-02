@@ -1,0 +1,54 @@
+---
+import "@fontsource-variable/lexend";
+import "../styles/tokens.css";
+import "../styles/base.css";
+import { type Locale, locales, switchLocale } from "../i18n/config";
+
+interface Props {
+  lang: Locale;
+  title: string;
+  description?: string;
+}
+
+const { lang, title, description } = Astro.props;
+const site = Astro.site ?? new URL(Astro.url.origin);
+const pathname = Astro.url.pathname;
+const alternates = locales.map((locale) => ({
+  locale,
+  href: new URL(switchLocale(pathname, locale), site).href,
+}));
+const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="canonical" href={new URL(pathname, site).href} />
+    {alternates.map((alt) => <link rel="alternate" hreflang={alt.locale} href={alt.href} />)}
+    <link rel="alternate" hreflang="x-default" href={new URL("/", site).href} />
+    <script is:inline>
+      // Apply a stored theme before first paint. Absent = follow the system.
+      try {
+        const theme = localStorage.getItem("simulario:theme");
+        if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
+    {
+      beaconToken && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: beaconToken })}
+        />
+      )
+    }
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -4,7 +4,7 @@ Guidance for AI agents and human contributors working on Simulario. Read `docs/a
 
 ## Project in one paragraph
 
-Simulario is a free, bilingual (es/en) site of interactive learning paths for systems and software engineering. Each lesson follows Predict → Run → Explain: the learner guesses what a system will do, watches a step-by-step simulation, then learns why. Stack: Astro 5 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest, deployed as a static site on Cloudflare Pages.
+Simulario is a free, bilingual (es/en) site of interactive learning paths for systems and software engineering. Each lesson follows Predict → Run → Explain: the learner guesses what a system will do, watches a step-by-step simulation, then learns why. Stack: Astro 7 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest, deployed as a static site on Cloudflare Pages.
 
 ## Commands
 
@@ -12,7 +12,7 @@ Simulario is a free, bilingual (es/en) site of interactive learning paths for sy
 pnpm install      # install dependencies (Node version in .nvmrc)
 pnpm dev          # dev server at http://localhost:4321
 pnpm lint         # Biome lint + format check
-pnpm format       # Biome format (writes)
+pnpm format       # Biome format + safe fixes (writes)
 pnpm check        # astro check + svelte-check
 pnpm test         # Vitest, single run
 pnpm build        # static build into dist/
@@ -51,7 +51,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 ## Adding a lesson
 
 0. Write the lesson spec first: copy `docs/lessons/_template.md` to `docs/lessons/<id>.md` and fill it in (objectives, misconceptions, prediction, experiments, checks, engine rules and hand-computed expected results). The MDX files and the engine tests follow it.
-1. Add `src/content/lessons/es/<id>.mdx` and `src/content/lessons/en/<id>.mdx` with the frontmatter required by `src/content/config.ts`.
+1. Add `src/content/lessons/es/<id>.mdx` and `src/content/lessons/en/<id>.mdx` with the frontmatter required by `src/content.config.ts`.
 2. Follow the PEE sections in order: `<Prerequisites>`, `<Theory>` (3–5 minutes), `<Predict>`, `<Run>`, `<Explain>`, `<Experiment>`, `<Check>`, `<Deeper>` (optional).
 3. Keep theory before Predict minimal, just enough to reason. Put depth in Explain.
 

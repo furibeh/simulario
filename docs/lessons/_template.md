@@ -7,13 +7,13 @@ for both MDX translations and for the engine tests. Write it in English.
 Lesson prose does not belong here; the MDX files hold it.
 -->
 
-| Field | Value |
-|---|---|
-| Id | `<id>` |
-| Path / module | <path> / <module number and name> |
-| Engine | `src/engines/<engine>/` |
-| Estimated time | <minutes> |
-| Status | Draft / Ready to write / Published |
+| Field          | Value                              |
+| -------------- | ---------------------------------- |
+| Id             | `<id>`                             |
+| Path / module  | <path> / <module number and name>  |
+| Engine         | `src/engines/<engine>/`            |
+| Estimated time | <minutes>                          |
+| Status         | Draft / Ready to write / Published |
 
 ## Learning objectives
 
@@ -30,9 +30,9 @@ By the end of the lesson the learner can:
 
 Each misconception should be exposed by at least one prediction, experiment or check question.
 
-| # | Misconception | Where it is exposed |
-|---|---|---|
-| M1 | <wrong belief> | Predict / Experiment E1 / Check C2 |
+| #   | Misconception  | Where it is exposed                |
+| --- | -------------- | ---------------------------------- |
+| M1  | <wrong belief> | Predict / Experiment E1 / Check C2 |
 
 ## Minimal theory (before Predict)
 
@@ -58,15 +58,15 @@ Only what the learner needs to reason about the prediction, 3–5 minutes of rea
 
 ## Experiment
 
-| # | Challenge | One valid solution | Why it works |
-|---|---|---|---|
-| E1 | <goal phrased as "Make …"> | <parameters> | <one sentence> |
+| #   | Challenge                  | One valid solution | Why it works   |
+| --- | -------------------------- | ------------------ | -------------- |
+| E1  | <goal phrased as "Make …"> | <parameters>       | <one sentence> |
 
 ## Check
 
-| # | Question | Answer | Targets |
-|---|---|---|---|
-| C1 | <question> | <answer> | M1 |
+| #   | Question   | Answer   | Targets |
+| --- | ---------- | -------- | ------- |
+| C1  | <question> | <answer> | M1      |
 
 ## Engine behavior
 
@@ -80,9 +80,9 @@ Only what the learner needs to reason about the prediction, 3–5 minutes of rea
 
 ### Explanation keys
 
-| Key | Params | Example (es) | Example (en) |
-|---|---|---|---|
-| `<key>` | `<params>` | <text> | <text> |
+| Key     | Params     | Example (es) | Example (en) |
+| ------- | ---------- | ------------ | ------------ |
+| `<key>` | `<params>` | <text>       | <text>       |
 
 ## Expected results (hand-computed)
 
@@ -93,12 +93,12 @@ Tests in `src/engines/<engine>/` assert these values. Compute them by hand from 
 <input table>
 
 | Variant | Schedule / trace summary | Metrics | Order |
-|---|---|---|---|
+| ------- | ------------------------ | ------- | ----- |
 
 ### Edge cases
 
 | Case | Input | Expected |
-|---|---|---|
+| ---- | ----- | -------- |
 
 ## Go deeper (optional section)
 
@@ -110,7 +110,7 @@ Tests in `src/engines/<engine>/` assert these values. Compute them by hand from 
 
 ## Translations
 
-| Language | File | Status |
-|---|---|---|
-| es | `src/content/lessons/es/<id>.mdx` | Not started |
-| en | `src/content/lessons/en/<id>.mdx` | Not started |
+| Language | File                              | Status      |
+| -------- | --------------------------------- | ----------- |
+| es       | `src/content/lessons/es/<id>.mdx` | Not started |
+| en       | `src/content/lessons/en/<id>.mdx` | Not started |

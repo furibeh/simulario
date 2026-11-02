@@ -1,0 +1,24 @@
+---
+import ThemeToggle from "../../components/site/ThemeToggle.svelte";
+import { type Locale, locales } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import Base from "../../layouts/Base.astro";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const t = useTranslations(lang);
+---
+
+<Base lang={lang} title={t("site.name")} description={t("site.tagline")}>
+  <main class="page" style="padding-block: 64px;">
+    <ThemeToggle
+      client:load
+      labels={{ system: t("theme.toSystem"), light: t("theme.toLight"), dark: t("theme.toDark") }}
+    />
+    <h1>{t("site.name")}</h1>
+    <p>{t("site.tagline")}</p>
+  </main>
+</Base>

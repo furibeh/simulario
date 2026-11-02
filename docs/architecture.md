@@ -4,19 +4,19 @@ Simulario is a static, bilingual (Spanish/English) site built with Astro. Lesson
 
 ## Stack
 
-| Piece | Choice |
-|---|---|
-| Framework | Astro 5, static output |
-| Content | MDX + content collections (zod schemas) |
-| Interactive islands | Svelte 5 (runes) |
-| Language | TypeScript, `strict` |
-| Package manager | pnpm |
-| Lint and format | Biome (TS/JS/JSON/CSS); `astro check` and `svelte-check` for `.astro` and `.svelte` types |
-| Tests | Vitest |
-| Hosting | Cloudflare Pages (automatic deploy comes after Phase 0) |
-| Analytics | Cloudflare Web Analytics, enabled only when `PUBLIC_CF_BEACON_TOKEN` is set |
-| Search | Pagefind, one index per language (Phase 1) |
-| CI | GitHub Actions |
+| Piece               | Choice                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| Framework           | Astro 7, static output                                                                    |
+| Content             | MDX + content collections (zod schemas)                                                   |
+| Interactive islands | Svelte 5 (runes)                                                                          |
+| Language            | TypeScript 6, `strictest`                                                                 |
+| Package manager     | pnpm                                                                                      |
+| Lint and format     | Biome (TS/JS/JSON/CSS); `astro check` and `svelte-check` for `.astro` and `.svelte` types |
+| Tests               | Vitest                                                                                    |
+| Hosting             | Cloudflare Pages (automatic deploy comes after Phase 0)                                   |
+| Analytics           | Cloudflare Web Analytics, enabled only when `PUBLIC_CF_BEACON_TOKEN` is set               |
+| Search              | Pagefind, one index per language (Phase 1)                                                |
+| CI                  | GitHub Actions                                                                            |
 
 ## Directory layout
 
@@ -34,8 +34,8 @@ src/
     config.ts         Locales, default locale, helpers for localized paths
     ui/es.ts, ui/en.ts               Interface strings
     engines/cpu-scheduling.es.ts …   Explanation templates per engine
+  content.config.ts   Collection schemas
   content/
-    config.ts         Collection schemas
     paths/            One YAML file per learning path
     modules/          One YAML file per module
     lessons/es/, lessons/en/         One MDX file per lesson and language
@@ -67,19 +67,19 @@ Arrows point to what a layer may import. `engines/` imports nothing from the pro
 ```ts
 // src/player/types.ts
 export interface Explanation<K extends string = string> {
-  key: K;                                   // e.g. "fcfs.pick"
+  key: K; // e.g. "fcfs.pick"
   params?: Record<string, string | number>; // e.g. { id: "P2", arrival: 1 }
 }
 
 export interface Step<S, K extends string = string> {
-  t: number;                 // simulated time at the start of the step
-  state: S;                  // complete state after the step, never a diff
+  t: number; // simulated time at the start of the step
+  state: S; // complete state after the step, never a diff
   explain: Explanation<K>[]; // why this step happened, in order
 }
 
 export interface Trace<S, R, K extends string = string> {
   steps: Step<S, K>[];
-  result: R;                 // final metrics and orders, used by Predict and Check
+  result: R; // final metrics and orders, used by Predict and Check
 }
 
 export type Engine<I, S, R, K extends string = string> = (input: I) => Trace<S, R, K>;
@@ -123,7 +123,7 @@ A Svelte component, `Player.svelte`, plus a runes-based controller, `usePlayer.s
 Ruta → Módulo → Lección → Componente (path → module → lesson → component).
 
 ```ts
-// src/content/config.ts (sketch)
+// src/content.config.ts (sketch)
 paths:   { id, title: {es,en}, summary: {es,en}, modules: reference('modules')[] }
 modules: { id, path: reference('paths'), order, title: {es,en}, status: 'planned' | 'available' }
 lessons: { id, module: reference('modules'), order, title, summary, minutes,
@@ -137,7 +137,10 @@ A lesson's MDX body follows the PEE structure with layout components: `<Prerequi
 `src/lib/progress.ts` stores progress in `localStorage` under `simulario:progress:v1`:
 
 ```json
-{ "v": 1, "lessons": { "planificador-cpu": { "step": "run", "completedAt": "2026-11-02T10:00:00Z" } } }
+{
+  "v": 1,
+  "lessons": { "planificador-cpu": { "step": "run", "completedAt": "2026-11-02T10:00:00Z" } }
+}
 ```
 
 - Every read and write is wrapped in `try/catch`. Without storage (private mode, blocked cookies) the site works and simply forgets.
@@ -150,23 +153,23 @@ A lesson's MDX body follows the PEE structure with layout components: `<Prerequi
 
 ## Quality gates
 
-| Gate | Command | Runs in CI |
-|---|---|---|
-| Lint and format | `pnpm lint` (`biome ci`) | yes |
-| Types | `pnpm check` (`astro check` + `svelte-check`) | yes |
-| Unit tests | `pnpm test` (`vitest run`) | yes |
-| Build | `pnpm build` | yes |
+| Gate            | Command                                       | Runs in CI |
+| --------------- | --------------------------------------------- | ---------- |
+| Lint and format | `pnpm lint` (`biome ci`)                      | yes        |
+| Types           | `pnpm check` (`astro check` + `svelte-check`) | yes        |
+| Unit tests      | `pnpm test` (`vitest run`)                    | yes        |
+| Build           | `pnpm build`                                  | yes        |
 
 Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left.
 
 ## Decisions
 
-| # | Decision | Reason |
-|---|---|---|
-| 1 | Static site, no backend | Free hosting, no accounts needed for learning |
-| 2 | Engine/player split with full-state steps | Write the player once; step back is free; engines are trivially testable |
-| 3 | Engines emit keys, not text | Bilingual from day one; engines and tests are language-independent |
-| 4 | Both locales prefixed | Symmetric URLs; neither language is second-class |
-| 5 | Svelte for islands | Small runtime, fine-grained reactivity for per-tick updates |
-| 6 | Tokens (shape + color) for entities | Accessible identity without relying on color (see `design.md`) |
-| 7 | Biome instead of ESLint + Prettier | One fast tool; type checkers cover `.astro`/`.svelte` |
+| #   | Decision                                  | Reason                                                                   |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------ |
+| 1   | Static site, no backend                   | Free hosting, no accounts needed for learning                            |
+| 2   | Engine/player split with full-state steps | Write the player once; step back is free; engines are trivially testable |
+| 3   | Engines emit keys, not text               | Bilingual from day one; engines and tests are language-independent       |
+| 4   | Both locales prefixed                     | Symmetric URLs; neither language is second-class                         |
+| 5   | Svelte for islands                        | Small runtime, fine-grained reactivity for per-tick updates              |
+| 6   | Tokens (shape + color) for entities       | Accessible identity without relying on color (see `design.md`)           |
+| 7   | Biome instead of ESLint + Prettier        | One fast tool; type checkers cover `.astro`/`.svelte`                    |

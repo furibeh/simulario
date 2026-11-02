@@ -1,0 +1,21 @@
+Lesson content license
+
+Copyright (c) 2026 Felipe Uribe Holguin
+
+The educational content of Simulario is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0). This covers
+lesson text, exercises, questions, lesson specifications and diagrams in:
+
+  - src/content/
+  - docs/lessons/
+
+You are free to share and adapt the material for any purpose, including
+commercially, as long as you give appropriate credit, provide a link to the
+license, indicate if changes were made, and distribute your contributions
+under the same license.
+
+Human-readable summary: https://creativecommons.org/licenses/by-sa/4.0/
+Full legal code:        https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Source code (everything else in this repository) is licensed under the MIT
+License; see LICENSE.
