@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`sistemas-operativos`) / 2, CPU scheduling |
 | Engine         | `src/engines/cpu-scheduling/`                                 |
 | Estimated time | 30–40 minutes                                                 |
-| Status         | Ready to write                                                |
+| Status         | Written, in review                                            |
 
 Origin: the single-file prototype _Planificador de CPU_ (claude.ai artifact). This spec fixes its behavior so the engine port can be tested against hand-computed values.
 
@@ -238,7 +238,7 @@ Notes: P1 and P2 arrive together and enter the queue in input order. In SJF and 
 
 ## Translations
 
-| Language | File                                          | Status      |
-| -------- | --------------------------------------------- | ----------- |
-| es       | `src/content/lessons/es/planificador-cpu.mdx` | Not started |
-| en       | `src/content/lessons/en/planificador-cpu.mdx` | Not started |
+| Language | File                                          | Status                |
+| -------- | --------------------------------------------- | --------------------- |
+| es       | `src/content/lessons/es/planificador-cpu.mdx` | Written, needs review |
+| en       | `src/content/lessons/en/planificador-cpu.mdx` | Written, needs review |
