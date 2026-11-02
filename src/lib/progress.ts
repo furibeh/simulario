@@ -3,6 +3,8 @@
 export const PROGRESS_KEY = "simulario:progress:v1";
 
 export interface LessonProgress {
+  /** First time the gated stages (Explain, Experiment, Check) were opened. */
+  unlockedAt?: string;
   completedAt?: string;
 }
 
@@ -36,14 +38,20 @@ export function readProgress(storage: Reader): Progress {
   }
 }
 
-export function markCompleted(storage: Writer, lessonId: string, now: Date): Progress {
+/** Sets a timestamp field once (the first date is kept) and saves. */
+function stamp(
+  storage: Writer,
+  lessonId: string,
+  field: keyof LessonProgress,
+  now: Date,
+): Progress {
   const progress = readProgress(storage);
   const lesson = progress.lessons[lessonId] ?? {};
   const next: Progress = {
     ...progress,
     lessons: {
       ...progress.lessons,
-      [lessonId]: { ...lesson, completedAt: lesson.completedAt ?? now.toISOString() },
+      [lessonId]: { ...lesson, [field]: lesson[field] ?? now.toISOString() },
     },
   };
   try {
@@ -54,6 +62,20 @@ export function markCompleted(storage: Writer, lessonId: string, now: Date): Pro
   return next;
 }
 
+export function markUnlocked(storage: Writer, lessonId: string, now: Date): Progress {
+  return stamp(storage, lessonId, "unlockedAt", now);
+}
+
+export function markCompleted(storage: Writer, lessonId: string, now: Date): Progress {
+  return stamp(storage, lessonId, "completedAt", now);
+}
+
 export function isCompleted(progress: Progress, lessonId: string): boolean {
   return Boolean(progress.lessons[lessonId]?.completedAt);
+}
+
+/** A completed lesson counts as unlocked too. */
+export function isUnlocked(progress: Progress, lessonId: string): boolean {
+  const lesson = progress.lessons[lessonId];
+  return Boolean(lesson?.unlockedAt || lesson?.completedAt);
 }

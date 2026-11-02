@@ -31,6 +31,8 @@ const beaconToken = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     {alternates.map((alt) => <link rel="alternate" hreflang={alt.locale} href={alt.href} />)}
     <link rel="alternate" hreflang="x-default" href={new URL("/", site).href} />
     <script is:inline>
+      // Lets CSS tell that scripts run (gated lesson stages stay open without JS).
+      document.documentElement.classList.add("js");
       // Apply a stored theme before first paint. Absent = follow the system.
       try {
         const theme = localStorage.getItem("simulario:theme");

@@ -69,6 +69,11 @@ export const en = {
   "lesson.stage.experiment": "Experiment",
   "lesson.stage.check": "Check",
   "lesson.stage.deeper": "Go deeper",
+  "lesson.locked": "locked",
+  "lesson.locked.note": "This stage opens when you run the simulation to the end.",
+  "lesson.locked.goRun": "Go to the simulation",
+  "lesson.showAll": "Show all stages",
+  "lesson.unlocked": "The Explain, Experiment and Check stages are now open.",
   "lesson.fallback": "This lesson is not translated into English yet. Here is the Spanish version.",
 
   "cpu.workload": "Workload",

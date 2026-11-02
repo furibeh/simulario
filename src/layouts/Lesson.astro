@@ -1,10 +1,12 @@
 ---
-import { stepperStages } from "../components/lesson/stages";
+import { isGated, stepperStages } from "../components/lesson/stages";
 import { type Locale, localizedPath } from "../i18n/config";
 import { useTranslations } from "../i18n/t";
 import Page from "./Page.astro";
 
 interface Props {
+  /** Content id shared across languages; keys progress. */
+  lessonId: string;
   lang: Locale;
   /** Language the lesson content is written in (differs from `lang` on a fallback page). */
   contentLang: Locale;
@@ -17,8 +19,18 @@ interface Props {
   moduleOrder: number;
 }
 
-const { lang, contentLang, isFallback, title, summary, minutes, pathId, moduleTitle, moduleOrder } =
-  Astro.props;
+const {
+  lessonId,
+  lang,
+  contentLang,
+  isFallback,
+  title,
+  summary,
+  minutes,
+  pathId,
+  moduleTitle,
+  moduleOrder,
+} = Astro.props;
 const t = useTranslations(lang);
 ---
 
@@ -40,25 +52,84 @@ const t = useTranslations(lang);
     )
   }
 
-  <nav class="stepper" aria-label={t("lesson.stages")}>
-    <ol>
-      {
-        stepperStages.map((stage, i) => (
-          <li>
-            <a href={`#${stage}`}>
-              {i + 1}. {t(`lesson.stage.${stage}`)}
-            </a>
-          </li>
-        ))
-      }
-    </ol>
-    <a class="skip" href="#predict">{t("lesson.skipTheory")}</a>
-  </nav>
+  <div class="lesson" data-lesson={lessonId}>
+    <nav class="stepper" aria-label={t("lesson.stages")}>
+      <ol>
+        {
+          stepperStages.map((stage, i) => (
+            <li>
+              <a href={`#${stage}`} data-stage-link={stage} data-gated={isGated(stage) ? "" : undefined}>
+                {isGated(stage) && (
+                  <svg class="lock" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+                    <rect x="5" y="11" width="14" height="10" rx="2" />
+                    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                  </svg>
+                )}
+                {i + 1}. {t(`lesson.stage.${stage}`)}
+                {isGated(stage) && <span class="visually-hidden lock-label">({t("lesson.locked")})</span>}
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+      <a class="skip" href="#predict">{t("lesson.skipTheory")}</a>
+      <button type="button" class="show-all" data-show-all>{t("lesson.showAll")}</button>
+    </nav>
 
-  <article class="lesson-body" lang={contentLang}>
-    <slot />
-  </article>
+    <p class="visually-hidden" aria-live="polite" data-unlock-status data-message={t("lesson.unlocked")}></p>
+
+    <article class="lesson-body" lang={contentLang}>
+      <slot />
+    </article>
+  </div>
 </Page>
+
+<script>
+  import { RUN_FINISHED_EVENT } from "../lib/events";
+  import { isUnlocked, markUnlocked, readProgress } from "../lib/progress";
+
+  const lesson = document.querySelector<HTMLElement>("[data-lesson]");
+  const lessonId = lesson?.dataset["lesson"];
+
+  if (lesson && lessonId) {
+    const status = lesson.querySelector<HTMLElement>("[data-unlock-status]");
+    const showAll = lesson.querySelector<HTMLButtonElement>("[data-show-all]");
+
+    const unlock = (persist: boolean, announce: boolean) => {
+      if (lesson.dataset["unlocked"] !== undefined) return;
+      lesson.dataset["unlocked"] = "";
+      if (showAll) showAll.hidden = true;
+      if (persist) markUnlocked(globalThis.localStorage, lessonId, new Date());
+      if (announce && status) status.textContent = status.dataset["message"] ?? "";
+    };
+
+    if (isUnlocked(readProgress(globalThis.localStorage), lessonId)) unlock(false, false);
+    document.addEventListener(RUN_FINISHED_EVENT, () => unlock(true, true));
+    showAll?.addEventListener("click", () => unlock(true, true));
+
+    // Mark the stage in view as the current step.
+    const links = new Map(
+      [...lesson.querySelectorAll<HTMLAnchorElement>("[data-stage-link]")].map((a) => [
+        a.dataset["stageLink"],
+        a,
+      ]),
+    );
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          for (const link of links.values()) link.removeAttribute("aria-current");
+          links.get(entry.target.id)?.setAttribute("aria-current", "step");
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px" },
+    );
+    for (const id of links.keys()) {
+      const section = id ? document.getElementById(id) : null;
+      if (section) observer.observe(section);
+    }
+  }
+</script>
 
 <style>
   .lesson-head {
@@ -124,9 +195,62 @@ const t = useTranslations(lang);
     background: var(--color-slot);
   }
 
+  .stepper ol a[aria-current="step"] {
+    background: var(--color-ink);
+    color: var(--color-on-ink);
+  }
+
+  .lock {
+    display: none;
+    margin-right: 6px;
+  }
+
+  .lock-label {
+    display: none;
+  }
+
+  :global(.js) .lesson:not([data-unlocked]) [data-gated] {
+    border-style: dashed;
+    color: var(--color-ink-muted);
+  }
+
+  :global(.js) .lesson:not([data-unlocked]) [data-gated] .lock {
+    display: inline;
+  }
+
+  :global(.js) .lesson:not([data-unlocked]) [data-gated] .lock-label {
+    display: inline;
+  }
+
   .skip {
     font-size: var(--text-small);
     font-weight: 700;
+  }
+
+  .show-all {
+    display: none;
+    margin-left: auto;
+    min-height: var(--target-min);
+    padding: 0 var(--space-4);
+    border: 0;
+    background: none;
+    color: var(--color-ink);
+    font-size: var(--text-small);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
+  :global(.js) .lesson:not([data-unlocked]) .show-all {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .lesson {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
   }
 
   .lesson-body {

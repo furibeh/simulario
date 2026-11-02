@@ -1,7 +1,7 @@
 ---
 import { defaultLocale, isLocale } from "../../i18n/config";
 import { useTranslations } from "../../i18n/t";
-import { type StageId, stageIds } from "./stages";
+import { isGated, type StageId, stageIds } from "./stages";
 
 interface Props {
   stage: StageId;
@@ -18,6 +18,7 @@ const locale = isLocale(lang)
 const t = useTranslations(locale);
 if (!stageIds.includes(stage)) throw new Error(`Unknown lesson stage "${stage}"`);
 const optional = stage === "deeper";
+const gated = isGated(stage);
 ---
 
 {
@@ -31,8 +32,23 @@ const optional = stage === "deeper";
       </div>
     </details>
   ) : (
-    <section class:list={["stage", stage]} id={stage} aria-labelledby={`${stage}-title`}>
+    <section
+      class:list={["stage", stage]}
+      id={stage}
+      aria-labelledby={`${stage}-title`}
+      data-gated={gated ? "" : undefined}
+    >
       <h2 id={`${stage}-title`}>{t(`lesson.stage.${stage}`)}</h2>
+      {gated && (
+        <div class="locked-note">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="10" rx="2" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+          <p>{t("lesson.locked.note")}</p>
+          <a href="#run">{t("lesson.locked.goRun")}</a>
+        </div>
+      )}
       <div class="body">
         <slot />
       </div>
@@ -45,7 +61,42 @@ const optional = stage === "deeper";
     display: flex;
     flex-direction: column;
     gap: var(--space-4);
-    scroll-margin-top: var(--space-6);
+    scroll-margin-top: 88px;
+  }
+
+  /* Gated stages: closed only when scripts run and the lesson is not unlocked yet. */
+  .locked-note {
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border: var(--outline-waiting);
+    border-radius: var(--radius-card);
+    color: var(--color-ink-muted);
+  }
+
+  .locked-note a {
+    color: var(--color-ink);
+    font-weight: 700;
+  }
+
+  :global(.js [data-lesson]:not([data-unlocked])) [data-gated] .locked-note {
+    display: flex;
+  }
+
+  :global(.js [data-lesson]:not([data-unlocked])) [data-gated] .body {
+    display: none;
+  }
+
+  [data-gated] .body {
+    animation: reveal var(--duration-move) var(--ease-move);
+  }
+
+  @keyframes reveal {
+    from {
+      opacity: 0;
+    }
   }
 
   .body {

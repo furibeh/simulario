@@ -14,6 +14,7 @@ import { cpuSchedulingEs } from "../../i18n/engines/cpu-scheduling.es";
 import { renderExplanation } from "../../i18n/engines/types";
 import { formatNumber, useTranslations } from "../../i18n/t";
 import type { UiKey } from "../../i18n/ui/es";
+import { announceRunFinished } from "../../lib/events";
 import Player from "../../player/Player.svelte";
 import Timeline from "../board/Timeline.svelte";
 import { slotForId } from "../token/shapes";
@@ -323,7 +324,14 @@ const labels = $derived({
   {/if}
 
   <div class="board">
-    <Player {total} {traceKey} {labels} {announce} onfirstplay={lockPrediction}>
+    <Player
+      {total}
+      {traceKey}
+      {labels}
+      {announce}
+      onfirstplay={lockPrediction}
+      onend={variant === "lesson" ? announceRunFinished : undefined}
+    >
       {#snippet board(cursor)}
         {@const view = boardAt(cursor)}
         <div class="board-head">

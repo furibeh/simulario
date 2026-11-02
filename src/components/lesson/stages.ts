@@ -21,3 +21,10 @@ export const stepperStages = [
   "experiment",
   "check",
 ] as const satisfies readonly StageId[];
+
+/** Stages that stay closed until the learner finishes a run (or chooses to show everything). */
+export const gatedStages = ["explain", "experiment", "check"] as const satisfies readonly StageId[];
+
+export function isGated(stage: StageId): boolean {
+  return (gatedStages as readonly StageId[]).includes(stage);
+}

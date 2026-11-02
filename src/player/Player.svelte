@@ -28,11 +28,13 @@ interface Props {
   announce: (cursor: number) => string;
   /** Called once before the first step is shown (e.g. to lock a prediction). */
   onfirstplay?: () => void;
+  /** Called each time playback reaches the last step. */
+  onend?: (() => void) | undefined;
   /** Draws the simulation for the current cursor (0 = before the first step). */
   board: Snippet<[number]>;
 }
 
-let { total, traceKey, labels, announce, onfirstplay, board }: Props = $props();
+let { total, traceKey, labels, announce, onfirstplay, onend, board }: Props = $props();
 
 const speeds = [
   { ms: 900, key: "slow" },
@@ -60,7 +62,9 @@ function dispatch(action: PlayerAction) {
     started = true;
     onfirstplay?.();
   }
+  const before = playback.status;
   playback = playerReducer(playback, action);
+  if (playback.status === "ended" && before !== "ended") onend?.();
 }
 
 $effect(() => {

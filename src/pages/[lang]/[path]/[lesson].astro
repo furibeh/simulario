@@ -14,12 +14,13 @@ export async function getStaticPaths() {
 
 type Props = Awaited<ReturnType<typeof getLessonPages>>[number];
 
-const { entry, module, pathId, contentLang, isFallback } = Astro.props;
+const { entry, module, pathId, contentLang, isFallback, slug } = Astro.props;
 const lang = Astro.params.lang as Locale;
 const { Content } = await render(entry);
 ---
 
 <Lesson
+  lessonId={slug}
   lang={lang}
   contentLang={contentLang}
   isFallback={isFallback}

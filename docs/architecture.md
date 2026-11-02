@@ -130,7 +130,18 @@ lessons: { id, module: reference('modules'), order, title, summary, minutes,
            prerequisites: reference('lessons')[] }   // MDX, one per language
 ```
 
-A lesson's MDX body follows the PEE structure with layout components: `<Prerequisites>`, `<Theory>`, `<Predict>`, `<Run>`, `<Explain>`, `<Experiment>`, `<Check>` and `<Deeper>`. `Lesson.astro` builds the stepper from those sections. "I already know the theory" is an in-page link to `<Predict>`.
+A lesson's MDX body wraps each PEE stage in `<Stage stage="…">`: `prerequisites`, `theory`, `predict`, `run`, `explain`, `experiment`, `check` and `deeper` (`src/components/lesson/stages.ts`). `Lesson.astro` builds the stepper from them. "I already know the theory" is an in-page link to the Predict stage.
+
+### One page, gated stages
+
+A lesson is a single page so the simulation keeps its state across stages. To avoid spoilers, **Explain, Experiment and Check stay closed until the learner runs the simulation to the end**:
+
+- The board's player calls `onend` when playback reaches the last step; the lesson board then dispatches `simulario:run-finished` on `document` (`src/lib/events.ts`).
+- A script in `Lesson.astro` listens for it, sets `data-unlocked` on the lesson wrapper, records `unlockedAt` in progress and announces the change through an `aria-live` region.
+- "Show all stages" unlocks without running, for review or teachers preparing a class.
+- Returning learners whose progress says unlocked (or completed) see everything open.
+- Closed stages stay in the HTML. CSS hides their body only when scripts run (`.js` on `<html>`, set by an inline script before first paint), so no-JS visitors and crawlers get the whole lesson.
+- The stepper marks the stage in view with `aria-current="step"` and shows a lock on gated stages while they are closed.
 
 ## Progress
 
@@ -139,12 +150,18 @@ A lesson's MDX body follows the PEE structure with layout components: `<Prerequi
 ```json
 {
   "v": 1,
-  "lessons": { "planificador-cpu": { "step": "run", "completedAt": "2026-11-02T10:00:00Z" } }
+  "lessons": {
+    "planificador-cpu": {
+      "unlockedAt": "2026-11-02T09:40:00Z",
+      "completedAt": "2026-11-02T10:00:00Z"
+    }
+  }
 }
 ```
 
 - Every read and write is wrapped in `try/catch`. Without storage (private mode, blocked cookies) the site works and simply forgets.
-- A lesson is completed when its Check section is answered.
+- Gated stages are unlocked when a run reaches its last step or the learner chooses to show all stages (`unlockedAt`).
+- A lesson is completed when every Check question has been answered (`completedAt`). Completed implies unlocked.
 - No personal data. Accounts and server sync (Supabase) are out of scope until there is demand.
 
 ## Theme
@@ -164,12 +181,13 @@ Engine tests cover every preset × algorithm against the hand-computed metrics a
 
 ## Decisions
 
-| #   | Decision                                  | Reason                                                                   |
-| --- | ----------------------------------------- | ------------------------------------------------------------------------ |
-| 1   | Static site, no backend                   | Free hosting, no accounts needed for learning                            |
-| 2   | Engine/player split with full-state steps | Write the player once; step back is free; engines are trivially testable |
-| 3   | Engines emit keys, not text               | Bilingual from day one; engines and tests are language-independent       |
-| 4   | Both locales prefixed                     | Symmetric URLs; neither language is second-class                         |
-| 5   | Svelte for islands                        | Small runtime, fine-grained reactivity for per-tick updates              |
-| 6   | Tokens (shape + color) for entities       | Accessible identity without relying on color (see `design.md`)           |
-| 7   | Biome instead of ESLint + Prettier        | One fast tool; type checkers cover `.astro`/`.svelte`                    |
+| #   | Decision                                  | Reason                                                                         |
+| --- | ----------------------------------------- | ------------------------------------------------------------------------------ |
+| 1   | Static site, no backend                   | Free hosting, no accounts needed for learning                                  |
+| 2   | Engine/player split with full-state steps | Write the player once; step back is free; engines are trivially testable       |
+| 3   | Engines emit keys, not text               | Bilingual from day one; engines and tests are language-independent             |
+| 4   | Both locales prefixed                     | Symmetric URLs; neither language is second-class                               |
+| 5   | Svelte for islands                        | Small runtime, fine-grained reactivity for per-tick updates                    |
+| 6   | Tokens (shape + color) for entities       | Accessible identity without relying on color (see `design.md`)                 |
+| 7   | Biome instead of ESLint + Prettier        | One fast tool; type checkers cover `.astro`/`.svelte`                          |
+| 8   | One page per lesson with gated stages     | The board keeps its state across stages; gating avoids spoiling the prediction |

@@ -69,6 +69,11 @@ export const es = {
   "lesson.stage.experiment": "Experimentar",
   "lesson.stage.check": "Comprobar",
   "lesson.stage.deeper": "Profundizar",
+  "lesson.locked": "bloqueada",
+  "lesson.locked.note": "Esta etapa se abre cuando ejecutas la simulación hasta el final.",
+  "lesson.locked.goRun": "Ir a la simulación",
+  "lesson.showAll": "Mostrar todas las etapas",
+  "lesson.unlocked": "Se abrieron las etapas Explicar, Experimentar y Comprobar.",
   "lesson.fallback":
     "Esta lección todavía no está traducida al español. Te mostramos la versión en inglés.",
 
