@@ -27,7 +27,9 @@ export function assertValidInput(input: CpuInput): void {
   const inRange = (v: number, r: { min: number; max: number }) =>
     Number.isInteger(v) && v >= r.min && v <= r.max;
   if (processes.length < limits.processes.min || processes.length > limits.processes.max) {
-    throw new RangeError(`Expected 2–6 processes, got ${processes.length}`);
+    throw new RangeError(
+      `Expected ${limits.processes.min}–${limits.processes.max} processes, got ${processes.length}`,
+    );
   }
   const ids = new Set<string>();
   for (const p of processes) {

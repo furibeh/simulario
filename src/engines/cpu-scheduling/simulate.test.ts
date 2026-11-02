@@ -281,12 +281,16 @@ describe("edge cases", () => {
     expect(trace.result.processes[0]?.finish).toBe(2);
   });
 
-  it("RR with a quantum at least as long as every burst behaves like FCFS (E1)", () => {
-    const rr = simulate({ processes: presets.similar, algorithm: "rr", quantum: 5 });
-    const fcfs = simulate({ processes: presets.similar, algorithm: "fcfs", quantum: 5 });
-    expect(rr.result.finishOrder).toEqual(fcfs.result.finishOrder);
-    expect(rr.result.averages).toEqual(fcfs.result.averages);
-  });
+  for (const quantum of [5, 6]) {
+    it(`RR with quantum ${quantum} on similar bursts behaves like FCFS (E1)`, () => {
+      const rr = simulate({ processes: presets.similar, algorithm: "rr", quantum });
+      expect(schedule({ processes: presets.similar, algorithm: "rr", quantum })).toBe(
+        expected.similar.fcfs.schedule,
+      );
+      expect(rr.result.finishOrder.join(" ")).toBe(expected.similar.fcfs.order);
+      expect(rr.result.averages.waiting).toBeCloseTo(expected.similar.fcfs.avg[1], 10);
+    });
+  }
 });
 
 describe("explanations", () => {
