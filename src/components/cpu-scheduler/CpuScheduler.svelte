@@ -40,13 +40,12 @@ let {
 const t = $derived(useTranslations(lang));
 const fields = ["arrival", "burst", "priority"] as const;
 const templates = $derived(lang === "es" ? cpuSchedulingEs : cpuSchedulingEn);
-const algoLabel: Record<Algorithm, string> = $derived({
-  fcfs: "FCFS",
-  sjf: "SJF",
-  srtf: "SRTF",
-  priority: lang === "es" ? "Prioridad" : "Priority",
-  rr: "RR",
-});
+const algoLabel = $derived(
+  Object.fromEntries(algorithms.map((a) => [a, t(`cpu.algo.${a}.short`)])) as Record<
+    Algorithm,
+    string
+  >,
+);
 const num = (v: number) => formatNumber(lang, v);
 const shapeName = (id: string) => t(`shape.${slotForId(id)}` as UiKey);
 const tokenLabel = (id: string) => `${id}, ${shapeName(id)}`;

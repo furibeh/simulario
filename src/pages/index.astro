@@ -13,7 +13,7 @@ import { dictionaries } from "../i18n/t";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Simulario</title>
+    <title>{dictionaries[defaultLocale]["site.name"]}</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="robots" content="noindex" />
     <script is:inline>
@@ -38,10 +38,16 @@ import { dictionaries } from "../i18n/t";
     </script>
   </head>
   <body>
-    <main class="page" style="padding-block: 64px;">
-      <h1>Simulario</h1>
-      <p lang="es">{dictionaries.es["redirect.choose"]}: <a href={localizedPath("es")}>Español</a></p>
-      <p lang="en">{dictionaries.en["redirect.choose"]}: <a href={localizedPath("en")}>English</a></p>
+    <main class="page root">
+      <h1>{dictionaries[defaultLocale]["site.name"]}</h1>
+      <p lang="es">{dictionaries.es["redirect.choose"]}: <a href={localizedPath("es")}>{dictionaries.es["lang.es"]}</a></p>
+      <p lang="en">{dictionaries.en["redirect.choose"]}: <a href={localizedPath("en")}>{dictionaries.en["lang.en"]}</a></p>
     </main>
   </body>
 </html>
+
+<style>
+  .root {
+    padding-block: var(--space-9);
+  }
+</style>
