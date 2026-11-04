@@ -1,0 +1,198 @@
+---
+title: "Synchronization: mutexes and semaphores"
+summary: A producer fills a small buffer and a consumer empties it. Three semaphores coordinate them without anyone spinning, and swapping two lines is enough to stop everything.
+module: sincronizacion
+order: 1
+minutes: 35
+prerequisites:
+  - condiciones-carrera
+  - procesos-estados
+---
+
+import BoundedBuffer from "../../../components/bounded-buffer/BoundedBuffer.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Race conditions, critical sections and mutual exclusion (lesson *Threads and race conditions*).
+- The ready and blocked states, and the ready queue (lesson *Processes and their states*).
+
+</Stage>
+
+<Stage stage="theory">
+
+A **semaphore** is a counter that never goes below 0, plus a queue of blocked threads. It has two operations, and each one is indivisible:
+
+- `wait(s)`: if `s > 0`, subtract 1 and the thread continues. If `s = 0`, the thread **blocks** in the queue of `s` and gives up the CPU.
+- `signal(s)`: if a thread is blocked on `s`, wake the first one: its `wait` completes and it joins the ready queue; the counter does not change. If nobody is waiting, add 1.
+
+Think of the counter as a number of permits. `wait` takes one or waits until there is one; `signal` returns one and, if someone is waiting, hands it over directly.
+
+A semaphore that starts at 1 and is always used as `wait … signal` around a critical section gives **mutual exclusion**: it is a **mutex**.
+
+The **bounded buffer** has *N* slots used in a circle. Producers write at slot `in` and consumers read at slot `out`; both indexes advance one at a time and wrap back to 0 at the end. Writing a slot and advancing `in` is a critical section, just like `counter++`. The solution uses three semaphores:
+
+| Semaphore | Counts | Starts at |
+| --- | --- | --- |
+| `empty` | free slots | *N* |
+| `full` | filled slots | 0 |
+| `mutex` | permission to touch the indexes | 1 |
+
+```
+producer:              consumer:
+  wait(empty)            wait(full)
+  wait(mutex)            wait(mutex)
+  put item               take item
+  signal(mutex)          signal(mutex)
+  signal(full)           signal(empty)
+```
+
+> Example: `s = 1`. Thread A does `wait(s)`: `s` becomes 0 and A continues. Thread B does `wait(s)`: B blocks. A does `signal(s)`: B wakes up holding the permit and `s` stays at 0.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board starts with **Fast producer**: one producer, P1, that makes 3 items; one consumer, C1; a buffer of **2 slots**; the correct code and **no quantum**, so a thread keeps the CPU until it blocks or finishes. P1 runs first.
+
+Answer the two questions in the *Your prediction* panel before you run:
+
+1. **Which thread blocks first, and on which semaphore?**
+2. **What does `empty` hold right after C1's first `signal(empty)`?**
+
+</Stage>
+
+<Stage stage="run">
+
+<BoundedBuffer client:visible lang="en" />
+
+As it runs, watch three moments:
+
+- At step 11, P1 tries to put a third item. Does it keep using the CPU?
+- At step 16, C1 does `signal(empty)`. Does the counter change?
+- At step 22, C1 does `wait(full)`. Who gets the CPU?
+
+Below the board you will see the consumed items, in order, and every block with its step and semaphore.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answers were: **P1 blocks first, on `empty`**, and **`empty` holds 0** after the first `signal(empty)`.
+
+**Blocking is not spinning.** P1 fills both slots and at step 11 its `wait(empty)` finds 0. It does not overwrite anything and it does not keep checking in a loop: it joins the queue of `empty` and gives up the CPU. A blocked thread costs nothing until someone wakes it. If you thought C1 would block first because the buffer starts empty, notice that C1 does not even get the CPU until P1 blocks.
+
+**`signal` does not always add.** At step 16, C1 frees a slot with `signal(empty)`, but P1 is waiting on `empty`. The permit goes straight to P1, which wakes up, and the counter stays at 0. At step 21, on the other hand, nobody is waiting on `empty` (P1 is already ready) and the counter rises to 1.
+
+**Two kinds of waiting.** `empty` and `full` make threads wait for a **condition**: room or data. `mutex` makes them wait for **exclusive access**. A mutex alone protects the indexes, but it cannot wait for room: the producer would have to release the lock, look again and again, and burn CPU.
+
+**The order of the waits matters.** If the producer does `wait(mutex)` before `wait(empty)` and finds the buffer full, it blocks **while holding the mutex**. The consumer, the only one that could free a slot, needs the mutex first and blocks too. Nobody can ever `signal`: that is a **deadlock**. The rule: wait for the condition first, then take the mutex, and release it as soon as possible.
+
+**A bug that depends on the interleaving.** The swapped version finishes fine with quantum 1, because the consumer frees a slot before the producer takes the mutex with the buffer full. Like a race condition, a timing-dependent deadlock can hide for thousands of runs.
+
+**POSIX does the same in another order.** Here `signal` hands the permit straight to the waiter. In POSIX, `sem_post` adds 1 and wakes a thread, which subtracts 1 when it runs. Once the woken thread moves on, the counter holds the same value either way.
+
+**A mutex and a semaphore are not the same.** A mutex has an owner: only the thread that locked it may unlock it, which lets the system catch mistakes and apply priority inheritance. A semaphore has no owner: any thread may `signal`, and that is exactly why `full` and `empty` work as messages between producer and consumer.
+
+**In real systems.** POSIX offers `sem_wait` and `sem_post`, and `pthread_mutex_lock` and `pthread_mutex_unlock`; Java has `java.util.concurrent.Semaphore`; Python has `threading.Semaphore` and `queue.Queue`, a ready-made bounded buffer. On Linux, mutexes and semaphores are built on the `futex` system call: when nobody competes for the lock, taking and releasing it never enters the kernel.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Make the program stop forever.</summary>
+
+Load *Swapped order*. At step 12, P1 blocks on `empty` holding the mutex; at step 14, C1 blocks on `mutex`. Neither can wake the other.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Make the swapped version finish without changing its code.</summary>
+
+In *Swapped order*, choose *Quantum* and set it to 1. One-operation turns let C1 free a slot before P1 takes the mutex with the buffer full. It finishes in 30 steps, but the bug is still there.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Make the producer in <em>Fast producer</em> never block.</summary>
+
+Raise the buffer to 3 slots. `empty` starts at 3, one permit per item. C1 does not block either: when it gets the CPU, `full` already holds 3.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Make a producer block on <code>mutex</code>.</summary>
+
+Load *Two producers*. At step 5, P2 tries to take the mutex while P1 holds it to put its item.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="mutex-semaforos"
+  questions={[
+    {
+      question: "A semaphore holds 0 and a thread calls wait on it. What happens?",
+      options: ["The counter drops to −1 and the thread continues", "The thread keeps checking in a loop", "The thread blocks in the semaphore's queue and gives up the CPU"],
+      answer: 2,
+      explanation: "It blocks and uses no CPU until another thread signals that semaphore.",
+    },
+    {
+      question: "What are the initial values of empty, full and mutex for a buffer of 5 slots?",
+      options: ["0, 5, 1", "5, 0, 1", "5, 0, 0"],
+      answer: 1,
+      explanation: "empty counts free slots (5), full counts filled ones (0) and mutex starts at 1 to let one thread in.",
+    },
+    {
+      question: "The producer does wait(mutex) and then wait(empty), and the buffer is full. What can happen?",
+      options: ["Nothing, the order does not matter", "It blocks holding the mutex and the consumer blocks on mutex: deadlock", "The producer overwrites the oldest slot"],
+      answer: 1,
+      explanation: "The only thread that could free a slot needs a mutex that will never be released.",
+    },
+    {
+      question: "A thread calls signal(empty) while another is blocked on empty. What happens to the counter?",
+      options: ["It goes up by 1", "It does not change: the permit goes to the blocked thread, which wakes up", "It goes down by 1"],
+      answer: 1,
+      explanation: "The permit is handed over directly. In POSIX the counter goes up and the woken thread takes it back down: same result.",
+    },
+    {
+      question: "The swapped version ran 100 times without stopping. Is it correct?",
+      options: ["Yes", "No: another interleaving deadlocks"],
+      answer: 1,
+      explanation: "With quantum 1 it finishes; with no quantum it stops. The bug depends on the interleaving.",
+    },
+    {
+      question: "What can a semaphore do that a mutex does not allow?",
+      options: ["Be released by a thread other than the one that waited on it", "Protect a critical section", "Block a thread"],
+      answer: 0,
+      explanation: "A mutex has an owner. A semaphore does not, which is why it works for signaling between threads.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Condition variables and monitors.** `pthread_cond_wait` and, in Java, `synchronized` with `wait` and `notify` are another way to wait for a condition without spinning.
+- **Readers–writers and the dining philosophers.** More classic synchronization problems; the philosophers open the next module, deadlock.
+- **Priority inversion.** An urgent thread waits for a mutex held by a low-priority one, which in turn is pushed aside by a medium one. It happened to the Mars Pathfinder probe in 1997; priority inheritance fixes it.
+- **Futexes.** How Linux keeps uncontended locks out of the kernel.
+
+Further reading:
+
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 31, section 31.4. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., sections 6.5, 6.6 and 7.1.1.
+- Dijkstra, *Cooperating sequential processes* (EWD 123), 1965: [cs.utexas.edu](https://www.cs.utexas.edu/~EWD/transcriptions/EWD01xx/EWD123.html).
+- `sem_overview(7)` and `futex(7)` manual pages: [man7.org](https://man7.org/linux/man-pages/man7/sem_overview.7.html).
+
+</Stage>
