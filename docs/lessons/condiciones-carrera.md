@@ -209,6 +209,10 @@ Order: T1, T2, T2, T2, T2, T2, T2, T1, T1, T2, T1, T1, T1, T1, T1, T1, T2, T2 (1
 
 Final 2, expected 6, lost 4, stale stores 2, switches 5 (`pick` at steps 0, 1, 7, 9, 10, 16), complete.
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` replays OSTEP Figure 26.7 (the lost update, shifted from 50 to 0): manual order T1, T1, T2, T2, T2, T1 ends at 1 with T1's store stale.
+
 ### Edge cases
 
 | Case                     | Input                                        | Expected                                                                              |

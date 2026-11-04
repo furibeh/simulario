@@ -165,6 +165,10 @@ FIFO 15, LRU 12, OPT 9, traced by hand; they match the values published in Silbe
 
 Clock 3, traced by hand: faults at references 1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 15, 16, 18, 20; hits at 5, 7, 10, 13, 17, 19. 14 faults. Final frames 0 7 1.
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` replays Figures 22.1, 22.2 and 22.5 of OSTEP (reference string `0 1 2 0 1 3 0 3 1 2 1`, 3 frames): the hits, misses, FIFO queue and LRU recency states match the book. The only difference is OPT's second victim, a tie between two pages never used again: the book evicts 3, this lesson's rule evicts the lowest slot (page 0). Both are optimal.
+
 ### Edge cases
 
 | Case            | Input                                  | Expected                                    |
