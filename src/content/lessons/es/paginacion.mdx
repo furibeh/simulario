@@ -1,0 +1,187 @@
+---
+title: Memoria virtual y paginación
+summary: Sigue cada dirección virtual por la TLB, la tabla de páginas y el disco hasta su dirección física, y descubre por qué un fallo de página no es un error.
+module: memoria-virtual
+order: 1
+minutes: 35
+prerequisites:
+  - procesos-estados
+---
+
+import AddressTranslation from "../../../components/address-translation/AddressTranslation.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Qué es un proceso (lección *Procesos y sus estados*).
+- Leer números en binario. Basta con saber que los últimos 4 bits de un número son su resto al dividir entre 16.
+
+</Stage>
+
+<Stage stage="theory">
+
+Toda dirección que usa un programa es **virtual**. El sistema operativo y el hardware la traducen a una dirección **física** en la RAM.
+
+La memoria se corta en bloques del mismo tamaño: **páginas** en la memoria virtual y **marcos** en la física. Aquí miden 16 bytes; en los sistemas reales, 4 KiB.
+
+Una dirección virtual se parte en dos:
+
+- **Número de página** = dirección ÷ tamaño de página (división entera).
+- **Desplazamiento** = el resto.
+
+Con páginas de 16 bytes, el desplazamiento son los 4 bits de la derecha y el número de página el resto. Por ejemplo, 70 = `100 0110`: página 4 (`100`), desplazamiento 6 (`0110`).
+
+La **tabla de páginas** dice dónde está cada página: en un marco, en disco (es válida pero no está cargada) o inválida (no forma parte del programa). La **dirección física** es marco × tamaño de página + desplazamiento. El desplazamiento nunca cambia.
+
+La **TLB** es una caché diminuta y rápida, dentro de la CPU, con las traducciones recientes (página → marco). Si la página está ahí (acierto), no hace falta leer la tabla de páginas. Si no (fallo de TLB), se lee la tabla y se guarda la traducción; si la TLB está llena, se olvida la que lleva más tiempo sin usarse.
+
+Un **fallo de página** ocurre cuando la página es válida pero está en disco: el sistema operativo la carga en un marco libre, actualiza la tabla y el acceso se repite. Es lento, pero normal. Si la página es **inválida**, el sistema termina el proceso (violación de segmento).
+
+Costos en este simulador: TLB 1, memoria 100, fallo de página 10 000 unidades de tiempo.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero empieza con **Recorrido**: páginas de 16 bytes, 8 páginas virtuales, 4 marcos y una TLB de 2 entradas, vacía al empezar. El marco 1 está libre.
+
+| Página | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Dónde está | marco 2 | marco 0 | disco | marco 3 | disco | inválida | inválida | disco |
+
+El programa accede a las direcciones **20, 25, 70, 23, 3 y 90**. **¿Qué pasa en cada acceso?** Acierto en la TLB, fallo de TLB con la página en memoria, fallo de página o página inválida. Responde en el panel *Tu predicción* antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<AddressTranslation client:visible lang="es" />
+
+Mientras avanza, fíjate en cuatro momentos:
+
+- Acceso 1 (20): ¿qué parte de la dirección cambia al traducirla?
+- Acceso 3 (70): ¿cuánto cuesta comparado con los demás?
+- Acceso 5 (3): la TLB está llena. ¿Qué sale de la TLB? ¿Sale también de la memoria?
+- Acceso 6 (90): ¿por qué este no se resuelve cargando la página?
+
+Debajo del tablero, la tabla de accesos suma el costo de cada uno.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era: **fallo de TLB, acierto, fallo de página, acierto, fallo de TLB y página inválida**.
+
+**Un fallo de página no es un error.** La tabla de páginas distingue «en disco» de «inválida». La página 4 está en disco: el sistema operativo la carga en el marco libre y el acceso termina en la dirección física 22. La página 5 no pertenece al programa: eso sí es un error, y Linux envía la señal `SIGSEGV`. Los fallos de página son la forma normal de cargar páginas cuando se necesitan (paginación bajo demanda); un programa puede tener miles por segundo.
+
+**Para qué sirve la TLB.** Sin ella, cada acceso necesita al menos dos lecturas de memoria: la tabla de páginas y el dato. Los accesos 2 y 4 están en la página 1, que ya estaba en la TLB desde el acceso 1, así que se saltan la tabla. Las TLB reales tienen desde decenas hasta unos pocos miles de entradas y aciertan más del 99 % de las veces, porque los programas reutilizan direcciones cercanas (localidad).
+
+**Solo se traduce el número de página.** Los bits del desplazamiento pasan tal cual: 20 = página 1, desplazamiento 4, y la física es 0 × 16 + 4 = 4. Por eso el tamaño de página es una potencia de 2.
+
+**Cualquier página en cualquier marco.** La página 0 está en el marco 2 y la página 1 en el marco 0. La memoria virtual contigua no necesita memoria física contigua, y así desaparece la fragmentación externa.
+
+**Los fallos de página dominan el costo.** El recorrido cuesta 201 + 101 + 10 201 + 101 + 201 + 101 = 10 906 unidades, y el acceso con el fallo de página es el 94 % de ese total. En una máquina real, la TLB responde en torno a 1 ns, la DRAM en unos 100 ns, y un fallo de página servido desde un SSD tarda decenas o cientos de microsegundos; desde un disco duro, milisegundos.
+
+**Sacar una página de la memoria.** Si no hay marcos libres, el sistema saca una página al disco (aquí, la que se cargó primero; la siguiente lección compara mejores elecciones). Su entrada en la tabla vuelve a decir «disco», y su entrada en la TLB **debe borrarse**: si no, la TLB traduciría a un marco que ahora tiene otra página. La página no se pierde: el siguiente acceso a ella será un fallo de página.
+
+**Tablas de páginas reales.** Con páginas de 4 KiB y direcciones de 48 bits, una tabla plana necesitaría 2³⁶ entradas por proceso. x86-64 usa un árbol de 4 niveles (5 niveles y direcciones de 57 bits en procesadores recientes con LA57), así que un fallo de TLB puede recorrer 4 o 5 niveles. Las páginas grandes (2 MiB, 1 GiB) permiten que una sola entrada de TLB cubra mucha más memoria, y las entradas llevan un identificador del espacio de direcciones (PCID) para no vaciar la TLB en cada cambio de contexto.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Haz que <em>Recorrido</em> cueste más sin cambiar los accesos.</summary>
+
+Pon la TLB en 0 entradas: el total sube a 11 100. Cada acceso lee ahora la tabla de páginas, así que los que antes acertaban en la TLB pasan de costar 101 a costar 200.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Consigue cuatro aciertos de TLB en seis accesos.</summary>
+
+Accesos 20, 25, 23, 30, 3 y 6, con TLB de 2 entradas: aciertan el 2, el 3, el 4 y el 6. Todos caen en la página 1 o en la 0: cada página falla una vez y después acierta.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Haz que una página vuelva del disco después de haber salido.</summary>
+
+Carga *Memoria llena*. No hay marcos libres, así que en el acceso 2 la página 0 sale al disco y la TLB la olvida. En el acceso 5 el programa vuelve a pedirla y hay otro fallo de página.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Haz que la simulación se detenga en el primer acceso.</summary>
+
+Pon como primer acceso la dirección 100: página 6, inválida. No hay nada que cargar; el proceso termina.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="paginacion"
+  questions={[
+    {
+      question: "Un programa accede a una página válida que está en disco. ¿Qué pasa?",
+      options: ["El sistema termina el programa", "Fallo de página: el sistema la carga en un marco y el acceso termina", "El acceso se ignora"],
+      answer: 1,
+      explanation: "Es un fallo de página, una parte normal de la memoria virtual. Solo las páginas inválidas terminan el programa.",
+    },
+    {
+      question: "Dos accesos seguidos a la misma página, con TLB. ¿Cuántas lecturas de la tabla de páginas necesita el segundo?",
+      options: ["Ninguna", "Una", "Dos"],
+      answer: 0,
+      explanation: "La traducción quedó en la TLB con el primer acceso: el segundo acierta.",
+    },
+    {
+      question: "Páginas de 16 bytes; la dirección virtual 37 está en una página cargada en el marco 5. ¿Cuál es la dirección física?",
+      options: ["37", "85", "80"],
+      answer: 1,
+      explanation: "37 es la página 2, desplazamiento 5. Física: 5 × 16 + 5 = 85. El desplazamiento no cambia.",
+    },
+    {
+      question: "El sistema saca la página 4 al disco. ¿Qué debe pasar con su entrada en la TLB?",
+      options: ["Nada", "Debe borrarse, o la TLB apuntaría a un marco que ahora tiene otra página", "Debe apuntar al disco"],
+      answer: 1,
+      explanation: "Una traducción vieja en la TLB llevaría el acceso a datos de otra página.",
+    },
+    {
+      question: "La página 0 salió al disco y el programa vuelve a usarla. ¿Qué pasa?",
+      options: ["Sus datos se perdieron", "Un fallo de página la vuelve a traer a un marco", "El programa termina"],
+      answer: 1,
+      explanation: "Una página que sale de la memoria sigue en disco. Como en el acceso 5 de Memoria llena.",
+    },
+    {
+      question: "¿Por qué los sistemas reales usan tablas de páginas de varios niveles?",
+      options: ["Para que la traducción sea más rápida", "Porque una tabla plana para 48 bits sería enorme; con niveles solo existen las partes usadas", "Para tener más memoria física"],
+      answer: 1,
+      explanation: "Con páginas de 4 KiB y 48 bits, una tabla plana tendría 2³⁶ entradas por proceso.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Tablas de varios niveles a mano**, y tablas de páginas invertidas.
+- **Copia en escritura y archivos proyectados en memoria.** Después de `fork()`, padre e hijo comparten páginas hasta que uno escribe; `mmap` carga un archivo con fallos de página.
+- **Fallos menores y mayores.** Un fallo menor encuentra la página ya en memoria (por ejemplo, compartida); uno mayor la lee del disco. `/usr/bin/time -v` y `perf stat -e page-faults` los cuentan.
+- **Invalidaciones de TLB en varios núcleos.** Cuando una página deja de estar en memoria, cada núcleo que la tenga en su TLB debe olvidarla.
+
+Para leer más:
+
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, caps. 18 a 21. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., secciones 9.3 y 10.2.
+- Documentación del núcleo Linux, *5-level paging*: [docs.kernel.org](https://docs.kernel.org/arch/x86/x86_64/5level-paging.html).
+
+</Stage>
