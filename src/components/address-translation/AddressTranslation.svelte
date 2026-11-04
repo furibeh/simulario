@@ -111,6 +111,12 @@ function initialState(): Omit<TranslationState, "access"> {
   return { pages: input.pages, tlb: [], frames, fifo: [] };
 }
 
+/** Outcome label; without a TLB a "miss" is simply a page found in memory. */
+function outcomeText(outcome: Outcome | "notRun", short = false): string {
+  const key = outcome === "miss" && input.tlbSize === 0 ? "memory" : outcome;
+  return short && key !== "notRun" ? t(`at.outcome.${key}.short`) : t(`at.outcome.${key}`);
+}
+
 function whereText(p: PageEntry): string {
   if (p.kind === "frame") return t("at.where.frame", { n: p.frame });
   return t(`at.where.${p.kind}`);
@@ -184,7 +190,7 @@ const labels = $derived({
             <span class="predict-addr">{address}</span>
             <select aria-label={t("at.predict.cell", { n: i + 1, addr: address })} value={guesses[i] ?? ""} onchange={(e) => { const next = [...guesses]; next[i] = e.currentTarget.value as Guess; guesses = next; }}>
               <option value="">{t("ps.predict.choose")}</option>
-              {#each choices as c (c)}<option value={c}>{t(`at.outcome.${c}`)}</option>{/each}
+              {#each choices as c (c)}<option value={c}>{outcomeText(c)}</option>{/each}
             </select>
           </li>
         {/each}
@@ -231,7 +237,7 @@ const labels = $derived({
                 </p>
               {/if}
             </div>
-            <p class="outcome-line"><strong>{t(`at.outcome.${access.outcome}`)}</strong> · {t("at.log.cost")} {formatNumber(lang, access.cost, 0)}</p>
+            <p class="outcome-line"><strong>{outcomeText(access.outcome)}</strong> · {t("at.log.cost")} {formatNumber(lang, access.cost, 0)}</p>
           {:else}
             <p class="empty">{t("at.waiting")}</p>
           {/if}
@@ -330,12 +336,12 @@ const labels = $derived({
                       <span class="predict-addr">{r.addr}</span>
                       {#if r.guess === r.actual}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-good)" stroke-width="3.2" aria-hidden="true"><path d="M4 12l5 5L20 6" /></svg>
-                        {t(`at.outcome.${r.actual}`)}<span class="visually-hidden">, {t("cpu.predict.match")}</span>
+                        {outcomeText(r.actual)}<span class="visually-hidden">, {t("cpu.predict.match")}</span>
                       {:else}
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-bad)" stroke-width="3.2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                        <s>{r.guess ? t(`at.outcome.${r.guess}`) : "–"}</s>
+                        <s>{r.guess ? outcomeText(r.guess) : "–"}</s>
                         <span class="visually-hidden">, {t("cpu.predict.miss")}</span>
-                        <span class="actual">{t("ps.predict.actual", { state: t(`at.outcome.${r.actual}`) })}</span>
+                        <span class="actual">{t("ps.predict.actual", { state: outcomeText(r.actual) })}</span>
                       {/if}
                     </li>
                   {/each}
@@ -369,7 +375,7 @@ const labels = $derived({
                     <td>{a.address}</td>
                     <td>{a.page}</td>
                     <td>{a.offset}</td>
-                    <td class="left">{t(`at.outcome.${a.outcome}.short`)}</td>
+                    <td class="left">{outcomeText(a.outcome, true)}</td>
                     <td>{a.phys ?? "–"}</td>
                     <td>{formatNumber(lang, a.cost, 0)}</td>
                   </tr>

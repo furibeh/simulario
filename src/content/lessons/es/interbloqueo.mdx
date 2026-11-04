@@ -81,7 +81,7 @@ Basta romper una para que el interbloqueo sea imposible.
 
 **Prevención con un orden global.** Numera los recursos y pídelos siempre de menor a mayor. Un ciclo necesitaría que alguien tuviera un recurso alto mientras espera uno más bajo, y el orden lo impide: se rompe la espera circular. En la mesa solo cambia un filósofo, T5, que pasa a tomar R1 antes que R5. Los demás ya tomaban primero el tenedor de número menor.
 
-**Esperar no es estar interbloqueado.** Con el orden global, tras el paso 8 hay cuatro filósofos bloqueados a la vez, pero sus flechas forman una cadena que termina en T4, que tiene sus dos tenedores. T4 come, suelta, y la cadena se deshace de uno en uno.
+**Esperar no es estar interbloqueado.** Con el orden global, tras el paso 8 hay cuatro filósofos bloqueados a la vez, pero sus flechas forman una cadena que termina en T4, que tiene R4 y encuentra R5 libre: lo toma en su siguiente turno, come, suelta, y la cadena se deshace de uno en uno.
 
 **El resto del sistema sigue.** En *Dos cerrojos*, T1 y T2 se interbloquean en el paso 8, pero T3, que solo usa R3, termina con normalidad. El sistema no se congela: los hilos del ciclo simplemente no vuelven nunca.
 
@@ -114,7 +114,7 @@ Activa el *Orden global*. Solo cambia T5 (toma R1 antes que R5) y la espera circ
 <details>
 <summary><strong>2.</strong> Encuentra un momento en que cuatro hilos esperan a la vez sin interbloqueo.</summary>
 
-Con el orden global, tras el paso 8. Las flechas discontinuas forman una cadena que termina en T4, que tiene sus dos tenedores y puede comer.
+Con el orden global, tras el paso 8. Las flechas discontinuas forman una cadena que termina en T4, que tiene R4 y todavía puede tomar R5, que está libre.
 
 </details>
 
@@ -157,7 +157,7 @@ Pon el retraso de T2 en 2 (o más). T1 toma R2 antes de que T2 lo pida. Con retr
       question: "Cuatro hilos están bloqueados esperando cerrojos, pero el grafo no tiene ciclos. ¿Hay interbloqueo?",
       options: ["Sí", "No: la cadena termina en un hilo que puede correr y se deshace"],
       answer: 1,
-      explanation: "Es lo que pasa con el orden global tras el paso 8: T4 come y libera a los demás uno a uno.",
+      explanation: "Es lo que pasa con el orden global tras el paso 8: T4 toma R5, come y libera a los demás uno a uno.",
     },
     {
       question: "Añadir un pequeño retraso antes de T2 hace desaparecer el interbloqueo en las pruebas. ¿Está arreglado?",

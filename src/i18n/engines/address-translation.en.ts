@@ -15,7 +15,7 @@ export const addressTranslationEn: ExplainTemplates<TranslationExplainParams> = 
   load: ({ page, frame }) =>
     `Page ${page} is loaded into frame ${frame} and the page table is updated.`,
   segfault: ({ page }) =>
-    `Page ${page} is not part of the program: the operating system kills it (segmentation fault).`,
+    `Page ${page} is not part of the program: the operating system kills the program (segmentation fault).`,
   "tlb.evict": ({ page }) => `The TLB is full: it forgets page ${page}, the least recently used.`,
   "tlb.fill": ({ page, frame }) => `The TLB stores the translation page ${page} → frame ${frame}.`,
   access: ({ frame, offset, pageSize, phys }) =>

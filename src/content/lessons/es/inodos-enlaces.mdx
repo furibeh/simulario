@@ -91,7 +91,7 @@ Lo correcto era: el paso 6 muestra **«hola mundo»** y el paso 7 da **un error*
 
 **También se acaban los inodos.** `df -i` muestra cuántos quedan. Muchos archivos diminutos pueden agotar los inodos aunque sobren bloques.
 
-**Sistemas reales.** ext4 usa inodos de 256 bytes y bloques de 4 KiB, y describe los datos con **extents** (un bloque inicial y una longitud) en lugar de un puntero por bloque. El inodo clásico de Unix tenía 12 punteros directos y bloques indirectos simple, doble y triple.
+**Sistemas reales.** ext4 usa inodos de 256 bytes y bloques de 4 KiB, y describe los datos con **extents** (un bloque inicial y una longitud) en lugar de un puntero por bloque. El inodo de ext2 y ext3 (como el de BSD FFS) tiene 12 punteros directos y bloques indirectos simple, doble y triple.
 
 </Stage>
 
@@ -138,8 +138,8 @@ En *Enlaces*, cambia el paso 6 por `rename copia.txt final.txt`. La entrada camb
   questions={[
     {
       question: "ln a b (enlace duro). ¿Cuántos inodos y cuántas copias de los datos hay ahora?",
-      options: ["Dos inodos y dos copias", "Un inodo, una copia de los datos y dos nombres", "Dos inodos y una copia"],
-      answer: 1,
+      options: ["Un inodo, una copia de los datos y dos nombres", "Dos inodos y dos copias", "Dos inodos y una copia"],
+      answer: 0,
       explanation: "Un enlace duro es otra entrada de directorio para el mismo inodo. No se copia nada.",
     },
     {
@@ -150,8 +150,8 @@ En *Enlaces*, cambia el paso 6 por `rename copia.txt final.txt`. La entrada camb
     },
     {
       question: "Un proceso tiene un archivo abierto y borras su único nombre. ¿Cuándo vuelve el espacio?",
-      options: ["Al instante", "Cuando el proceso lo cierra", "Nunca"],
-      answer: 1,
+      options: ["Nunca", "Al instante", "Cuando el proceso lo cierra"],
+      answer: 2,
       explanation: "Con el contador en 0 y ningún descriptor abierto, el sistema libera el inodo y sus bloques.",
     },
     {
@@ -162,14 +162,14 @@ En *Enlaces*, cambia el paso 6 por `rename copia.txt final.txt`. La entrada camb
     },
     {
       question: "mv grande.iso copia.iso en el mismo sistema de archivos. ¿Qué cambia?",
-      options: ["Se copian todos los bloques", "Solo la entrada del directorio", "El número de inodo"],
-      answer: 1,
+      options: ["El número de inodo", "Se copian todos los bloques", "Solo la entrada del directorio"],
+      answer: 2,
       explanation: "El inodo y sus bloques no se mueven; por eso es instantáneo.",
     },
     {
       question: "¿Dónde se guarda el nombre de un archivo?",
-      options: ["En su inodo", "En la entrada del directorio", "En el primer bloque de datos"],
-      answer: 1,
+      options: ["En la entrada del directorio", "En su inodo", "En el primer bloque de datos"],
+      answer: 0,
       explanation: "El inodo no sabe cómo se llama; por eso puede tener varios nombres.",
     },
   ]}

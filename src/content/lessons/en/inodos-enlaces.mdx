@@ -91,7 +91,7 @@ The right answers were: step 6 shows **"hola mundo"** and step 7 gives **an erro
 
 **Inodes run out too.** `df -i` shows how many are left. Many tiny files can exhaust the inodes while blocks are still free.
 
-**Real systems.** ext4 uses 256-byte inodes and 4 KiB blocks, and describes data with **extents** (a starting block and a length) instead of one pointer per block. The classic Unix inode had 12 direct pointers plus single, double and triple indirect blocks.
+**Real systems.** ext4 uses 256-byte inodes and 4 KiB blocks, and describes data with **extents** (a starting block and a length) instead of one pointer per block. The ext2/ext3 inode (like BSD FFS) has 12 direct pointers plus single, double and triple indirect blocks.
 
 </Stage>
 
@@ -138,8 +138,8 @@ In *Links*, change step 6 to `rename copia.txt final.txt`. The entry gets a new 
   questions={[
     {
       question: "ln a b (a hard link). How many inodes and how many copies of the data are there now?",
-      options: ["Two inodes and two copies", "One inode, one copy of the data and two names", "Two inodes and one copy"],
-      answer: 1,
+      options: ["One inode, one copy of the data and two names", "Two inodes and two copies", "Two inodes and one copy"],
+      answer: 0,
       explanation: "A hard link is another directory entry for the same inode. Nothing is copied.",
     },
     {
@@ -150,8 +150,8 @@ In *Links*, change step 6 to `rename copia.txt final.txt`. The entry gets a new 
     },
     {
       question: "A process has a file open and you remove its only name. When does the space come back?",
-      options: ["Immediately", "When the process closes it", "Never"],
-      answer: 1,
+      options: ["Never", "Immediately", "When the process closes it"],
+      answer: 2,
       explanation: "With the count at 0 and no open descriptors, the system frees the inode and its blocks.",
     },
     {
@@ -162,14 +162,14 @@ In *Links*, change step 6 to `rename copia.txt final.txt`. The entry gets a new 
     },
     {
       question: "mv big.iso copy.iso on the same file system. What changes?",
-      options: ["Every block is copied", "Only the directory entry", "The inode number"],
-      answer: 1,
+      options: ["The inode number", "Every block is copied", "Only the directory entry"],
+      answer: 2,
       explanation: "The inode and its blocks do not move; that is why it is instant.",
     },
     {
       question: "Where is a file's name stored?",
-      options: ["In its inode", "In the directory entry", "In the first data block"],
-      answer: 1,
+      options: ["In the directory entry", "In its inode", "In the first data block"],
+      answer: 0,
       explanation: "The inode does not know its own name; that is why it can have several.",
     },
   ]}

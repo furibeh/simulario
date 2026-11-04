@@ -60,8 +60,8 @@ describe("race-conditions explanation templates", () => {
       ],
       [
         { key: "store.stale", params: { id: "T2", value: 1, loaded: 0, before: 1 } },
-        "T2 escribe 1 en counter, que ya valía 1. Lo calculó a partir de 0: borra lo que otros sumaron desde entonces.",
-        "T2 writes 1 to counter, which already held 1. It computed it from 0: it erases what others added since then.",
+        "T2 escribe 1 en counter, que valía 1. Lo calculó a partir de 0, un valor que ya no estaba al día: su escritura pisa lo que otros escribieron desde entonces.",
+        "T2 writes 1 to counter, which held 1. It computed it from 0, a value that was no longer current: its write overwrites what others wrote since then.",
       ],
       [
         { key: "preempt", params: { id: "T2", quantum: 1 } },

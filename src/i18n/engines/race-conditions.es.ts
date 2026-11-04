@@ -11,7 +11,7 @@ export const raceConditionsEs: ExplainTemplates<RaceExplainParams> = {
     `${id} suma 1 en su registro: ahora vale ${value}. counter sigue en ${counter}.`,
   store: ({ id, value }) => `${id} escribe ${value} en counter.`,
   "store.stale": ({ id, value, loaded, before }) =>
-    `${id} escribe ${value} en counter, que ya valía ${before}. Lo calculó a partir de ${loaded}: borra lo que otros sumaron desde entonces.`,
+    `${id} escribe ${value} en counter, que valía ${before}. Lo calculó a partir de ${loaded}, un valor que ya no estaba al día: su escritura pisa lo que otros escribieron desde entonces.`,
   inc: ({ id, value }) => `${id} incrementa counter de forma atómica: ahora vale ${value}.`,
   finish: ({ id }) => `${id} terminó todos sus incrementos.`,
 };

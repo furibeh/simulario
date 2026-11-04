@@ -81,7 +81,7 @@ This is called a **race condition**: the result depends on the order in which th
 
 **What threads share.** T1's 1 was safe in its register while T2 ran, because each thread has its own registers and the system saves them on every switch. `counter`, on the other hand, exists once in memory. That is exactly why there is a race.
 
-**The hardware's answer: atomic instructions.** Processors offer read-modify-write instructions that complete without another thread touching that memory in between: `lock xadd` on x86, `atomic_fetch_add` in C11, `std::atomic<int>::fetch_add` in C++, `AtomicInteger` in Java. With them `counter++` is a single instruction, and no interleaving can split it. Critical sections longer than one instruction need locks, the topic of the next module.
+**The hardware's answer: atomic instructions.** Processors offer read-modify-write instructions that complete without another thread touching that memory in between: `lock xadd` on x86, `atomic_fetch_add` in C11, `std::atomic<int>::fetch_add` in C++, `AtomicInteger` in Java. With them `counter++` is a single indivisible operation, and no interleaving can split it. Critical sections longer than one instruction need locks, the topic of the next module.
 
 **In real systems.** With several cores threads truly run in parallel and caches add surprises (memory reordering), but the lost update already appears with one core. In C and C++, two unsynchronized accesses to the same variable, at least one of them a write, are a *data race* and the behavior is undefined; tools like ThreadSanitizer detect them. In Python, `counter += 1` is several bytecode instructions and is not atomic either; the build without the GIL (officially supported since Python 3.14) only makes the race show up more often.
 
@@ -180,7 +180,7 @@ Further reading:
 
 - Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 26, sections 26.3 and 26.4. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
 - Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., sections 4.1 and 6.1.
-- cppreference, *Multi-threaded executions and data races*: [en.cppreference.com](https://en.cppreference.com/w/c/language/memory_model).
+- cppreference, *Multi-threaded executions and data races*: [en.cppreference.com](https://en.cppreference.com/w/cpp/language/multithread).
 - PEP 779, criteria for supported status for free-threaded Python: [peps.python.org](https://peps.python.org/pep-0779/).
 
 </Stage>

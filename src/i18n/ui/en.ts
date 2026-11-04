@@ -276,7 +276,7 @@ export const en = {
   "rc.writes.stale": "Stale",
   "rc.writes.empty": "Nobody has written to counter yet.",
   "rc.writes.hint":
-    "A store is stale when counter changed between the thread's read and its write: it erases what others added in the meantime.",
+    "A store is stale when counter changed between the thread's read and its write: it overwrites what others wrote in the meantime, usually their increments.",
   "rc.tally":
     "{expected} increments were requested and counter ended at {final}: {lost} were lost.",
   "rc.tally.incomplete":
@@ -424,6 +424,8 @@ export const en = {
   "at.outcome.miss.short": "TLB miss",
   "at.outcome.fault.short": "page fault",
   "at.outcome.invalid.short": "invalid",
+  "at.outcome.memory": "Page in memory (no TLB)",
+  "at.outcome.memory.short": "in memory",
   "at.predict.prompt": "What happens on each access? Pick one option per row.",
   "at.predict.cell": "Outcome of access {n} (address {addr})",
   "at.predict.score": "You got {hits} of {total} accesses right.",
@@ -441,7 +443,7 @@ export const en = {
   "at.killed": "The process is killed",
   "at.waiting": "Press Run to translate the first access.",
   "at.tlb": "TLB",
-  "at.tlb.hint": "Oldest on top.",
+  "at.tlb.hint": "Least recently used on top: it leaves first.",
   "at.tlb.none": "No TLB",
   "at.tlb.empty": "Empty",
   "at.pageTable": "Page table",

@@ -278,7 +278,7 @@ export const es = {
   "rc.writes.stale": "Obsoleta",
   "rc.writes.empty": "Todavía nadie escribió en counter.",
   "rc.writes.hint":
-    "Una escritura es obsoleta cuando counter cambió entre la lectura del hilo y su escritura: borra lo que otros sumaron mientras tanto.",
+    "Una escritura es obsoleta cuando counter cambió entre la lectura del hilo y su escritura: pisa lo que otros escribieron mientras tanto, normalmente sus incrementos.",
   "rc.tally":
     "Se pidieron {expected} incrementos y counter terminó en {final}: se perdieron {lost}.",
   "rc.tally.incomplete":
@@ -426,6 +426,8 @@ export const es = {
   "at.outcome.miss.short": "fallo TLB",
   "at.outcome.fault.short": "fallo de página",
   "at.outcome.invalid.short": "inválida",
+  "at.outcome.memory": "Página en memoria (sin TLB)",
+  "at.outcome.memory.short": "en memoria",
   "at.predict.prompt": "¿Qué pasa en cada acceso? Elige una opción por fila.",
   "at.predict.cell": "Resultado del acceso {n} (dirección {addr})",
   "at.predict.score": "Acertaste {hits} de {total} accesos.",
@@ -443,7 +445,7 @@ export const es = {
   "at.killed": "El proceso termina",
   "at.waiting": "Pulsa Ejecutar para traducir el primer acceso.",
   "at.tlb": "TLB",
-  "at.tlb.hint": "La más antigua arriba.",
+  "at.tlb.hint": "Arriba, la usada hace más tiempo: sale la primera.",
   "at.tlb.none": "Sin TLB",
   "at.tlb.empty": "Vacía",
   "at.pageTable": "Tabla de páginas",

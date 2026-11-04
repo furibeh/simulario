@@ -85,7 +85,7 @@ Lo correcto era: **P1 se bloquea primero, en `empty`**, y **`empty` vale 0** des
 
 **`signal` no siempre suma.** En el paso 16, C1 libera una casilla con `signal(empty)`, pero P1 está esperando en `empty`. El permiso pasa directamente a P1, que despierta, y el contador se queda en 0. En el paso 21, en cambio, nadie espera en `empty` (P1 ya está listo) y el contador sube a 1.
 
-**Dos clases de espera.** `empty` y `full` hacen esperar a los hilos por una **condición**: que haya sitio o que haya datos. `mutex` los hace esperar por **acceso exclusivo**. Un mutex solo protege los índices, pero no sirve para esperar a que haya sitio: el productor tendría que soltar el cerrojo, volver a mirar una y otra vez, y gastar CPU.
+**Dos clases de espera.** `empty` y `full` hacen esperar a los hilos por una **condición**: que haya sitio o que haya datos. `mutex` los hace esperar por **acceso exclusivo**. Un mutex por sí solo protege los índices, pero no sirve para esperar a que haya sitio: el productor tendría que soltar el cerrojo, volver a mirar una y otra vez, y gastar CPU.
 
 **El orden de los `wait` importa.** Si el productor hace `wait(mutex)` antes que `wait(empty)` y encuentra el búfer lleno, se bloquea **con el mutex tomado**. El consumidor, que es el único que podría liberar una casilla, necesita primero el mutex y también se bloquea. Nadie podrá hacer nunca un `signal`: es un **interbloqueo**. La regla: primero espera la condición, después toma el mutex, y suéltalo lo antes posible.
 

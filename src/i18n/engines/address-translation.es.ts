@@ -18,7 +18,7 @@ export const addressTranslationEs: ExplainTemplates<TranslationExplainParams> = 
   load: ({ page, frame }) =>
     `La página ${page} se carga en el marco ${frame} y la tabla de páginas se actualiza.`,
   segfault: ({ page }) =>
-    `La página ${page} no pertenece al programa: el sistema operativo lo termina (violación de segmento).`,
+    `La página ${page} no pertenece al programa: el sistema operativo termina el programa (violación de segmento).`,
   "tlb.evict": ({ page }) =>
     `La TLB está llena: olvida la página ${page}, la usada hace más tiempo.`,
   "tlb.fill": ({ page, frame }) => `La TLB guarda la traducción página ${page} → marco ${frame}.`,

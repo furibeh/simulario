@@ -66,7 +66,7 @@ By the end of the lesson the learner can:
 
 - **The four Coffman conditions** (all four are needed): mutual exclusion (a fork has one owner), hold and wait (each holds its left fork while asking for the right one), no preemption (nobody takes a fork away), circular wait (the cycle). Breaking any one prevents deadlock.
 - **Prevention by lock ordering** (M5): number the resources and acquire them in increasing order. A cycle would need someone to hold a higher resource while waiting for a lower one, which the order forbids. On the table only philosopher T5 changes: it takes R1 before R5. Everyone else already takes the lower fork first.
-- **Waiting is not deadlock** (M3): with the global order, at step 8 four philosophers are blocked at once, but the arrows form a chain that ends at T4, which can eat. The chain unwinds one philosopher at a time.
+- **Waiting is not deadlock** (M3): with the global order, at step 8 four philosophers are blocked at once, but the arrows form a chain that ends at T4, which holds R4 and finds R5 free: it takes R5 on its next turn and eats. The chain unwinds one philosopher at a time.
 - **Partial deadlock** (M2): in _Dos cerrojos_, T1 and T2 deadlock at step 8 but T3, which uses only R3, finishes normally. The system keeps running; the deadlocked threads simply never return.
 - **Timing is not a fix** (M4): delaying T2 by 2 turns lets T1 take both locks first, so _Dos cerrojos_ finishes; a delay of 1 still deadlocks. A slower disk or a different load can bring the bad timing back.
 - **The four strategies**:
@@ -82,7 +82,7 @@ By the end of the lesson the learner can:
 | #   | Challenge                                                                 | One valid solution                           | Why it works                                                                                           |
 | --- | ------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | E1  | Make all five philosophers eat, changing only how forks are ordered.      | Switch on the global order.                  | Only T5 changes (R1 before R5), and circular wait becomes impossible. Eating order T4, T3, T2, T1, T5. |
-| E2  | Find a moment when four threads wait at the same time without a deadlock. | Global order, step 8.                        | The dashed arrows form a chain that ends at T4, which holds both its forks.                            |
+| E2  | Find a moment when four threads wait at the same time without a deadlock. | Global order, step 8.                        | The dashed arrows form a chain that ends at T4, which holds R4 and can still take R5.                  |
 | E3  | Make _Dos cerrojos_ finish without changing the lock order.               | Delay T2 by 2 (or more) turns.               | T1 gets R2 before T2 asks for it. With delay 1 the cycle still forms, at step 10.                      |
 | E4  | Make a deadlock with the fewest threads possible.                         | _Filósofos_ with 2 threads: cycle at step 4. | Two threads, two locks taken in opposite orders.                                                       |
 

@@ -81,7 +81,7 @@ Esto se llama una **condición de carrera**: el resultado depende del orden en q
 
 **Qué comparten los hilos.** El 1 de T1 estaba a salvo en su registro mientras T2 corría, porque cada hilo tiene sus propios registros y el sistema los guarda en cada cambio. `counter`, en cambio, existe una sola vez en la memoria. Justamente por eso hay carrera.
 
-**La solución del hardware: instrucciones atómicas.** Los procesadores ofrecen instrucciones de lectura-modificación-escritura que se completan sin que otro hilo toque esa memoria en medio: `lock xadd` en x86, `atomic_fetch_add` en C11, `std::atomic<int>::fetch_add` en C++, `AtomicInteger` en Java. Con ellas `counter++` es una sola instrucción y ningún intercalado puede partirla. Para secciones críticas más largas que una instrucción hacen falta cerrojos, el tema del siguiente módulo.
+**La solución del hardware: instrucciones atómicas.** Los procesadores ofrecen instrucciones de lectura-modificación-escritura que se completan sin que otro hilo toque esa memoria en medio: `lock xadd` en x86, `atomic_fetch_add` en C11, `std::atomic<int>::fetch_add` en C++, `AtomicInteger` en Java. Con ellas `counter++` es una sola operación indivisible y ningún intercalado puede partirla. Para secciones críticas más largas que una instrucción hacen falta cerrojos, el tema del siguiente módulo.
 
 **En sistemas reales.** Con varios núcleos los hilos corren de verdad en paralelo y las cachés añaden sorpresas (reordenamiento de memoria), pero la actualización perdida aparece ya con un núcleo. En C y C++, dos accesos sin sincronizar a la misma variable, con al menos una escritura, son una *carrera de datos* y el comportamiento queda indefinido; herramientas como ThreadSanitizer las detectan. En Python, `counter += 1` son varias instrucciones de bytecode y tampoco es atómico; la versión sin GIL (con soporte oficial desde Python 3.14) solo hace que la carrera aparezca más a menudo.
 
@@ -180,7 +180,7 @@ Para leer más:
 
 - Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, cap. 26, secciones 26.3 y 26.4. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
 - Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., secciones 4.1 y 6.1.
-- cppreference, *Multi-threaded executions and data races*: [en.cppreference.com](https://en.cppreference.com/w/c/language/memory_model).
+- cppreference, *Multi-threaded executions and data races*: [en.cppreference.com](https://en.cppreference.com/w/cpp/language/multithread).
 - PEP 779, criterios de soporte para Python sin GIL: [peps.python.org](https://peps.python.org/pep-0779/).
 
 </Stage>

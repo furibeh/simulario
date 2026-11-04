@@ -11,7 +11,7 @@ export const raceConditionsEn: ExplainTemplates<RaceExplainParams> = {
     `${id} adds 1 in its register: it now holds ${value}. counter is still ${counter}.`,
   store: ({ id, value }) => `${id} writes ${value} to counter.`,
   "store.stale": ({ id, value, loaded, before }) =>
-    `${id} writes ${value} to counter, which already held ${before}. It computed it from ${loaded}: it erases what others added since then.`,
+    `${id} writes ${value} to counter, which held ${before}. It computed it from ${loaded}, a value that was no longer current: its write overwrites what others wrote since then.`,
   inc: ({ id, value }) => `${id} increments counter atomically: it now holds ${value}.`,
   finish: ({ id }) => `${id} has finished all its increments.`,
 };

@@ -53,8 +53,8 @@ describe("address-translation explanation templates", () => {
       ],
       [
         { key: "segfault", params: { page: 5 } },
-        "La página 5 no pertenece al programa: el sistema operativo lo termina (violación de segmento).",
-        "Page 5 is not part of the program: the operating system kills it (segmentation fault).",
+        "La página 5 no pertenece al programa: el sistema operativo termina el programa (violación de segmento).",
+        "Page 5 is not part of the program: the operating system kills the program (segmentation fault).",
       ],
     ];
     for (const [explanation, es, en] of examples) {

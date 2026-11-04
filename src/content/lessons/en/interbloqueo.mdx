@@ -81,7 +81,7 @@ Breaking any one of them makes deadlock impossible.
 
 **Prevention with a global order.** Number the resources and always ask for them from lowest to highest. A cycle would need someone to hold a high resource while waiting for a lower one, and the order forbids it: circular wait is broken. At the table only one philosopher changes, T5, which now takes R1 before R5. The others already took the lower-numbered fork first.
 
-**Waiting is not being deadlocked.** With the global order, after step 8 four philosophers are blocked at once, but their arrows form a chain that ends at T4, which holds both its forks. T4 eats, releases, and the chain unwinds one at a time.
+**Waiting is not being deadlocked.** With the global order, after step 8 four philosophers are blocked at once, but their arrows form a chain that ends at T4, which holds R4 and finds R5 free: it takes it on its next turn, eats, releases, and the chain unwinds one at a time.
 
 **The rest of the system keeps going.** In *Two locks*, T1 and T2 deadlock at step 8, but T3, which only uses R3, finishes normally. The system does not freeze: the threads in the cycle simply never come back.
 
@@ -114,7 +114,7 @@ Switch on *Global order*. Only T5 changes (it takes R1 before R5) and circular w
 <details>
 <summary><strong>2.</strong> Find a moment when four threads wait at the same time without a deadlock.</summary>
 
-With the global order, after step 8. The dashed arrows form a chain that ends at T4, which holds both its forks and can eat.
+With the global order, after step 8. The dashed arrows form a chain that ends at T4, which holds R4 and can still take R5, which is free.
 
 </details>
 
@@ -157,7 +157,7 @@ Set T2's delay to 2 (or more). T1 takes R2 before T2 asks for it. With delay 1 t
       question: "Four threads are blocked waiting for locks, but the graph has no cycle. Is it a deadlock?",
       options: ["Yes", "No: the chain ends at a thread that can run, and it unwinds"],
       answer: 1,
-      explanation: "That is what happens with the global order after step 8: T4 eats and frees the others one by one.",
+      explanation: "That is what happens with the global order after step 8: T4 takes R5, eats and frees the others one by one.",
     },
     {
       question: "Adding a short delay before T2 makes the deadlock disappear in tests. Is it fixed?",
