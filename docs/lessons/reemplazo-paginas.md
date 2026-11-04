@@ -194,7 +194,7 @@ Clock 3, traced by hand: faults at references 1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 1
 
 ## Translations
 
-| Language | File                                           | Status             |
-| -------- | ---------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/reemplazo-paginas.mdx` | Written, in review |
-| en       | `src/content/lessons/en/reemplazo-paginas.mdx` | Written, in review |
+| Language | File                                           | Status               |
+| -------- | ---------------------------------------------- | -------------------- |
+| es       | `src/content/lessons/es/reemplazo-paginas.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/reemplazo-paginas.mdx` | Reviewed, 2026-11-04 |

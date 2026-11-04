@@ -247,7 +247,7 @@ Block contents after step 2: block 1 `hola`, block 2 ` mun`, block 3 `do`. Inode
 
 ## Translations
 
-| Language | File                                        | Status             |
-| -------- | ------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/inodos-enlaces.mdx` | Written, in review |
-| en       | `src/content/lessons/en/inodos-enlaces.mdx` | Written, in review |
+| Language | File                                        | Status               |
+| -------- | ------------------------------------------- | -------------------- |
+| es       | `src/content/lessons/es/inodos-enlaces.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/inodos-enlaces.mdx` | Reviewed, 2026-11-04 |

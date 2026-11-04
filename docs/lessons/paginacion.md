@@ -220,7 +220,7 @@ Hits 0, misses 2, faults 3, no invalid access. Total 31 005. Final page table: p
 
 ## Translations
 
-| Language | File                                    | Status             |
-| -------- | --------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/paginacion.mdx` | Written, in review |
-| en       | `src/content/lessons/en/paginacion.mdx` | Written, in review |
+| Language | File                                    | Status               |
+| -------- | --------------------------------------- | -------------------- |
+| es       | `src/content/lessons/es/paginacion.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/paginacion.mdx` | Reviewed, 2026-11-04 |

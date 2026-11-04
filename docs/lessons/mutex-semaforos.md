@@ -316,7 +316,7 @@ Each turn is one operation; the ready queue alternates whenever both threads are
 
 ## Translations
 
-| Language | File                                         | Status             |
-| -------- | -------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/mutex-semaforos.mdx` | Written, in review |
-| en       | `src/content/lessons/en/mutex-semaforos.mdx` | Written, in review |
+| Language | File                                         | Status               |
+| -------- | -------------------------------------------- | -------------------- |
+| es       | `src/content/lessons/es/mutex-semaforos.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/mutex-semaforos.mdx` | Reviewed, 2026-11-04 |

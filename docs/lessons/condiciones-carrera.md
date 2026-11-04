@@ -240,7 +240,7 @@ For the first edge case (2 threads × 2 increments, quantum 1): T1 L0, T2 L0, T1
 
 ## Translations
 
-| Language | File                                             | Status             |
-| -------- | ------------------------------------------------ | ------------------ |
-| es       | `src/content/lessons/es/condiciones-carrera.mdx` | Written, in review |
-| en       | `src/content/lessons/en/condiciones-carrera.mdx` | Written, in review |
+| Language | File                                             | Status               |
+| -------- | ------------------------------------------------ | -------------------- |
+| es       | `src/content/lessons/es/condiciones-carrera.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/condiciones-carrera.mdx` | Reviewed, 2026-11-04 |

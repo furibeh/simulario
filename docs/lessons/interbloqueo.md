@@ -221,7 +221,7 @@ In the delay-2 run, at step 11 the ready queue becomes T2 then T1: the woken T2 
 
 ## Translations
 
-| Language | File                                      | Status             |
-| -------- | ----------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/interbloqueo.mdx` | Written, in review |
-| en       | `src/content/lessons/en/interbloqueo.mdx` | Written, in review |
+| Language | File                                      | Status               |
+| -------- | ----------------------------------------- | -------------------- |
+| es       | `src/content/lessons/es/interbloqueo.mdx` | Reviewed, 2026-11-04 |
+| en       | `src/content/lessons/en/interbloqueo.mdx` | Reviewed, 2026-11-04 |
