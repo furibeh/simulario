@@ -1,0 +1,295 @@
+/*
+ * Shared board pieces for simulation views (cards, controls, zones, tables, the "why" panel).
+ * Imported by each view; every rule is scoped under the view's root class `.sim`, so nothing
+ * leaks into lesson prose. View-specific layout stays in the view's own <style>.
+ */
+
+.sim {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.sim h3 {
+  font-size: var(--text-h3);
+}
+
+.sim h4 {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.sim .hint {
+  color: var(--color-ink-muted);
+  font-size: var(--text-small);
+}
+
+.sim .card {
+  background: var(--color-surface);
+  border: var(--outline);
+  border-radius: var(--radius-card);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sim .setup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+
+.sim .setup > .card {
+  flex: 2 1 280px;
+  min-width: 0;
+}
+
+.sim .setup > .card:first-child {
+  flex: 3 1 420px;
+}
+
+.sim .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Tables */
+
+/* position: relative makes the wrapper the containing block of .visually-hidden labels inside
+   cells, so off-screen columns are clipped instead of widening the page. */
+.sim .table-wrap {
+  position: relative;
+  overflow-x: auto;
+}
+
+.sim table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim th,
+.sim td {
+  padding: 6px 8px;
+  text-align: right;
+}
+
+.sim th:first-child {
+  text-align: left;
+}
+
+.sim thead th {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.sim .entity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+/* Controls */
+
+.sim .pill,
+.sim .icon,
+.sim .token-button {
+  cursor: pointer;
+  border: var(--outline);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.sim .pill {
+  min-height: var(--target-min);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+}
+
+.sim .pill.small {
+  font-size: var(--text-small);
+}
+
+.sim .pill[aria-pressed="true"] {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+
+.sim .icon {
+  width: var(--target-min);
+  height: var(--target-min);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sim .presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sim .number {
+  width: 3.5rem;
+  min-height: var(--target-min);
+  padding: 0 var(--space-2);
+  border: var(--outline);
+  border-radius: var(--radius-field);
+  background: var(--color-surface);
+  text-align: right;
+}
+
+/* Board and zones */
+
+.sim .board {
+  background: var(--color-surface);
+  border: var(--outline);
+  border-radius: var(--radius-board);
+  box-shadow: var(--shadow-board);
+  padding: var(--space-6);
+}
+
+.sim .board-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sim .rule {
+  color: var(--color-ink-muted);
+}
+
+.sim .zones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.sim .zone {
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Where things wait: dashed outline. */
+.sim .zone.waiting {
+  flex: 2 1 280px;
+  border: var(--outline-waiting);
+}
+
+/* A resource: recessed slot. */
+.sim .zone.cpu {
+  flex: 1 1 180px;
+  background: var(--color-slot);
+  align-items: center;
+}
+
+.sim .zone.cpu h4 {
+  align-self: flex-start;
+}
+
+.sim .zone.done {
+  flex: 1 1 180px;
+  background: var(--color-ground);
+}
+
+.sim .zone-tokens {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.sim .zone-tokens li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+}
+
+.sim .zone-tokens li.empty {
+  font-weight: 400;
+}
+
+.sim .cpu-token {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 800;
+  font-size: 1.375rem;
+}
+
+.sim .empty {
+  color: var(--color-ink-muted);
+  font-size: var(--text-small);
+}
+
+/* Below the board: the "why" of the step and the prediction verdict. */
+
+.sim .after {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.sim .why {
+  flex: 3 1 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sim .verdict {
+  flex: 2 1 280px;
+}
+
+.sim .score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+}
+
+.sim .metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sim .metrics tbody tr {
+  border-top: 1px solid var(--color-slot);
+}
+
+.sim .metrics tfoot {
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .sim .board {
+    padding: var(--space-4);
+  }
+
+  .sim .card {
+    padding: var(--space-4);
+  }
+}

@@ -29,8 +29,8 @@ src/
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
     token/            Token, shapes
-    board/            Timeline (shared board pieces)
-    cpu-scheduler/    CpuScheduler: board, zones, prediction, metrics for this engine
+    board/            Timeline, board.css (shared board pieces, scoped under .sim)
+    cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/

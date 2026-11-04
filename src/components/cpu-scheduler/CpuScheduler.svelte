@@ -17,6 +17,7 @@ import type { UiKey } from "../../i18n/ui/es";
 import { announceRunFinished } from "../../lib/events";
 import Player from "../../player/Player.svelte";
 import Timeline from "../board/Timeline.svelte";
+import "../board/board.css";
 import { slotForId } from "../token/shapes";
 import Token from "../token/Token.svelte";
 
@@ -202,7 +203,7 @@ const labels = $derived({
 });
 </script>
 
-<div class="scheduler" class:demo={variant === "demo"}>
+<div class="sim" class:demo={variant === "demo"}>
   {#if variant === "lesson"}
     <div class="setup">
       <section class="card" aria-labelledby="cpu-workload">
@@ -489,85 +490,6 @@ const labels = $derived({
 </div>
 
 <style>
-  .scheduler {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-  }
-
-  h3 {
-    font-size: var(--text-h3);
-  }
-
-  h4 {
-    margin: 0;
-    font-size: 1.0625rem;
-    font-weight: 800;
-  }
-
-  .hint {
-    color: var(--color-ink-muted);
-    font-size: var(--text-small);
-  }
-
-  .card {
-    background: var(--color-surface);
-    border: var(--outline);
-    border-radius: var(--radius-card);
-    padding: var(--space-5);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .setup {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: var(--space-5);
-  }
-
-  .setup > .card {
-    flex: 2 1 280px;
-    min-width: 0;
-  }
-
-  .setup > .card:first-child {
-    flex: 3 1 420px;
-  }
-
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-  }
-
-  .table-wrap {
-    overflow-x: auto;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-variant-numeric: tabular-nums;
-  }
-
-  th,
-  td {
-    padding: 6px 8px;
-    text-align: right;
-  }
-
-  th:first-child {
-    text-align: left;
-  }
-
-  thead th {
-    font-size: var(--text-small);
-    font-weight: 500;
-    color: var(--color-ink-muted);
-  }
-
   .workload input {
     width: 3.5rem;
     min-height: var(--target-min);
@@ -578,55 +500,6 @@ const labels = $derived({
     text-align: right;
   }
 
-  .entity {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 700;
-  }
-
-  .pill,
-  .icon,
-  .algo,
-  .token-button {
-    cursor: pointer;
-    border: var(--outline);
-    background: var(--color-surface);
-    color: var(--color-ink);
-  }
-
-  .pill {
-    min-height: var(--target-min);
-    padding: 0 var(--space-5);
-    border-radius: var(--radius-pill);
-    font-weight: 700;
-  }
-
-  .pill.small {
-    font-size: var(--text-small);
-  }
-
-  .icon {
-    width: var(--target-min);
-    height: var(--target-min);
-    border-radius: var(--radius-pill);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  button:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  .presets {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2);
-  }
-
   .algos {
     display: flex;
     flex-wrap: wrap;
@@ -634,6 +507,10 @@ const labels = $derived({
   }
 
   .algo {
+    cursor: pointer;
+    border: var(--outline);
+    background: var(--color-surface);
+    color: var(--color-ink);
     min-width: 64px;
     min-height: var(--target-min);
     border-radius: var(--radius-pill);
@@ -704,117 +581,6 @@ const labels = $derived({
     font-size: var(--text-small);
   }
 
-  .board {
-    background: var(--color-surface);
-    border: var(--outline);
-    border-radius: var(--radius-board);
-    box-shadow: var(--shadow-board);
-    padding: var(--space-6);
-  }
-
-  .board-head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
-
-  .rule {
-    color: var(--color-ink-muted);
-  }
-
-  .zones {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-5);
-  }
-
-  .zone {
-    border-radius: var(--radius-card);
-    padding: var(--space-4);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    min-width: 0;
-  }
-
-  .zone.waiting {
-    flex: 2 1 280px;
-    border: var(--outline-waiting);
-  }
-
-  .zone.cpu {
-    flex: 1 1 180px;
-    background: var(--color-slot);
-    align-items: center;
-  }
-
-  .zone.cpu h4 {
-    align-self: flex-start;
-  }
-
-  .zone.done {
-    flex: 1 1 180px;
-    background: var(--color-ground);
-  }
-
-  .zone-tokens {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-  }
-
-  .zone-tokens li {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    font-weight: 700;
-  }
-
-  .cpu-token {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-weight: 800;
-    font-size: 1.375rem;
-  }
-
-  .empty {
-    color: var(--color-ink-muted);
-    font-size: var(--text-small);
-  }
-
-  .zone-tokens li.empty {
-    font-weight: 400;
-  }
-
-  .after {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-5);
-  }
-
-  .why {
-    flex: 3 1 360px;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .verdict {
-    flex: 2 1 280px;
-  }
-
-  .score {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-weight: 700;
-  }
-
   .compare-orders {
     margin: 0;
     display: grid;
@@ -839,20 +605,6 @@ const labels = $derived({
     text-decoration: line-through;
     text-decoration-color: var(--color-bad);
     text-decoration-thickness: 2px;
-  }
-
-  .metrics {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .metrics tbody tr {
-    border-top: 1px solid var(--color-slot);
-  }
-
-  .metrics tfoot {
-    font-weight: 700;
   }
 
   .bars {
@@ -903,14 +655,6 @@ const labels = $derived({
   }
 
   @media (max-width: 600px) {
-    .board {
-      padding: var(--space-4);
-    }
-
-    .card {
-      padding: var(--space-4);
-    }
-
     /* The headers are wider than the inputs: keep them small so all five columns fit at 360px. */
     .workload th,
     .workload td {

@@ -45,7 +45,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 
 1. Create `src/engines/<name>/` with `types.ts` (input, state, result, explanation key union), `simulate.ts` returning a `Trace` and `simulate.test.ts`.
 2. Add `src/i18n/engines/<name>.es.ts` and `.en.ts` covering every key.
-3. Build the views in `src/components/<name>/` using `Token`, `Timeline` and the generic `Player` (`src/player/`). Board and zone styles live inside the first view (`CpuScheduler.svelte`); extract them to `src/components/board/` when a second engine needs them.
+3. Build the views in `src/components/<name>/` using `Token`, `Timeline` and the generic `Player` (`src/player/`). Shared board styles (cards, controls, zones, tables, the "why" panel) live in `src/components/board/board.css`: import it and put `class="sim"` on the view's root. Keep only view-specific layout in the view's own `<style>`.
 4. Embed it in a lesson MDX file inside `<Stage stage="run">`.
 
 ## Adding a lesson
