@@ -28,6 +28,7 @@ src/
     race-conditions/  simulate.ts, types.ts, presets.ts, simulate.test.ts
     bounded-buffer/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     resource-graph/   simulate.ts, types.ts, presets.ts, simulate.test.ts
+    address-translation/ simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -38,6 +39,7 @@ src/
     race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
     bounded-buffer/   BoundedBuffer: buffer slots, semaphore counters with queues, thread loops, block log
     resource-graph/   ResourceGraph: live resource-allocation graph (SVG), holdings table, delays, lock order
+    address-translation/ AddressTranslation: address split in binary, TLB, page table, frames, disk, access log
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
@@ -126,6 +128,10 @@ Implements `docs/lessons/mutex-semaforos.md`. Input: `producers` and `consumers`
 ### Resource graph engine
 
 Implements `docs/lessons/interbloqueo.md`. Input: `resources` (2–5 single-instance resources `R1`…), `threads` (2–5, each `{ delay, script }` with `acquire`, `release` and `work` operations) and `ordering` (`script`, or `global`: each thread's acquires keep their positions but take its resources in increasing order). The effective script is validated (no double acquire, no release without holding, nothing held at the end). One step per operation; the head of a FIFO ready queue runs one operation and goes to the end. Releasing a resource hands it to the first waiter. After every block the engine follows "waits for R, held by U" and reports the first cycle as a path string; when no thread is ready and some are blocked, the step gets `stalled` and the trace ends. State: per-thread holdings, wait and program counter, per-resource holder and queue, the cycle found so far. Result: `deadlock`, `cycle`, `cycleStep`, `stalled`, finish order, threads that ran `work`, block log and segments. Keys: `acquire`, `block`, `release`, `handoff`, `work`, `think`, `finish`, `cycle` and `stalled`.
+
+### Address translation engine
+
+Implements `docs/lessons/paginacion.md`. Input: `pageSize` (8–64), `pages` (page k at index k: in a frame, on disk or invalid), `frames`, `tlbSize` (0–4; 0 means no TLB) and `accesses` (virtual addresses). One step per access: split into page and offset, TLB lookup (LRU), page-table read, page fault (lowest free frame, else FIFO eviction that also drops the victim's TLB entry), TLB fill and the physical access. An invalid page ends the trace. A fixed cost model (`costs`: TLB 1, memory 100, fault 10 000) gives each access its cost. State: page table, TLB (LRU first), frame contents, FIFO order and the access record. Result: per-access records, hits, misses, faults, `invalid`, total cost and completed accesses. Keys: `split`, `tlb.hit`, `tlb.miss`, `pt.hit`, `fault`, `evict`, `tlb.drop`, `load`, `segfault`, `tlb.evict`, `tlb.fill` and `access`.
 
 ## Player
 
