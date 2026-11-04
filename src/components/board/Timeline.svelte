@@ -1,5 +1,5 @@
 <script lang="ts">
-import { slotForId } from "../token/shapes";
+import { type Slot, slotForId } from "../token/shapes";
 import Token from "../token/Token.svelte";
 
 export interface TimelineSegment {
@@ -16,9 +16,11 @@ interface Props {
   cursor: number;
   /** Accessible summary of what is drawn. */
   label: string;
+  /** Entity slot for an id; defaults to the number at the end of the id. */
+  slotOf?: (id: string) => Slot;
 }
 
-let { segments, total, cursor, label }: Props = $props();
+let { segments, total, cursor, label, slotOf = slotForId }: Props = $props();
 
 const span = $derived(Math.max(total, 1));
 const pct = (v: number) => `${(v / span) * 100}%`;
@@ -40,11 +42,11 @@ const ticks = $derived(
         class="bar"
         style:left={pct(seg.start)}
         style:width={pct(seg.shownEnd - seg.start)}
-        style:--fill="var(--entity-{slotForId(seg.id ?? '')})"
-        style:--on="var(--entity-{slotForId(seg.id ?? '')}-on)"
+        style:--fill="var(--entity-{slotOf(seg.id ?? '')})"
+        style:--on="var(--entity-{slotOf(seg.id ?? '')}-on)"
       >
         {#if seg.shownEnd - seg.start >= 2 || span <= 12}
-          <span class="bar-label"><Token slot={slotForId(seg.id ?? "")} size={16} />{seg.id}</span>
+          <span class="bar-label"><Token slot={slotOf(seg.id ?? "")} size={16} />{seg.id}</span>
         {/if}
       </div>
     {/each}
