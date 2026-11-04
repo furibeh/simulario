@@ -35,7 +35,8 @@ src/
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
     token/            Token, shapes
-    board/            Timeline, board.css (shared board pieces, scoped under .sim)
+    board/            Timeline (optional slotOf resolver when ids do not end in the
+                      entity number), board.css (shared board pieces, scoped under .sim)
     cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
     process-states/   ProcessStates: workload, prediction grid, state table, metrics
     race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
