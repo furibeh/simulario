@@ -104,8 +104,8 @@ describe("file-system explanation templates", () => {
       ],
       [
         { key: "error.dangling", params: { name: "atajo", target: "notas.txt" } },
-        "Error: atajo lleva al nombre notas.txt, pero ese nombre ya no existe. Es un enlace colgante.",
-        "Error: atajo leads to the name notas.txt, but that name no longer exists. It is a dangling link.",
+        "Error: atajo lleva al nombre notas.txt, pero ese nombre no existe. Es un enlace colgante.",
+        "Error: atajo leads to the name notas.txt, but no entry has that name. It is a dangling link.",
       ],
     ];
     for (const [explanation, es, en] of examples) {

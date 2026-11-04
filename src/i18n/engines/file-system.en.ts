@@ -41,7 +41,7 @@ export const fileSystemEn: ExplainTemplates<FsExplainParams> = {
   "error.exists": ({ name }) => `Error: an entry named ${name} already exists.`,
   "error.missing": ({ name }) => `Error: there is no entry named ${name}.`,
   "error.dangling": ({ name, target }) =>
-    `Error: ${name} leads to the name ${target}, but that name no longer exists. It is a dangling link.`,
+    `Error: ${name} leads to the name ${target}, but no entry has that name. It is a dangling link.`,
   "error.loop": ({ name, hops }) =>
     `Error: following the links from ${name} takes more than ${hops} hops, probably a cycle. The system gives up (on Linux, the ELOOP error).`,
   "error.noInodes": () => "Error: no inode is free.",

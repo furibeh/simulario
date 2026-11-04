@@ -190,7 +190,7 @@ const labels = $derived({
             <span class="predict-addr">{address}</span>
             <select aria-label={t("at.predict.cell", { n: i + 1, addr: address })} value={guesses[i] ?? ""} onchange={(e) => { const next = [...guesses]; next[i] = e.currentTarget.value as Guess; guesses = next; }}>
               <option value="">{t("ps.predict.choose")}</option>
-              {#each choices as c (c)}<option value={c}>{outcomeText(c)}</option>{/each}
+              {#each choices.filter((c) => c !== "hit" || input.tlbSize > 0) as c (c)}<option value={c}>{outcomeText(c)}</option>{/each}
             </select>
           </li>
         {/each}

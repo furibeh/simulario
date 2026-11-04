@@ -41,7 +41,7 @@ export const fileSystemEs: ExplainTemplates<FsExplainParams> = {
   "error.exists": ({ name }) => `Error: ya existe una entrada llamada ${name}.`,
   "error.missing": ({ name }) => `Error: no existe ninguna entrada llamada ${name}.`,
   "error.dangling": ({ name, target }) =>
-    `Error: ${name} lleva al nombre ${target}, pero ese nombre ya no existe. Es un enlace colgante.`,
+    `Error: ${name} lleva al nombre ${target}, pero ese nombre no existe. Es un enlace colgante.`,
   "error.loop": ({ name, hops }) =>
     `Error: seguir los enlaces desde ${name} pide más de ${hops} saltos, probablemente un ciclo. El sistema se rinde (en Linux, el error ELOOP).`,
   "error.noInodes": () => "Error: no queda ningún inodo libre.",
