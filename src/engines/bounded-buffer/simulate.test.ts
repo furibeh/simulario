@@ -324,6 +324,17 @@ describe("edge cases", () => {
     expect(trace.result.consumed.filter((c) => c.by === "C2")).toHaveLength(1);
   });
 
+  it("a consumer with a share of 0 never runs", () => {
+    const trace = simulate({ ...presets.fastProducer, items: 1, consumers: 2 });
+    expect(trace.result.steps).toBe(10);
+    expect(trace.result.segments).toEqual([
+      { id: "P1", start: 0, end: 5 },
+      { id: "C1", start: 5, end: 10 },
+    ]);
+    expect(trace.result.finishOrder).toEqual(["P1", "C1"]);
+    expect(trace.result.completed).toBe(true);
+  });
+
   it("rejects invalid inputs", () => {
     expect(() => simulate({ ...presets.fastProducer, capacity: 0 })).toThrow(RangeError);
     expect(() => simulate({ ...presets.fastProducer, producers: 3 })).toThrow(RangeError);

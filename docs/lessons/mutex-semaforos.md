@@ -125,7 +125,7 @@ By the end of the lesson the learner can:
 | `version`   | `correct` or `swapped` (producer waits on `mutex` first)            | `correct` |
 | `quantum`   | `null` (keep the CPU until blocking or finishing) or 1–6 operations | `null`    |
 
-Consumers share the `producers × items` items: consumer _k_ (0-based) takes `floor(total / consumers)`, plus one if `k < total mod consumers`. Producer `Pk`'s _j_-th item is named `Pk.j`.
+Consumers share the `producers × items` items: consumer _k_ (0-based) takes `floor(total / consumers)`, plus one if `k < total mod consumers`. A consumer whose share is 0 (one producer with one item and two consumers) starts finished, never enters the ready queue and has no `finish` key. Producer `Pk`'s _j_-th item is named `Pk.j`.
 
 ### Programs
 
@@ -288,12 +288,13 @@ Each turn is one operation; the ready queue alternates whenever both threads are
 
 ### Edge cases
 
-| Case                             | Input                              | Expected                                                                                    |
-| -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
-| Buffer as large as the work (E3) | Productor rápido with capacity 3   | No blocks. P1 runs steps 0–14 and finishes; C1 runs 15–29. Final: empty 3, full 0, mutex 1. |
-| Consumer shares                  | P1, P2 × 3 items, C1, C2           | C1 takes 3 items, C2 takes 3.                                                               |
-| Uneven shares                    | P1 × 3 items, C1, C2               | C1 takes 2 items, C2 takes 1.                                                               |
-| Invalid input                    | capacity 0, 3 producers, quantum 0 | `RangeError`.                                                                               |
+| Case                             | Input                                    | Expected                                                                                         |
+| -------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Buffer as large as the work (E3) | Productor rápido with capacity 3         | No blocks. P1 runs steps 0–14 and finishes; C1 runs 15–29. Final: empty 3, full 0, mutex 1.      |
+| Consumer shares                  | P1, P2 × 3 items, C1, C2                 | C1 takes 3 items, C2 takes 3.                                                                    |
+| Uneven shares                    | P1 × 3 items, C1, C2                     | C1 takes 2 items, C2 takes 1.                                                                    |
+| A consumer with nothing to do    | P1 × 1 item, C1, C2, correct, no quantum | C2 takes 0 items and never runs. P1 runs steps 0–4, C1 steps 5–9; 10 steps; finish order P1, C1. |
+| Invalid input                    | capacity 0, 3 producers, quantum 0       | `RangeError`.                                                                                    |
 
 ## Go deeper (optional section)
 

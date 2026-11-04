@@ -93,14 +93,21 @@ export function simulate(input: BufferInput): BufferTrace {
       role: "consumer" as const,
       program: consumerProgram(share),
     })),
-  ].map((th) => ({ ...th, pc: 0, status: "ready", blockedOn: null, items: 0 }));
+  ].map((th) => ({
+    ...th,
+    pc: 0,
+    // A consumer whose share is 0 has nothing to do: it starts finished and never runs.
+    status: th.program.length === 0 ? "done" : "ready",
+    blockedOn: null,
+    items: 0,
+  }));
 
   const value: Record<Sem, number> = { empty: input.capacity, full: 0, mutex: 1 };
   const queues: Record<Sem, Thread[]> = { empty: [], full: [], mutex: [] };
   const buffer: (string | null)[] = Array.from({ length: input.capacity }, () => null);
   let slotIn = 0;
   let slotOut = 0;
-  let ready: Thread[] = [...threads];
+  let ready: Thread[] = threads.filter((th) => th.status === "ready");
   let running: Thread | null = null;
   let used = 0;
   let deadlock = false;
