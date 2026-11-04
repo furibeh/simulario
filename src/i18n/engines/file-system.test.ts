@@ -41,6 +41,11 @@ const scripts: Operation[][] = [
   ],
   "abcdefgh".split("").map((name) => ({ op: "create", name })),
   [
+    { op: "symlink", target: "b", name: "a" },
+    { op: "symlink", target: "a", name: "b" },
+    { op: "cat", name: "a" },
+  ],
+  [
     { op: "create", name: "a" },
     ..."bcdefgh".split("").map((to) => ({ op: "link" as const, name: "a", to })),
     { op: "link", name: "a", to: "i" },
@@ -99,8 +104,8 @@ describe("file-system explanation templates", () => {
       ],
       [
         { key: "error.dangling", params: { name: "atajo", target: "notas.txt" } },
-        "Error: atajo apunta a notas.txt, pero ese nombre ya no existe. Es un enlace colgante.",
-        "Error: atajo points to notas.txt, but that name no longer exists. It is a dangling link.",
+        "Error: atajo lleva al nombre notas.txt, pero ese nombre ya no existe. Es un enlace colgante.",
+        "Error: atajo leads to the name notas.txt, but that name no longer exists. It is a dangling link.",
       ],
     ];
     for (const [explanation, es, en] of examples) {

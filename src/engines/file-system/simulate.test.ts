@@ -225,6 +225,33 @@ describe("edge cases", () => {
     expect(keys(trace, 5)).toBe("cat.via name=t target=a inode=1 content=");
   });
 
+  it("a cycle of symbolic links is a loop, not a dangling link", () => {
+    const trace = simulate({
+      script: [
+        { op: "symlink", target: "b", name: "a" },
+        { op: "symlink", target: "a", name: "b" },
+        { op: "cat", name: "a" },
+      ],
+    });
+    expect(keys(trace, 3)).toBe("error.loop name=a hops=4");
+  });
+
+  it("follows at most 4 links and names the first target", () => {
+    const chain = (n: number): Operation[] => [
+      { op: "create", name: "x" },
+      ...Array.from({ length: n }, (_, i) => ({
+        op: "symlink" as const,
+        target: i === 0 ? "x" : `s${i}`,
+        name: `s${i + 1}`,
+      })),
+      { op: "cat", name: `s${n}` },
+    ];
+    expect(keys(simulate({ script: chain(4) }), 6)).toBe(
+      "cat.via name=s4 target=s3 inode=1 content=",
+    );
+    expect(keys(simulate({ script: chain(5) }), 7)).toBe("error.loop name=s5 hops=4");
+  });
+
   it("rejects invalid scripts", () => {
     expect(() => simulate({ script: [{ op: "create", name: "Notas" }] })).toThrow(RangeError);
     expect(() => simulate({ script: [{ op: "write", name: "a", text: "1234567890123" }] })).toThrow(

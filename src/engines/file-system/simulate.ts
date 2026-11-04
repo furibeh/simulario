@@ -86,10 +86,11 @@ export function simulate(input: FsInput): FsTrace {
       }
       const node = inodes[entry.inode] as Inode;
       if (node.type !== "symlink") return { ok: true, node, via };
-      via = node.target;
+      // `via` keeps the target stored in the first link, the one the learner named.
+      via ??= node.target;
       current = node.target ?? "";
     }
-    return { ok: false, error: { key: "error.dangling", params: { name, target: current } } };
+    return { ok: false, error: { key: "error.loop", params: { name, hops: geometry.maxHops } } };
   }
 
   input.script.forEach((op, t) => {

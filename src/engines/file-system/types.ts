@@ -105,6 +105,7 @@ export interface FsExplainParams {
   "error.exists": { name: string };
   "error.missing": { name: string };
   "error.dangling": { name: string; target: string };
+  "error.loop": { name: string; hops: number };
   "error.noInodes": Record<string, never>;
   "error.noSpace": { name: string };
   "error.dirFull": { name: string };
