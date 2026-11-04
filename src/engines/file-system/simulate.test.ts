@@ -210,6 +210,21 @@ describe("edge cases", () => {
     expect(keys(trace, 8)).toBe("error.noSpace name=d");
   });
 
+  it("a hard link to a symbolic link keeps it alive", () => {
+    const trace = simulate({
+      script: [
+        { op: "create", name: "a" },
+        { op: "symlink", target: "a", name: "s" },
+        { op: "link", name: "s", to: "t" },
+        { op: "unlink", name: "s" },
+        { op: "cat", name: "t" },
+      ],
+    });
+    expect(keys(trace, 3)).toBe("link name=t target=s inode=2 links=2");
+    expect(keys(trace, 4)).toBe("unlink.keep name=s inode=2 links=1");
+    expect(keys(trace, 5)).toBe("cat.via name=t target=a inode=1 content=");
+  });
+
   it("rejects invalid scripts", () => {
     expect(() => simulate({ script: [{ op: "create", name: "Notas" }] })).toThrow(RangeError);
     expect(() => simulate({ script: [{ op: "write", name: "a", text: "1234567890123" }] })).toThrow(

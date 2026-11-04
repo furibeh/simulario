@@ -129,7 +129,7 @@ Fixed geometry: 8 inodes (inode 0 is the root directory), 12 data blocks of 4 by
 - `link old new`: `old` must exist (not resolved: linking a symbolic link links the link itself); `new` must not exist; directory not full. New entry to the same inode, links + 1 (`link`).
 - `symlink target new`: `new` must not exist; directory not full; an inode must be free. New inode: type symlink, links 1, content = `target` stored in the inode (no blocks), size = length of `target` (`symlink`). The target need not exist.
 - `unlink name`: entry must exist. Remove it; links − 1. Then:
-  - symbolic link: free its inode (`unlink.symlink`);
+  - symbolic link with links = 0: free its inode (`unlink.symlink`); a symbolic link that still has another name (a hard link to the link) follows the next rule;
   - links > 0: `unlink.keep`;
   - links = 0 and open > 0: the inode stays as an orphan (`unlink.orphan`);
   - links = 0 and open = 0: free the inode and its blocks (`unlink.free`).
@@ -213,15 +213,16 @@ Block contents after step 2: block 1 `hola`, block 2 ` mun`, block 3 `do`. Inode
 
 ### Edge cases
 
-| Case                  | Script                                                                                                                                                 | Expected                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| Overwrite             | `create a`, `write a "abcdefgh"`, `write a "xy"`                                                                                                       | Step 2 blocks `1, 2`; step 3 `free.blocks` `1, 2`, then `write` block `1` (`xy`). |
-| Empty write           | `create a`, `write a ""`                                                                                                                               | `write` size 0, blocks `` (empty); no blocks in use besides 0.                    |
-| Errors change nothing | `create a`, `create a`, `read 4`, `cat b`                                                                                                              | `error.exists` a, `error.badFd` 4, `error.missing` b; one file, inode 1.          |
-| Out of inodes         | `create` 8 different names (`a` … `h`)                                                                                                                 | The first 7 take inodes 1–7; the 8th fails with `error.noInodes`.                 |
-| Directory full        | `create a`, then `link a b` … `link a h` (7 links), then `link a i`                                                                                    | 8 entries, inode 1 with 8 links; the last link fails with `error.dirFull`.        |
-| Out of blocks         | `create a`, `write a "123456789012"`, `create b`, `write b "123456789012"`, `create c`, `write c "123456789012"`, `create d`, `write d "123456789012"` | a, b, c take 3 blocks each (9 of 11); d needs 3 with 2 free: `error.noSpace` d.   |
-| Invalid script        | `create Notas` (uppercase), or a 13-character text                                                                                                     | `RangeError`.                                                                     |
+| Case                   | Script                                                                                                                                                 | Expected                                                                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Overwrite              | `create a`, `write a "abcdefgh"`, `write a "xy"`                                                                                                       | Step 2 blocks `1, 2`; step 3 `free.blocks` `1, 2`, then `write` block `1` (`xy`).                                                   |
+| Empty write            | `create a`, `write a ""`                                                                                                                               | `write` size 0, blocks `` (empty); no blocks in use besides 0.                                                                      |
+| Errors change nothing  | `create a`, `create a`, `read 4`, `cat b`                                                                                                              | `error.exists` a, `error.badFd` 4, `error.missing` b; one file, inode 1.                                                            |
+| Out of inodes          | `create` 8 different names (`a` … `h`)                                                                                                                 | The first 7 take inodes 1–7; the 8th fails with `error.noInodes`.                                                                   |
+| Directory full         | `create a`, then `link a b` … `link a h` (7 links), then `link a i`                                                                                    | 8 entries, inode 1 with 8 links; the last link fails with `error.dirFull`.                                                          |
+| Out of blocks          | `create a`, `write a "123456789012"`, `create b`, `write b "123456789012"`, `create c`, `write c "123456789012"`, `create d`, `write d "123456789012"` | a, b, c take 3 blocks each (9 of 11); d needs 3 with 2 free: `error.noSpace` d.                                                     |
+| Hard link to a symlink | `create a`, `symlink a s`, `link s t`, `unlink s`, `cat t`                                                                                             | Step 3 `link` t → inode 2 (the symlink), links 2. Step 4 `unlink.keep` s, inode 2, links 1. Step 5 `cat.via` t → a, inode 1, empty. |
+| Invalid script         | `create Notas` (uppercase), or a 13-character text                                                                                                     | `RangeError`.                                                                                                                       |
 
 ## Go deeper (optional section)
 

@@ -212,7 +212,7 @@ export function simulate(input: FsInput): FsTrace {
         const node = inodes[entry.inode] as Inode;
         node.links -= 1;
         touched.inodes.push(node.number);
-        if (node.type === "symlink") {
+        if (node.type === "symlink" && node.links === 0) {
           release(node);
           explain.push({ key: "unlink.symlink", params: { name: op.name, inode: node.number } });
         } else if (node.links > 0) {
