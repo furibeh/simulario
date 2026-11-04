@@ -1,0 +1,4 @@
+# Cloudflare Pages response headers. See docs/architecture.md, "Caching".
+# Astro fingerprints everything under /_astro/ (the hash changes with the content), so it never goes stale.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
