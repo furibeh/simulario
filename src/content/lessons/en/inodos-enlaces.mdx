@@ -1,0 +1,194 @@
+---
+title: "File systems: inodes and links"
+summary: A file is not its name. Follow each operation through the directory, the inode table and the blocks, and find out when data is really deleted.
+module: sistemas-archivos
+order: 1
+minutes: 30
+prerequisites:
+  - procesos-estados
+---
+
+import FileSystem from "../../../components/file-system/FileSystem.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- What a process is (lesson *Processes and their states*).
+- The idea of a block: a fixed-size piece of the disk, like pages and frames in memory (the lesson *Virtual memory and paging* helps but is not required).
+
+</Stage>
+
+<Stage stage="theory">
+
+A file system divides the disk into **blocks**: 4 bytes here, 4 KiB in real systems.
+
+Every file has an **inode**, identified by its number. The inode stores the type (file, directory or symbolic link), the size, the **link count** and the pointers to its data blocks. The inode does **not** store the name.
+
+A **directory** is a special file whose content is a list of entries `name → inode number`. Here there is a single directory, the root `/`: inode 0, stored in block 0.
+
+Two **bitmaps** say which inodes and which blocks are in use (1) or free (0). New inodes and blocks take the lowest free number.
+
+| Operation | Like | What it does |
+| --- | --- | --- |
+| `create name` | `open` with `O_CREAT \| O_EXCL` | New inode, empty file, new entry. Fails if the name exists. |
+| `write name text` | writing the whole file | Frees the old blocks and takes ⌈length ÷ 4⌉ new ones. |
+| `link old new` | `ln old new` | **Hard link**: another entry for the **same** inode; its count goes up. |
+| `symlink target new` | `ln -s target new` | **Symbolic link**: a new inode whose content is the **name** `target`. |
+| `unlink name` | `rm name` | Removes the entry; the count goes down. |
+| `open name` / `close fd` | | Gives and returns a **file descriptor** (3, 4…). |
+| `cat name` / `read fd` | | Reads through a name or through a descriptor. |
+| `rename old new` | `mv old new` | Changes the entry's name. |
+
+> Example: `create a` and then `write a "hey"`: inode 1, size 3, and block 1 holds `hey`.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board starts with the **Links** script:
+
+1. `create notas.txt`
+2. `write notas.txt "hola mundo"`
+3. `link notas.txt copia.txt`
+4. `symlink notas.txt atajo`
+5. `unlink notas.txt`
+6. `cat copia.txt`
+7. `cat atajo`
+
+**What does step 6 show? And step 7?** For each one: "hola mundo", an empty file or an error. Answer in the *Your prediction* panel before you run.
+
+</Stage>
+
+<Stage stage="run">
+
+<FileSystem client:visible lang="en" />
+
+As it runs, watch four moments:
+
+- Step 2: how many blocks does "hola mundo" take? Who points to them?
+- Step 3: is any new block or inode allocated?
+- Step 5: the entry `notas.txt` disappears. Do inode 1 and its blocks disappear too?
+- Step 7: which name does the system look up when it follows `atajo`?
+
+The tokens tie the three layers together: the same shape and color mark a directory entry, its inode and its blocks.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answers were: step 6 shows **"hola mundo"** and step 7 gives **an error**.
+
+**The name is not the file.** The directory only maps names to numbers; everything else is in the inode. After step 3, `notas.txt` and `copia.txt` are two names for inode 1, and neither one is "the original". Removing `notas.txt` lowers inode 1's link count from 2 to 1 and nothing else changes. `ls -i` shows inode numbers and `stat` shows the link count.
+
+**A hard link is not a copy.** No block was allocated: the data exists only once. A hard link cannot cross file systems (inode numbers belong to each file system), and most systems forbid hard links to directories so the tree has no cycles.
+
+**A symbolic link stores a name.** `atajo` is a separate inode whose content is the text `notas.txt`. To read it, the system looks that name up in the directory, and at step 7 it is gone: a **dangling link**. Symbolic links can cross file systems and point to directories, but they keep nothing alive. ext4 stores short targets (under 60 bytes) inside the inode itself, with no blocks, just like this simulator.
+
+**When data is freed.** Only when the link count reaches 0 **and** no process has the file open. A process can keep reading a file after its last name is removed; the space comes back when it closes it (the *Open file* script). `lsof +L1` lists such open, deleted files; on Linux they also show as `(deleted)` under `/proc/<pid>/fd`.
+
+**Renaming does not move data.** `mv` within the same file system rewrites a directory entry; the inode number and every block stay where they were. That is why moving a 10 GB file is instant.
+
+**Inodes run out too.** `df -i` shows how many are left. Many tiny files can exhaust the inodes while blocks are still free.
+
+**Real systems.** ext4 uses 256-byte inodes and 4 KiB blocks, and describes data with **extents** (a starting block and a length) instead of one pointer per block. The classic Unix inode had 12 direct pointers plus single, double and triple indirect blocks.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Read a file's data after all its names have been removed.</summary>
+
+Load *Open file*. At step 4 `log.txt` is removed, but step 5, `read 3`, shows "datos": the descriptor points to the inode, which lives on while it is open. Closing it at step 6 frees the inode and its blocks, and step 7 reuses inode 1.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Free the blocks of a file that has two names.</summary>
+
+In *Links*, change step 6 to `unlink copia.txt`. The count reaches 0, nobody has it open, and inode 1 and blocks 1, 2 and 3 are freed.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Make <code>atajo</code> work again without touching it.</summary>
+
+In *Links*, after step 5: `create notas.txt`, `write notas.txt "otra"` and `cat atajo`. The symbolic link looks the name up again and finds the new inode 3: it reads "otra".
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Show that renaming does not touch the data.</summary>
+
+In *Links*, change step 6 to `rename copia.txt final.txt`. The entry gets a new name, but it still points to inode 1, with the same blocks 1, 2 and 3.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="inodos-enlaces"
+  questions={[
+    {
+      question: "ln a b (a hard link). How many inodes and how many copies of the data are there now?",
+      options: ["Two inodes and two copies", "One inode, one copy of the data and two names", "Two inodes and one copy"],
+      answer: 1,
+      explanation: "A hard link is another directory entry for the same inode. Nothing is copied.",
+    },
+    {
+      question: "A file has link count 2. You rm one of its names. Are its blocks freed?",
+      options: ["Yes", "No: the count drops to 1"],
+      answer: 1,
+      explanation: "Blocks are only freed when no names and no open descriptors are left.",
+    },
+    {
+      question: "A process has a file open and you remove its only name. When does the space come back?",
+      options: ["Immediately", "When the process closes it", "Never"],
+      answer: 1,
+      explanation: "With the count at 0 and no open descriptors, the system frees the inode and its blocks.",
+    },
+    {
+      question: "ln -s a b and then rm a. What does cat b do?",
+      options: ["Shows the content of a", "Fails: b points to the name a, which no longer exists", "Shows an empty file"],
+      answer: 1,
+      explanation: "A symbolic link stores a name, not an inode. It is now a dangling link.",
+    },
+    {
+      question: "mv big.iso copy.iso on the same file system. What changes?",
+      options: ["Every block is copied", "Only the directory entry", "The inode number"],
+      answer: 1,
+      explanation: "The inode and its blocks do not move; that is why it is instant.",
+    },
+    {
+      question: "Where is a file's name stored?",
+      options: ["In its inode", "In the directory entry", "In the first data block"],
+      answer: 1,
+      explanation: "The inode does not know its own name; that is why it can have several.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Subdirectories, `.` and `..`**, and why a directory's link count is 2 plus its number of subdirectories.
+- **Journaling and crash consistency.** What happens if the power fails between updating the bitmap and the inode.
+- **ext4 extents and indirect blocks**: how large a file one inode can describe.
+- **Copy-on-write file systems** (Btrfs, ZFS) and *reflinks*: copies that share blocks until someone writes.
+
+Further reading:
+
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 39 (sections 39.14 and 39.15) and ch. 40. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., ch. 13 and 14.
+- `unlink(2)` and `symlink(7)` manual pages: [man7.org](https://man7.org/linux/man-pages/man2/unlink.2.html).
+- Linux kernel documentation, *ext4 Data Structures and Algorithms*: [docs.kernel.org](https://docs.kernel.org/filesystems/ext4/).
+
+</Stage>
