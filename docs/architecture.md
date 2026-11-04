@@ -13,7 +13,7 @@ Simulario is a static, bilingual (Spanish/English) site built with Astro. Lesson
 | Package manager     | pnpm                                                                                      |
 | Lint and format     | Biome (TS/JS/JSON/CSS); `astro check` and `svelte-check` for `.astro` and `.svelte` types |
 | Tests               | Vitest                                                                                    |
-| Hosting             | Cloudflare Pages (automatic deploy comes after Phase 0)                                   |
+| Hosting             | Cloudflare Pages, deployed from `main` at https://simulario.pages.dev                     |
 | Analytics           | Cloudflare Web Analytics, enabled only when `PUBLIC_CF_BEACON_TOKEN` is set               |
 | Search              | Pagefind, one index per language (Phase 1)                                                |
 | CI                  | GitHub Actions                                                                            |

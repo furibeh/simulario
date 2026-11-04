@@ -17,11 +17,11 @@ The first path is **Operating systems**, with one lesson per module, each built 
 
 Each lesson has a spec in [`docs/lessons/`](docs/lessons/) with its objectives, misconceptions and hand-computed expected results.
 
-> Status: Phase 1 content complete (all 8 modules of Operating systems). Not yet deployed.
+> Status: Phase 1 content complete (all 8 modules of Operating systems). Live at **[simulario.pages.dev](https://simulario.pages.dev)**.
 
 ## Stack
 
-Astro 7 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest. Static output for Cloudflare Pages.
+Astro 7 + MDX, Svelte 5 islands, TypeScript, pnpm, Biome, Vitest. Static output, deployed to Cloudflare Pages on every push to `main`.
 
 ## Getting started
 
@@ -67,7 +67,7 @@ Code: [MIT](LICENSE). Lesson content: [CC BY-SA 4.0](LICENSE-CONTENT).
 
 ## En español
 
-Simulario es un sitio gratuito de rutas de aprendizaje interactivas de ingeniería de sistemas y software, en español e inglés. Cada lección sigue el método **Predecir → Ejecutar → Explicar**: anticipas qué hará el sistema, lo ves ocurrir paso a paso y luego entiendes por qué.
+Simulario es un sitio gratuito de rutas de aprendizaje interactivas de ingeniería de sistemas y software, en español e inglés. Está publicado en **[simulario.pages.dev](https://simulario.pages.dev)**. Cada lección sigue el método **Predecir → Ejecutar → Explicar**: anticipas qué hará el sistema, lo ves ocurrir paso a paso y luego entiendes por qué.
 
 La primera ruta es **Sistemas operativos**: ocho módulos, cada uno con una lección y su propia simulación (estados de procesos, planificación de CPU, condiciones de carrera, semáforos, interbloqueo, paginación, reemplazo de páginas e inodos y enlaces).
 
