@@ -31,6 +31,7 @@ src/
     token/            Token, shapes
     board/            Timeline, board.css (shared board pieces, scoped under .sim)
     cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
+    process-states/   ProcessStates: workload, prediction grid, state table, metrics
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
