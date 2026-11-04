@@ -34,7 +34,7 @@ const {
 const t = useTranslations(lang);
 ---
 
-<Page lang={lang} title={`${title} | ${t("site.name")}`} description={summary}>
+<Page lang={lang} title={`${title} | ${t("site.name")}`} description={summary} ogType="article">
   <header class="lesson-head" lang={contentLang}>
     <a class="module" href={localizedPath(lang, pathId)}>
       {t("path.module", { n: moduleOrder })}: {moduleTitle}

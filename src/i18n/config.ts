@@ -2,6 +2,9 @@ export const locales = ["es", "en"] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = "es";
 
+/** Open Graph locale per site locale (language_TERRITORY; es_LA is Open Graph's Latin American Spanish). */
+export const ogLocales: Record<Locale, string> = { es: "es_LA", en: "en_US" };
+
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (locales as readonly string[]).includes(value);
 }

@@ -8,13 +8,14 @@ interface Props {
   lang: Locale;
   title: string;
   description?: string | undefined;
+  ogType?: "website" | "article" | undefined;
 }
 
-const { lang, title, description } = Astro.props;
+const { lang, title, description, ogType } = Astro.props;
 const t = useTranslations(lang);
 ---
 
-<Base lang={lang} title={title} description={description}>
+<Base lang={lang} title={title} description={description} ogType={ogType}>
   <Nav lang={lang} />
   <main class="page main">
     <slot />

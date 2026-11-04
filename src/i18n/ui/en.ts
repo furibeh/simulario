@@ -15,6 +15,8 @@ export const en = {
   "theme.toSystem": "Use the system theme",
   "redirect.choose": "Choose your language",
   "footer.license": "Code under the MIT license. Content under CC BY-SA 4.0.",
+  "share.imageAlt":
+    "Simulario: a red circle, a green square, a yellow triangle and a blue diamond, the tokens of its simulations.",
 
   "shape.1": "circle",
   "shape.2": "square",

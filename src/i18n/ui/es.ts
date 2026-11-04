@@ -15,6 +15,8 @@ export const es = {
   "theme.toSystem": "Usar el tema del sistema",
   "redirect.choose": "Elige tu idioma",
   "footer.license": "Código con licencia MIT. Contenido con licencia CC BY-SA 4.0.",
+  "share.imageAlt":
+    "Simulario: un círculo rojo, un cuadrado verde, un triángulo amarillo y un rombo azul, las fichas de sus simulaciones.",
 
   "shape.1": "círculo",
   "shape.2": "cuadrado",
