@@ -25,6 +25,7 @@ src/
   engines/            Pure simulation engines. No DOM, no Svelte, no UI strings.
     cpu-scheduling/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     process-states/   simulate.ts, types.ts, presets.ts, simulate.test.ts
+    race-conditions/  simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -32,6 +33,7 @@ src/
     board/            Timeline, board.css (shared board pieces, scoped under .sim)
     cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
     process-states/   ProcessStates: workload, prediction grid, state table, metrics
+    race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
@@ -55,7 +57,7 @@ src/
                       catalog.ts (content queries), events.ts (island → page events)
   styles/             tokens.css, base.css
 docs/                 design.md, architecture.md
-  lessons/            One spec per lesson (_template.md, planificador-cpu.md)
+  lessons/            One spec per lesson (_template.md, then one file per lesson id)
 .github/workflows/    ci.yml
 ```
 
@@ -108,6 +110,10 @@ Port of the prototype's `simulate()`. Input: processes `{ id, arrival, burst, pr
 ### Process states engine
 
 Implements `docs/lessons/procesos-estados.md`. Input: processes `{ id, arrival, bursts }` (alternating CPU and I/O bursts, starting and ending with CPU) and `quantum` (`null` for non-preemptive). One CPU, FCFS dispatch, one private I/O device per process. Steps are **instants**, not units: `steps[t]` holds the state after the transitions at `t`, that is, during `[t, t + 1)`, and the last step is the instant of the last exit, with no unit after it (`steps.length === makespan + 1`). This differs from the CPU engine, whose steps are units. State per step: one view per process (`status` absent/ready/running/blocked/terminated, current burst and units left, `ioUntil`, and CPU, I/O and ready units spent in `[0, t)`), the running process, the ready queue and busy units so far. Result: per-process finish, turnaround, CPU, I/O and ready time (`turnaround = cpu + io + ready`), finish order, CPU and I/O segments, makespan, busy units, utilization and serial time. Keys: `admit`, `dispatch`, `continue`, `block`, `wakeup`, `timeout`, `exit`, `idle.io` and `idle.arrivals`.
+
+### Race conditions engine
+
+Implements `docs/lessons/condiciones-carrera.md`. Input: `threads` (2–3, ids `T1`…), `increments` per thread (1–3), `atomic` and a `schedule`: `{ kind: "timer", quantum }` (round robin, quantum counted in instructions) or `{ kind: "manual", order }` (one thread id per instruction; an order that names a finished thread throws, a short one ends the trace early with `complete: false`). Every thread runs the same program: `load`, `add`, `store` per increment, or one `inc` when atomic. One step per **instruction**, `t` starting at 0; the state is the shared `counter`, one view per thread (`pc`, private `reg`, value `loaded` for the increment in progress, status) and the instruction just run. A `store` is stale when `counter` differs from the value that thread loaded. Result: `final`, `expected`, `lost`, `complete`, `switches`, the write log (`writes`) and timeline `segments`. Keys: `dispatch`, `preempt`, `pick`, `load`, `add`, `store`, `store.stale`, `inc` and `finish`.
 
 ## Player
 
