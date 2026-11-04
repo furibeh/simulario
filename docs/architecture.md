@@ -27,6 +27,7 @@ src/
     process-states/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     race-conditions/  simulate.ts, types.ts, presets.ts, simulate.test.ts
     bounded-buffer/   simulate.ts, types.ts, presets.ts, simulate.test.ts
+    resource-graph/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -36,6 +37,7 @@ src/
     process-states/   ProcessStates: workload, prediction grid, state table, metrics
     race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
     bounded-buffer/   BoundedBuffer: buffer slots, semaphore counters with queues, thread loops, block log
+    resource-graph/   ResourceGraph: live resource-allocation graph (SVG), holdings table, delays, lock order
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
@@ -120,6 +122,10 @@ Implements `docs/lessons/condiciones-carrera.md`. Input: `threads` (2–3, ids `
 ### Bounded buffer engine
 
 Implements `docs/lessons/mutex-semaforos.md`. Input: `producers` and `consumers` (1–2 each, ids `P1`, `P2`, `C1`, `C2`), `items` per producer, buffer `capacity`, `version` (`correct`, or `swapped`: the producer waits on `mutex` before `empty`) and `quantum` (`null` keeps the CPU until a thread blocks or finishes). Semaphores `empty`, `full` and `mutex` are counters with FIFO queues; `signal` hands the permit straight to the first waiter, so the counter only rises when nobody waits. One step per operation (`wait`, `signal`, `put`, `take`) on one CPU with a FIFO ready queue. When every unfinished thread is blocked, the step gets `deadlock` and one `stuck` per thread, and the trace ends. Result: `completed`, `deadlock`, consumed items, block log, finish order, final counters and timeline segments. Keys: `dispatch`, `preempt`, `wait.pass`, `wait.block`, `signal.inc`, `signal.wake`, `put`, `take`, `finish`, `deadlock` and `stuck`.
+
+### Resource graph engine
+
+Implements `docs/lessons/interbloqueo.md`. Input: `resources` (2–5 single-instance resources `R1`…), `threads` (2–5, each `{ delay, script }` with `acquire`, `release` and `work` operations) and `ordering` (`script`, or `global`: each thread's acquires keep their positions but take its resources in increasing order). The effective script is validated (no double acquire, no release without holding, nothing held at the end). One step per operation; the head of a FIFO ready queue runs one operation and goes to the end. Releasing a resource hands it to the first waiter. After every block the engine follows "waits for R, held by U" and reports the first cycle as a path string; when no thread is ready and some are blocked, the step gets `stalled` and the trace ends. State: per-thread holdings, wait and program counter, per-resource holder and queue, the cycle found so far. Result: `deadlock`, `cycle`, `cycleStep`, `stalled`, finish order, threads that ran `work`, block log and segments. Keys: `acquire`, `block`, `release`, `handoff`, `work`, `think`, `finish`, `cycle` and `stalled`.
 
 ## Player
 
