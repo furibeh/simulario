@@ -71,7 +71,7 @@ Lo correcto era **10 fallos**: uno más que con 3 marcos.
 
 **Fallos inevitables.** La primera referencia a cada página siempre falla. La cadena de Belady tiene 5 páginas distintas, así que 5 fallos es el mínimo para cualquier algoritmo; con 5 marcos o más, todos lo alcanzan.
 
-**En sistemas reales.** Linux aproxima LRU con listas de páginas activas e inactivas, guiadas por el bit de acceso, y desde la versión 6.1 incluye el LRU multigeneracional (MGLRU), activado por omisión en distribuciones como Fedora y Arch. Windows recorta el conjunto de trabajo de cada proceso. Todos son aproximaciones de LRU, ni FIFO ni OPT.
+**En sistemas reales.** Linux aproxima LRU con listas de páginas activas e inactivas, guiadas por el bit de acceso, y desde la versión 6.1 incluye el LRU multigeneracional (MGLRU). Que esté activo depende de cómo se compiló el núcleo; se puede encender o apagar en `/sys/kernel/mm/lru_gen/enabled`, y distribuciones como Fedora y Arch lo traen activado. Windows recorta el conjunto de trabajo de cada proceso. Todos son aproximaciones de LRU, ni FIFO ni OPT.
 
 </Stage>
 

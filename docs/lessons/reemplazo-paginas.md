@@ -67,7 +67,7 @@ By the end of the lesson the learner can:
 - **Classic string** (`7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1`, 3 frames): OPT 9, LRU 12, Clock 14, FIFO 15.
 - **Why Clock** (M4): exact LRU would need to update a timestamp or move a list node on every memory access, billions per second. Hardware instead sets a use (accessed) bit in the page-table entry; Clock reads and clears these bits only when it needs a victim. If every bit is 1, Clock clears them all and behaves like FIFO, which is why it also shows the anomaly on _Belady_.
 - **Compulsory faults** (M6): the first reference to each page always faults. _Belady_ has 5 distinct pages, so 5 faults is the floor for any algorithm; with 5 or more frames every algorithm reaches it.
-- **Real systems**: Linux approximates LRU with active and inactive lists driven by the accessed bit, and since 6.1 includes the multi-generational LRU (MGLRU), enabled by default in distributions such as Fedora and Arch. Windows trims per-process working sets. All of them are LRU approximations, not FIFO and not OPT.
+- **Real systems**: Linux approximates LRU with active and inactive lists driven by the accessed bit, and since 6.1 includes the multi-generational LRU (MGLRU, `CONFIG_LRU_GEN`). Whether it is on by default depends on the kernel build (`CONFIG_LRU_GEN_ENABLED`); it can be switched at run time in `/sys/kernel/mm/lru_gen/enabled`, and distributions such as Fedora and Arch build it enabled. Windows trims per-process working sets. All of them are LRU approximations, not FIFO and not OPT.
 
 ## Experiment
 
@@ -161,7 +161,7 @@ Faults by frame count (comparison table):
 
 ### Preset: Clásica (`7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1`, 3 frames)
 
-FIFO 15 (traced by hand), LRU 12 and OPT 9 (the values published in Silberschatz, Galvin and Gagne, §10.4).
+FIFO 15, LRU 12, OPT 9, traced by hand; they match the values published in Silberschatz, Galvin and Gagne, §10.4. LRU faults at references 1, 2, 3, 4, 6, 8, 9, 10, 11, 14, 16, 18; OPT at 1, 2, 3, 4, 6, 8, 11, 14, 18.
 
 Clock 3, traced by hand: faults at references 1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 15, 16, 18, 20; hits at 5, 7, 10, 13, 17, 19. 14 faults. Final frames 0 7 1.
 

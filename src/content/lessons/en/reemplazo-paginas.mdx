@@ -71,7 +71,7 @@ The right answer was **10 faults**: one more than with 3 frames.
 
 **Faults no one can avoid.** The first reference to each page always faults. The Belady string has 5 different pages, so 5 faults is the minimum for any algorithm; with 5 frames or more, they all reach it.
 
-**In real systems.** Linux approximates LRU with active and inactive page lists driven by the accessed bit, and since version 6.1 it includes the multi-generational LRU (MGLRU), enabled by default in distributions such as Fedora and Arch. Windows trims each process's working set. All of them approximate LRU; none is FIFO or OPT.
+**In real systems.** Linux approximates LRU with active and inactive page lists driven by the accessed bit, and since version 6.1 it includes the multi-generational LRU (MGLRU). Whether it is on depends on how the kernel was built; it can be switched on or off in `/sys/kernel/mm/lru_gen/enabled`, and distributions such as Fedora and Arch ship it enabled. Windows trims each process's working set. All of them approximate LRU; none is FIFO or OPT.
 
 </Stage>
 

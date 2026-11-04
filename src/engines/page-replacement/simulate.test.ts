@@ -103,8 +103,12 @@ describe("preset: belady", () => {
 describe("preset: classic (Clásica), 3 frames", () => {
   it("ranks OPT, LRU, Clock and FIFO", () => {
     expect(run("fifo", 3, presets.classic).result.faults).toBe(15);
-    expect(run("lru", 3, presets.classic).result.faults).toBe(12);
-    expect(run("opt", 3, presets.classic).result.faults).toBe(9);
+    const faultsAt = (algorithm: Algorithm) =>
+      run(algorithm, 3, presets.classic).result.records.flatMap((r) =>
+        r.hit ? [] : [r.index + 1],
+      );
+    expect(faultsAt("lru")).toEqual([1, 2, 3, 4, 6, 8, 9, 10, 11, 14, 16, 18]);
+    expect(faultsAt("opt")).toEqual([1, 2, 3, 4, 6, 8, 11, 14, 18]);
     const clock = run("clock", 3, presets.classic);
     const faultRefs = clock.result.records.flatMap((r) => (r.hit ? [] : [r.index + 1]));
     expect(faultRefs).toEqual([1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 15, 16, 18, 20]);
