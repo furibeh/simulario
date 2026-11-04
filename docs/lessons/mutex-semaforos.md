@@ -286,6 +286,10 @@ Each turn is one operation; the ready queue alternates whenever both threads are
 
 40 steps, completed. Consumed P1.1, P2.1, P1.2, P2.2. Blocks: (2, C1, full), (4, P2, mutex), (11, P1, empty), (14, P2, empty), (20, C1, mutex), (29, C1, mutex). Finish order P1, P2, C1. Final: empty 2, full 0, mutex 1. At step 16 the queue of `empty` is P1 then P2, so P1 is woken first.
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` checks that the correct program is OSTEP's Figure 31.12 line by line, and replays the §31.4 walkthrough with MAX = 1: a producer that keeps running blocks on `empty` at its second `wait`. OSTEP's semaphores let the counter go negative to count waiters; this engine hands the permit over instead, which gives the same blocking and waking.
+
 ### Edge cases
 
 | Case                             | Input                                    | Expected                                                                                         |

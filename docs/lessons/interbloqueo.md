@@ -191,6 +191,10 @@ Scripts: T1 `a1 w a2 w r2 r1`; T2 `a2 w a1 w r1 r2`; T3 `a3 w w r3`.
 
 In the delay-2 run, at step 11 the ready queue becomes T2 then T1: the woken T2 is queued before T1 is re-appended.
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` replays OSTEP Figure 32.6: T1 grabs L1, a switch lets T2 grab L2, and each waits for the other (a cycle). It also checks the book's remark that the deadlock does not necessarily occur: with T2 starting two turns later, T1 takes both locks first.
+
 ### Edge cases
 
 | Case                  | Input                                              | Expected                                                                                             |

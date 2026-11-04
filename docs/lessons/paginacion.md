@@ -193,6 +193,10 @@ Page table: p0 f0, p1 f1, p2 f2, p3 disk, p4 disk, p5–p7 invalid. FIFO order a
 
 Hits 0, misses 2, faults 3, no invalid access. Total 31 005. Final page table: p0 f2, p1 disk, p2 disk, p3 f0, p4 f1. Keys of access 2: `split`, `tlb.miss`, `fault`, `evict` (p0, f0), `tlb.drop` (p0), `load` (p3, f0), `tlb.fill`, `access`.
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` replays OSTEP §19.2 (an array of ten 4-byte ints from address 100, 16-byte pages), shifted down two pages to fit 8 pages: TLB activity miss, hit, hit, miss, hit, hit, hit, miss, hit, hit, a 70% hit rate, as in the book.
+
 ### Edge cases
 
 | Case                 | Input                   | Expected                                                      |

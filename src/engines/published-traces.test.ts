@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { simulate as translate } from "./address-translation/simulate";
+import {
+  simulate as boundedBuffer,
+  consumerProgram,
+  producerProgram,
+} from "./bounded-buffer/simulate";
+import { simulate as fileSystem } from "./file-system/simulate";
 import { simulate as replace } from "./page-replacement/simulate";
 import { simulate as race } from "./race-conditions/simulate";
+import { philosophers } from "./resource-graph/presets";
+import { simulate as resourceGraph } from "./resource-graph/simulate";
 
 /**
  * External cross-check: traces published in Arpaci-Dusseau and Arpaci-Dusseau, "Operating Systems:
@@ -83,5 +92,122 @@ describe("OSTEP ch. 26, Figure 26.7 (the lost update, counter shifted from 50 to
     ]);
     expect(trace.result.final).toBe(1);
     expect(trace.result.lost).toBe(1);
+  });
+});
+
+describe("OSTEP ch. 19, §19.2 (an array of ten 4-byte ints from address 100, 16-byte pages)", () => {
+  it("TLB activity: miss, hit, hit, miss, hit, hit, hit, miss, hit, hit (70%)", () => {
+    // The book's array spans VPNs 6, 7 and 8 of a 256-byte space; this engine allows 8 pages, so
+    // every address is shifted down by 32 bytes (two pages): VPNs 4, 5, 6, same offsets.
+    const trace = translate({
+      pageSize: 16,
+      pages: [
+        { kind: "invalid" },
+        { kind: "invalid" },
+        { kind: "invalid" },
+        { kind: "invalid" },
+        { kind: "frame", frame: 0 },
+        { kind: "frame", frame: 1 },
+        { kind: "frame", frame: 2 },
+        { kind: "invalid" },
+      ],
+      frames: 4,
+      tlbSize: 4,
+      accesses: Array.from({ length: 10 }, (_, i) => 100 - 32 + 4 * i),
+    });
+    expect(trace.result.accesses.map((a) => a.outcome)).toEqual(
+      "miss hit hit miss hit hit hit miss hit hit".split(" "),
+    );
+    expect(trace.result.accesses.map((a) => a.page + 2)).toEqual([6, 6, 6, 7, 7, 7, 7, 8, 8, 8]);
+    expect(trace.result.hits / trace.result.accesses.length).toBe(0.7);
+  });
+});
+
+describe("OSTEP ch. 31, Figure 31.12 and the walkthrough of §31.4 (MAX = 1)", () => {
+  it("the correct program is the one in Figure 31.12", () => {
+    expect(producerProgram(1, "correct")).toEqual([
+      { op: "wait", sem: "empty" },
+      { op: "wait", sem: "mutex" },
+      { op: "put" },
+      { op: "signal", sem: "mutex" },
+      { op: "signal", sem: "full" },
+    ]);
+    expect(consumerProgram(1)).toEqual([
+      { op: "wait", sem: "full" },
+      { op: "wait", sem: "mutex" },
+      { op: "take" },
+      { op: "signal", sem: "mutex" },
+      { op: "signal", sem: "empty" },
+    ]);
+  });
+
+  it("a producer that keeps running blocks on empty at its second wait", () => {
+    // "If the producer continues to run, it will loop around and hit Line P1 again. This time,
+    // however, it would block, as the empty semaphore's value is 0."
+    const trace = boundedBuffer({
+      producers: 1,
+      consumers: 1,
+      items: 2,
+      capacity: 1,
+      version: "correct",
+      quantum: null,
+    });
+    expect(trace.result.blocks[0]).toEqual({ step: 5, id: "P1", sem: "empty" });
+    expect(trace.result.completed).toBe(true);
+  });
+});
+
+describe("OSTEP ch. 32, Figure 32.6 (simple deadlock)", () => {
+  it("T1 grabs L1, a switch lets T2 grab L2, then each waits for the other: a cycle", () => {
+    const trace = resourceGraph(philosophers(2));
+    expect(trace.result.deadlock).toBe(true);
+    expect(trace.result.cycle).toEqual(["T2", "T1"]);
+    expect(trace.steps.at(-1)?.state.resources.map((r) => r.holder)).toEqual(["T1", "T2"]);
+  });
+
+  it("'deadlock does not necessarily occur': if T2 starts later, T1 gets both locks first", () => {
+    const base = philosophers(2);
+    const trace = resourceGraph({
+      ...base,
+      threads: base.threads.map((t, i) => (i === 1 ? { ...t, delay: 2 } : t)),
+    });
+    expect(trace.result.deadlock).toBe(false);
+    expect(trace.result.finishOrder).toEqual(["T1", "T2"]);
+  });
+});
+
+describe("OSTEP ch. 39, §39.14 and §39.15 (hard and symbolic links)", () => {
+  it("link counts go 1, 2, 3, 2, 1 and the last name still reads hello", () => {
+    const trace = fileSystem({
+      script: [
+        { op: "create", name: "file" },
+        { op: "write", name: "file", text: "hello" },
+        { op: "link", name: "file", to: "file2" },
+        { op: "link", name: "file2", to: "file3" },
+        { op: "unlink", name: "file" },
+        { op: "unlink", name: "file2" },
+        { op: "cat", name: "file3" },
+      ],
+    });
+    expect(trace.steps.map((s) => s.state.inodes[1]?.links)).toEqual([1, 1, 2, 3, 2, 1, 1]);
+    expect(trace.result.outputs).toEqual([{ step: 6, kind: "content", content: "hello" }]);
+  });
+
+  it("a symbolic link holds the path (4 bytes for 'file') and dangles after rm file", () => {
+    const trace = fileSystem({
+      script: [
+        { op: "create", name: "file" },
+        { op: "write", name: "file", text: "hello" },
+        { op: "symlink", target: "file", name: "file2" },
+        { op: "cat", name: "file2" },
+        { op: "unlink", name: "file" },
+        { op: "cat", name: "file2" },
+      ],
+    });
+    expect(trace.steps[2]?.state.inodes[2]).toMatchObject({ type: "symlink", size: 4 });
+    expect(trace.result.outputs).toEqual([
+      { step: 3, kind: "content", content: "hello" },
+      { step: 5, kind: "error", content: "" },
+    ]);
   });
 });

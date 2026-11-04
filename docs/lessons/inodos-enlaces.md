@@ -212,6 +212,10 @@ Block contents after step 2: block 1 `hola`, block 2 ` mun`, block 3 `do`. Inode
 | E3   | _Enlaces_ steps 1–5, then `create notas.txt`, `write notas.txt "otra"`, `cat atajo` | `create` inode 3; `write` block 4; `cat.via` atajo → notas.txt, inode 3, content `otra`. |
 | E4   | _Enlaces_ steps 1–5, then `rename copia.txt final.txt`                              | Directory final.txt→1, atajo→2; inode 1 still has blocks 1, 2, 3.                        |
 
+### External cross-check
+
+`src/engines/published-traces.test.ts` replays OSTEP §39.14–39.15: link counts 1, 2, 3, 2, 1 as `file`, `file2`, `file3` are linked and removed, the last name still reads `hello`; a symbolic link to `file` is 4 bytes and fails after `rm file` (a dangling reference).
+
 ### Edge cases
 
 | Case                   | Script                                                                                                                                                 | Expected                                                                                                                            |
