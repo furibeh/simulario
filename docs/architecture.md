@@ -30,6 +30,7 @@ src/
     resource-graph/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     address-translation/ simulate.ts, types.ts, presets.ts, simulate.test.ts
     page-replacement/ simulate.ts, types.ts, presets.ts, simulate.test.ts
+    file-system/      simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -42,6 +43,7 @@ src/
     resource-graph/   ResourceGraph: live resource-allocation graph (SVG), holdings table, delays, lock order
     address-translation/ AddressTranslation: address split in binary, TLB, page table, frames, disk, access log
     page-replacement/ PageReplacement: frame grid, FIFO queue / LRU list / OPT next uses / Clock dial, comparison table
+    file-system/      FileSystem: script editor, bitmaps, directory, inode cards, data blocks, descriptors, output
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
@@ -138,6 +140,10 @@ Implements `docs/lessons/paginacion.md`. Input: `pageSize` (8–64), `pages` (pa
 ### Page replacement engine
 
 Implements `docs/lessons/reemplazo-paginas.md`. Input: `refs` (1–20 pages, 0–9), `frames` (1–6) and `algorithm` (`fifo`, `lru`, `opt`, `clock`). One step per reference. Free frames fill from slot 0; a full memory picks a victim by the algorithm's rule (OPT ties go to the lowest slot; Clock clears use bits under the hand until it finds a 0). State: slot contents plus each algorithm's bookkeeping (FIFO queue, LRU recency, OPT next uses, Clock bits and hand). Result: per-reference records, faults, hits and `compulsory` (distinct pages). `faultTable(refs)` runs every algorithm with 1–6 frames for the comparison table. Keys: `hit`, `load`, `evict.fifo`, `evict.lru`, `evict.opt`, `evict.opt.never`, `clock.clear` and `evict.clock`.
+
+### File system engine
+
+Implements `docs/lessons/inodos-enlaces.md`. Input: a `script` of 1–12 operations (`create`, `write`, `link`, `symlink`, `unlink`, `open`, `close`, `cat`, `read`, `rename`) on a fixed tiny file system (`geometry`: one root directory with up to 8 entries, 8 inodes, 12 blocks of 4 bytes). Structurally invalid scripts throw; operations that fail at run time emit an `error.*` key and change nothing. Names resolve through symbolic links (at most 4 hops). An inode and its blocks are freed only when its link count is 0 and no descriptor is open. One step per operation; the state holds the inode table, blocks, directory entries, open descriptors and what the step touched. Result: read outputs, failed steps, inodes and blocks in use, final entries. Keys: `create`, `free.blocks`, `write`, `link`, `symlink`, `unlink.keep`, `unlink.orphan`, `unlink.free`, `unlink.symlink`, `open`, `close.keep`, `close.free`, `cat`, `cat.via`, `read`, `rename` and seven `error.*` keys.
 
 ## Player
 
