@@ -231,7 +231,7 @@ A lesson is a single page so the simulation keeps its state across stages. To av
 | Unit tests      | `pnpm test` (`vitest run`)                    | yes        |
 | Build           | `pnpm build`                                  | yes        |
 
-Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left.
+Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs each engine must keep the guarantees of its topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode). They found two engine bugs that the hand-computed presets did not reach.
 
 ## Decisions
 
