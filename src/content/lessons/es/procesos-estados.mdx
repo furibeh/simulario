@@ -1,0 +1,208 @@
+---
+title: Procesos y sus estados
+summary: Sigue a cada proceso instante a instante entre la cola de listos, la CPU y la espera de E/S, y descubre por qué la CPU casi nunca se queda esperando.
+module: procesos
+order: 1
+minutes: 30
+prerequisites: []
+---
+
+import ProcessStates from "../../../components/process-states/ProcessStates.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Saber que un programa es un archivo y que, cuando se ejecuta, usa la CPU y la memoria.
+- Leer una línea de tiempo de izquierda a derecha. No necesitas programar.
+
+</Stage>
+
+<Stage stage="theory">
+
+Un **proceso** es un programa en ejecución. El sistema operativo guarda un registro de cada uno, el **bloque de control del proceso** (PCB), y ahí anota, entre otras cosas, en qué **estado** está.
+
+Un proceso alterna **ráfagas de CPU**, en las que calcula, y **ráfagas de E/S**, en las que espera a un disco, a la red o al teclado. Siempre empieza y termina con una ráfaga de CPU.
+
+En este simulador hay una sola CPU y un solo proceso puede usarla a la vez. El tiempo avanza en unidades y cambiar de proceso no cuesta nada. Los estados son cinco:
+
+| Estado | Qué significa |
+| --- | --- |
+| **Nuevo** | Se está creando. Aquí dura cero tiempo: al llegar, el proceso se admite al instante. |
+| **Listo** | Podría usar la CPU ahora mismo y espera su turno en la **cola de listos**. |
+| **En ejecución** | Tiene la CPU. |
+| **Bloqueado** | Espera a que termine una operación de E/S. Darle la CPU no serviría de nada. |
+| **Terminado** | Completó su última ráfaga. |
+
+El **planificador** le da la CPU al primero de la cola de listos (el primero en llegar es el primero en ser atendido) cada vez que la CPU queda libre. Los dispositivos de E/S trabajan en paralelo con la CPU y entre sí: aquí cada proceso tiene su propio dispositivo, así que la E/S nunca hace cola.
+
+> Ejemplo: P1 llega en 0 con CPU 1, E/S 2 y CPU 1, y está solo. Corre de 0 a 1, queda bloqueado de 1 a 3, en t = 3 pasa a listo y de inmediato vuelve a correr hasta 4, cuando termina. La CPU está ociosa de 1 a 3.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero de abajo empieza con el escenario **Esperando al disco**, sin cuanto:
+
+| Proceso | Llegada | Ráfagas |
+| --- | --- | --- |
+| P1 | 0 | CPU 2, E/S 3, CPU 2 |
+| P2 | 0 | CPU 3 |
+| P3 | 1 | CPU 1, E/S 2, CPU 1 |
+
+**¿En qué estado estará cada proceso en t = 3? ¿Y en t = 5?** Elige un estado por casilla en el panel *Tu predicción* antes de ejecutar. El estado de un instante es el que tiene el proceso después de los cambios de ese instante, es decir, durante la unidad que empieza ahí.
+
+</Stage>
+
+<Stage stage="run">
+
+<ProcessStates client:visible lang="es" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- En t = 2, P1 pide E/S. ¿Qué hace la CPU mientras P1 espera al disco?
+- En t = 5 pasan tres cosas a la vez. ¿Adónde va P1 cuando termina su E/S?
+- En t = 8 termina la E/S de P3. ¿Pasa por la cola de listos aunque nadie más espere?
+
+Debajo del tablero, la tabla *Hasta ahora* suma el tiempo de cada proceso en CPU, en E/S y en la cola de listos, y muestra qué fracción del tiempo estuvo ocupada la CPU.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era:
+
+| Proceso | t = 3 | t = 5 |
+| --- | --- | --- |
+| P1 | Bloqueado | Listo |
+| P2 | En ejecución | Terminado |
+| P3 | Listo | En ejecución |
+
+**La CPU no espera al disco.** En t = 2, P1 pide E/S y en ese mismo instante deja la CPU y pasa a bloqueado. El planificador despacha a P2 de inmediato. Si pusiste a P1 en ejecución en t = 3, imaginaste que el proceso conserva la CPU mientras espera, o que la CPU lo espera a él. Ninguna de las dos cosas ocurre.
+
+**Al terminar la E/S, el proceso vuelve a la cola, no a la CPU.** En t = 5 termina la E/S de P1, pero pasa a listo y se pone en la cola detrás de P3, que espera desde t = 1. El planificador elige a P3. Incluso cuando la cola está vacía, como le pasa a P3 en t = 8, el proceso pasa por listo, solo que durante cero tiempo.
+
+**Las transiciones posibles son seis**, y cada una tiene una causa:
+
+| Transición | Evento | Quién la causa |
+| --- | --- | --- |
+| Nuevo → listo | Admisión | El sistema operativo termina de crear el proceso. |
+| Listo → en ejecución | Despacho | El planificador. |
+| En ejecución → bloqueado | Petición de E/S | El propio proceso, con una llamada al sistema. |
+| Bloqueado → listo | Fin de la E/S | Una interrupción del dispositivo. |
+| En ejecución → listo | Fin del cuanto | Una interrupción del temporizador. Solo en sistemas expropiativos. |
+| En ejecución → terminado | Salida | El propio proceso. |
+
+Ninguna otra es posible. Un proceso listo no puede bloquearse, porque no está ejecutando nada que pueda pedir E/S. Un proceso bloqueado no puede pasar a ejecución, porque el planificador solo elige de la cola de listos.
+
+**Listo y bloqueado no son la misma espera.** Un proceso listo espera solo la CPU: si se la dieran, avanzaría. Uno bloqueado espera un evento y no usaría la CPU aunque la tuviera.
+
+**Multiprogramación.** En *Esperando al disco* la CPU está ocupada las 9 unidades. Ejecutar los tres procesos uno tras otro tardaría 2 + 3 + 2 + 3 + 1 + 2 + 1 = 14. La ganancia viene de solapar la E/S de un proceso con la ráfaga de CPU de otro. La **utilización de la CPU** es la fracción del tiempo en que está ocupada: unidades ocupadas / tiempo total.
+
+**El PCB y el cambio de contexto.** En cada despacho el sistema operativo guarda los registros del proceso que sale en su PCB y carga los del que entra. Aquí es gratis; en un sistema real cuesta unos microsegundos.
+
+**En sistemas reales.** En Linux, `ps -o pid,stat,cmd` y `top` muestran el estado de cada proceso. `R` significa en ejecución o listo para ejecutarse: Linux no distingue entre los dos. `S` y `D` son bloqueado (espera interrumpible e ininterrumpible), `T` es detenido y `Z` es zombi: terminado, pero su padre todavía no lo ha recogido.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Haz que un proceso pase de en ejecución a listo sin terminar su ráfaga.</summary>
+
+En *Esperando al disco*, elige *Con cuanto* y pon el cuanto en 2. En t = 4 se agota el cuanto de P2: la interrupción del temporizador le quita la CPU y vuelve al final de la cola.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Consigue que la CPU quede ociosa aunque haya procesos sin terminar.</summary>
+
+Carga *Todos en E/S*. De 2 a 5 todos los procesos que quedan están bloqueados, y un proceso bloqueado no puede usar la CPU.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Termina todo el trabajo en menos de la mitad del tiempo que tardaría un proceso tras otro.</summary>
+
+Tres procesos, P1 a P3, que llegan en 0 con CPU 1, E/S 6 y CPU 1. Juntos tardan 10 unidades; uno tras otro tardarían 24. Sus esperas de E/S se solapan, así que el tiempo total queda muy por debajo de la suma, aunque la utilización sea solo del 60 %.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Haz que un proceso pase más tiempo listo que en ejecución y bloqueado juntos.</summary>
+
+P1 llega en 0 con CPU 6 y P2 llega en 1 con CPU 1. P2 espera en la cola de 1 a 6, 5 unidades, para una ráfaga de 1.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="procesos-estados"
+  questions={[
+    {
+      question: "Termina la lectura de disco de P1. ¿A qué estado pasa?",
+      options: ["En ejecución", "Listo", "Bloqueado"],
+      answer: 1,
+      explanation: "A listo. Necesita que el planificador lo despache antes de volver a correr.",
+    },
+    {
+      question: "¿Qué transición solo ocurre en un sistema expropiativo?",
+      options: ["Listo → en ejecución", "En ejecución → listo", "Bloqueado → listo"],
+      answer: 1,
+      explanation: "En ejecución → listo: el temporizador le quita la CPU cuando se agota el cuanto.",
+    },
+    {
+      question: "En Esperando al disco los procesos terminan en t = 9. ¿Cuánto tardarían uno tras otro?",
+      options: ["9 unidades", "11 unidades", "14 unidades"],
+      answer: 2,
+      explanation: "2 + 3 + 2 + 3 + 1 + 2 + 1 = 14. Juntos tardan 9 porque la E/S de uno se solapa con la CPU de otro.",
+    },
+    {
+      question: "Un proceso listo y uno bloqueado están esperando. ¿Qué espera cada uno?",
+      options: [
+        "Los dos esperan la CPU",
+        "El listo espera la CPU; el bloqueado, que termine su E/S",
+        "El listo espera su E/S; el bloqueado, la CPU",
+      ],
+      answer: 1,
+      explanation: "El listo avanzaría si le dieran la CPU. El bloqueado no podría usarla hasta que llegue su evento.",
+    },
+    {
+      question: "¿Cuál de estas transiciones es imposible?",
+      options: ["Listo → en ejecución", "Bloqueado → listo", "Listo → bloqueado"],
+      answer: 2,
+      explanation: "Un proceso listo no está ejecutando nada, así que no puede pedir E/S.",
+    },
+    {
+      question: "ps muestra un proceso con estado R. ¿Está usando una CPU en este momento?",
+      options: ["Sí, siempre", "No necesariamente"],
+      answer: 1,
+      explanation: "R significa en ejecución o listo para ejecutarse: Linux no distingue entre los dos.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Estados suspendidos.** Cuando falta memoria, el sistema puede sacar procesos listos o bloqueados al disco (*swapping*): aparecen los estados listo-suspendido y bloqueado-suspendido.
+- **El planificador de largo plazo.** Puede retener procesos en el estado nuevo para limitar cuántos compiten a la vez, el **grado de multiprogramación**.
+- **`fork()`, `exec()` y `wait()`.** En Unix un proceso crea otro con `fork()`, le cambia el programa con `exec()` y espera su fin con `wait()`. Si el padre nunca llama a `wait()`, el hijo terminado queda como zombi.
+- **Dispositivos con cola.** Aquí cada proceso tiene su propio dispositivo. Si dos procesos necesitan el mismo disco, el segundo espera en la cola del dispositivo, no solo a que termine su operación.
+
+Para leer más:
+
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., cap. 3, sección 3.1.
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, cap. 4. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Stallings, *Operating Systems: Internals and Design Principles*, 9.ª ed., sección 3.2.
+- Manual de `ps(1)`, sección *PROCESS STATE CODES*: [man7.org](https://man7.org/linux/man-pages/man1/ps.1.html).
+
+</Stage>
