@@ -16,6 +16,7 @@ import type { UiKey } from "../../i18n/ui/es";
 import { announceRunFinished } from "../../lib/events";
 import Player from "../../player/Player.svelte";
 import "../board/board.css";
+import { scrollCurrent } from "../board/scroll-current";
 import { slotForIndex } from "../token/shapes";
 import Token from "../token/Token.svelte";
 
@@ -195,7 +196,7 @@ const labels = $derived({
 
         <section aria-labelledby="pr-grid">
           <h4 id="pr-grid">{t("pr.grid")}</h4>
-          <div class="table-wrap">
+          <div class="table-wrap" use:scrollCurrent={cursor}>
             <table class="grid">
               <thead>
                 <tr>

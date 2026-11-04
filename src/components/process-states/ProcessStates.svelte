@@ -18,6 +18,7 @@ import { announceRunFinished } from "../../lib/events";
 import Player from "../../player/Player.svelte";
 import Timeline from "../board/Timeline.svelte";
 import "../board/board.css";
+import { scrollCurrent } from "../board/scroll-current";
 import { slotForId } from "../token/shapes";
 import Token from "../token/Token.svelte";
 
@@ -430,7 +431,7 @@ const labels = $derived({
         <section class="states" aria-labelledby="ps-states">
           <h4 id="ps-states">{t("ps.states")}</h4>
           <p class="hint">{t("ps.states.hint")}</p>
-          <div class="table-wrap">
+          <div class="table-wrap" use:scrollCurrent={cursor}>
             <table class="states-grid">
               <thead>
                 <tr>
