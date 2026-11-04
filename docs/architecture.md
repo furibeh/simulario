@@ -26,6 +26,7 @@ src/
     cpu-scheduling/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     process-states/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     race-conditions/  simulate.ts, types.ts, presets.ts, simulate.test.ts
+    bounded-buffer/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -34,6 +35,7 @@ src/
     cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
     process-states/   ProcessStates: workload, prediction grid, state table, metrics
     race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
+    bounded-buffer/   BoundedBuffer: buffer slots, semaphore counters with queues, thread loops, block log
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
@@ -114,6 +116,10 @@ Implements `docs/lessons/procesos-estados.md`. Input: processes `{ id, arrival, 
 ### Race conditions engine
 
 Implements `docs/lessons/condiciones-carrera.md`. Input: `threads` (2–3, ids `T1`…), `increments` per thread (1–3), `atomic` and a `schedule`: `{ kind: "timer", quantum }` (round robin, quantum counted in instructions) or `{ kind: "manual", order }` (one thread id per instruction; an order that names a finished thread throws, a short one ends the trace early with `complete: false`). Every thread runs the same program: `load`, `add`, `store` per increment, or one `inc` when atomic. One step per **instruction**, `t` starting at 0; the state is the shared `counter`, one view per thread (`pc`, private `reg`, value `loaded` for the increment in progress, status) and the instruction just run. A `store` is stale when `counter` differs from the value that thread loaded. Result: `final`, `expected`, `lost`, `complete`, `switches`, the write log (`writes`) and timeline `segments`. Keys: `dispatch`, `preempt`, `pick`, `load`, `add`, `store`, `store.stale`, `inc` and `finish`.
+
+### Bounded buffer engine
+
+Implements `docs/lessons/mutex-semaforos.md`. Input: `producers` and `consumers` (1–2 each, ids `P1`, `P2`, `C1`, `C2`), `items` per producer, buffer `capacity`, `version` (`correct`, or `swapped`: the producer waits on `mutex` before `empty`) and `quantum` (`null` keeps the CPU until a thread blocks or finishes). Semaphores `empty`, `full` and `mutex` are counters with FIFO queues; `signal` hands the permit straight to the first waiter, so the counter only rises when nobody waits. One step per operation (`wait`, `signal`, `put`, `take`) on one CPU with a FIFO ready queue. When every unfinished thread is blocked, the step gets `deadlock` and one `stuck` per thread, and the trace ends. Result: `completed`, `deadlock`, consumed items, block log, finish order, final counters and timeline segments. Keys: `dispatch`, `preempt`, `wait.pass`, `wait.block`, `signal.inc`, `signal.wake`, `put`, `take`, `finish`, `deadlock` and `stuck`.
 
 ## Player
 
