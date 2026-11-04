@@ -45,6 +45,7 @@ export const es = {
   "player.normal": "Normal",
   "player.fast": "Rápida",
 
+  "home.title": "Simulario: simulaciones interactivas de ingeniería de sistemas",
   "home.lead":
     "Cada lección es una partida: adivinas qué hará el sistema, lo ves jugar turno a turno y después entiendes por qué.",
   "home.demo.title": "Prueba una partida",
