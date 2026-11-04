@@ -1,0 +1,84 @@
+---
+import { type Locale, localizedPath } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import { shapePaths } from "../token/shapes";
+
+interface Props {
+  lang: Locale;
+  /** h1 on a single-language 404; h2 when several languages share the root 404. */
+  heading?: "h1" | "h2";
+}
+
+const { lang, heading = "h1" } = Astro.props;
+const t = useTranslations(lang);
+const Heading = heading;
+// The logo cluster with its last token missing: the page that is not there.
+const tokens = [
+  { slot: 1, x: 0, y: 0 },
+  { slot: 2, x: 14, y: 0 },
+  { slot: 3, x: 0, y: 14 },
+] as const;
+---
+
+<section class="not-found" lang={lang}>
+  <svg class="mark" width="72" height="72" viewBox="-1 -1 30 30" aria-hidden="true">
+    {
+      tokens.map((tk) => (
+        <path
+          d={shapePaths[tk.slot]}
+          transform={`translate(${tk.x} ${tk.y}) scale(0.55)`}
+          fill={`var(--entity-${tk.slot})`}
+          stroke="var(--color-ink)"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        />
+      ))
+    }
+    <path
+      class="gap"
+      d={shapePaths[4]}
+      transform="translate(14 14) scale(0.55)"
+      fill="none"
+      stroke-width="1.6"
+      stroke-dasharray="3 2.5"
+      stroke-linejoin="round"
+    />
+  </svg>
+  <Heading>{t("notFound.title")}</Heading>
+  <p>{t("notFound.body")}</p>
+  <ul>
+    <li><a href={localizedPath(lang)}>{t("notFound.home")}</a></li>
+    <li><a href={`${localizedPath(lang)}#rutas`}>{t("notFound.paths")}</a></li>
+  </ul>
+</section>
+
+<style>
+  .not-found {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .mark {
+    margin-block-end: var(--space-2);
+  }
+
+  .gap {
+    stroke: var(--color-ink-muted);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: var(--space-6);
+  }
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
+  }
+</style>

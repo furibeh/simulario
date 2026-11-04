@@ -1,0 +1,31 @@
+---
+import NotFound from "../components/site/NotFound.astro";
+import { defaultLocale, locales } from "../i18n/config";
+import { useTranslations } from "../i18n/t";
+import Base from "../layouts/Base.astro";
+
+// Root 404 for paths with no language prefix: we cannot tell the language, so it offers both.
+// Its presence also stops Cloudflare Pages from serving the root page for unknown URLs.
+const t = useTranslations(defaultLocale);
+---
+
+<Base lang={defaultLocale} title={`${t("notFound.title")} | ${t("site.name")}`} indexable={false}>
+  <main class="page root">
+    <p class="brand">{t("site.name")}</p>
+    {locales.map((lang) => <NotFound lang={lang} heading="h2" />)}
+  </main>
+</Base>
+
+<style>
+  .root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-block: var(--space-9);
+  }
+
+  .brand {
+    font-weight: 600;
+    font-size: var(--text-h3);
+  }
+</style>

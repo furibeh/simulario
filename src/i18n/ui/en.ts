@@ -18,6 +18,12 @@ export const en = {
   "share.imageAlt":
     "Simulario: a red circle, a green square, a yellow triangle and a blue diamond, the tokens of its simulations.",
 
+  "notFound.title": "Page not found",
+  "notFound.body":
+    "There is nothing at this address. The link may be mistyped, or the page may have moved.",
+  "notFound.home": "Go to the home page",
+  "notFound.paths": "See the paths",
+
   "shape.1": "circle",
   "shape.2": "square",
   "shape.3": "triangle",

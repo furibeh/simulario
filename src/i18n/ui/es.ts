@@ -18,6 +18,12 @@ export const es = {
   "share.imageAlt":
     "Simulario: un círculo rojo, un cuadrado verde, un triángulo amarillo y un rombo azul, las fichas de sus simulaciones.",
 
+  "notFound.title": "Página no encontrada",
+  "notFound.body":
+    "No hay nada en esta dirección. Quizá el enlace está mal escrito o la página cambió de lugar.",
+  "notFound.home": "Ir al inicio",
+  "notFound.paths": "Ver las rutas",
+
   "shape.1": "círculo",
   "shape.2": "cuadrado",
   "shape.3": "triángulo",

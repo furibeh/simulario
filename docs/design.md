@@ -105,7 +105,7 @@ These are design roles, not necessarily separate files. Some live inside a large
 
 All pages share the nav (logo token cluster, Rutas, Acerca, language switch, theme toggle) and a 1180px max-width column with 24px gutters (16px on phones).
 
-The share card (`docs/assets/og.svg`, rendered to `public/og.png`) is a board on the ground color: the logo cluster, the wordmark in Lexend 600 and the six entity shapes, all in the light theme's entity colors with ink outlines and the offset board shadow.
+The 404 pages reuse the logo cluster with its fourth token missing: the diamond is drawn as an empty, dashed slot (`--color-ink-muted`), the same "waiting" outline used on the boards. The share card (`docs/assets/og.svg`, rendered to `public/og.png`) is a board on the ground color: the logo cluster, the wordmark in Lexend 600 and the six entity shapes, all in the light theme's entity colors with ink outlines and the offset board shadow.
 
 ```
 Home                         Path page                     Lesson page
