@@ -24,6 +24,7 @@ Simulario is a static, bilingual (Spanish/English) site built with Astro. Lesson
 src/
   engines/            Pure simulation engines. No DOM, no Svelte, no UI strings.
     cpu-scheduling/   simulate.ts, types.ts, presets.ts, simulate.test.ts
+    process-states/   simulate.ts, types.ts, presets.ts, simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -35,7 +36,7 @@ src/
   i18n/
     config.ts         Locales, default locale, helpers for localized paths
     ui/es.ts, ui/en.ts               Interface strings
-    engines/cpu-scheduling.es.ts …   Explanation templates per engine
+    engines/cpu-scheduling.es.ts, process-states.es.ts …   Explanation templates per engine
   content.config.ts   Collection schemas
   content/
     paths/            One YAML file per learning path
@@ -102,6 +103,10 @@ Rules:
 ### CPU scheduling engine
 
 Port of the prototype's `simulate()`. Input: processes `{ id, arrival, burst, priority }`, algorithm (`fcfs | sjf | srtf | priority | rr`) and quantum. State per step: running process, ready queue, finished list, remaining time per process. Result: per-process finish, turnaround, waiting and response times, their averages, and the finish order. Keys include `fcfs.pick`, `sjf.pick`, `srtf.pick`, `srtf.preempt`, `srtf.keep`, `priority.pick`, `rr.pick`, `rr.continue`, `rr.expire`, `nonpreemptive.continue`, `finish` and `idle`.
+
+### Process states engine
+
+Implements `docs/lessons/procesos-estados.md`. Input: processes `{ id, arrival, bursts }` (alternating CPU and I/O bursts, starting and ending with CPU) and `quantum` (`null` for non-preemptive). One CPU, FCFS dispatch, one private I/O device per process. Steps are **instants**, not units: `steps[t]` holds the state after the transitions at `t`, that is, during `[t, t + 1)`, and the last step is the instant of the last exit, with no unit after it (`steps.length === makespan + 1`). This differs from the CPU engine, whose steps are units. State per step: one view per process (`status` absent/ready/running/blocked/terminated, current burst and units left, `ioUntil`, and CPU, I/O and ready units spent in `[0, t)`), the running process, the ready queue and busy units so far. Result: per-process finish, turnaround, CPU, I/O and ready time (`turnaround = cpu + io + ready`), finish order, CPU and I/O segments, makespan, busy units, utilization and serial time. Keys: `admit`, `dispatch`, `continue`, `block`, `wakeup`, `timeout`, `exit`, `idle.io` and `idle.arrivals`.
 
 ## Player
 
