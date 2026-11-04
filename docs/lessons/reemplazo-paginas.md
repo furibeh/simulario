@@ -161,7 +161,7 @@ Faults by frame count (comparison table):
 
 ### Preset: Clásica (`7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1`, 3 frames)
 
-FIFO 15, LRU 12, OPT 9 (the values in Silberschatz, Galvin and Gagne, §10.4, recomputed by hand).
+FIFO 15 (traced by hand), LRU 12 and OPT 9 (the values published in Silberschatz, Galvin and Gagne, §10.4).
 
 Clock 3, traced by hand: faults at references 1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 15, 16, 18, 20; hits at 5, 7, 10, 13, 17, 19. 14 faults. Final frames 0 7 1.
 
