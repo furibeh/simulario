@@ -1,5 +1,5 @@
 <script lang="ts">
-import { fixBalance, type PresetId, presetIds, presets } from "../../engines/transactions/presets";
+import { fixBalance, type PresetId, presets } from "../../engines/transactions/presets";
 import { simulate } from "../../engines/transactions/simulate";
 import {
   type Isolation,
@@ -28,66 +28,127 @@ type Confidence = "low" | "mid" | "high";
 
 interface Props {
   lang: Locale;
+  /** Scenario loaded first. */
   preset?: PresetId;
+  /** Scenarios the lesson offers, in button order. */
+  scenarios?: readonly PresetId[];
   /** Isolation levels the lesson offers, in button order. */
   levels?: readonly Isolation[];
+  /** Level loaded first; defaults to the scenario's own. */
+  level?: Isolation;
+  /** "value": predict a number; "outcome": predict what happens to the two deposits. */
+  question?: "value" | "outcome";
 }
 
-let { lang, preset = "balance", levels = ["read-uncommitted", "read-committed"] }: Props = $props();
+let {
+  lang,
+  preset = "balance",
+  scenarios = ["balance", "dirtyRead", "transfer"],
+  levels = ["read-uncommitted", "read-committed"],
+  level,
+  question: questionKind = "value",
+}: Props = $props();
 
 const t = $derived(useTranslations(lang));
 const templates = $derived(lang === "es" ? transactionsEs : transactionsEn);
 const shapeName = (id: string) => t(`shape.${slotForId(id)}` as UiKey);
 const tokenLabel = (id: string) => `${id}, ${shapeName(id)}`;
 
-/** Prediction per scenario: the options offered and how to read the answer from a trace. */
-const questions: Record<
-  PresetId,
-  { options: number[]; answer: (trace: TxTrace) => number | null }
-> = {
-  balance: { options: [100, 120, 150, 170], answer: (tr) => tr.result.final[0] ?? null },
-  dirtyRead: {
-    options: [100, 150],
-    answer: (tr) => tr.result.reads.find((r) => r.tx === "T2")?.value ?? null,
+type Outcome = "both" | "lost" | "abort" | "stuck";
+const outcomes: readonly Outcome[] = ["both", "lost", "abort", "stuck"];
+
+/** Number each scenario asks for, read from a finished trace. */
+const scenarioValue: Record<PresetId, (trace: TxTrace) => number | null> = {
+  balance: (tr) => tr.result.final[0] ?? null,
+  dirtyRead: (tr) => tr.result.reads.find((r) => r.tx === "T2")?.value ?? null,
+  transfer: (tr) => {
+    const reads = tr.result.reads.filter((r) => r.tx === "T1");
+    return reads.length === 2 ? reads.reduce((sum, r) => sum + r.value, 0) : null;
   },
-  transfer: {
-    options: [100, 140],
-    answer: (tr) => {
-      const reads = tr.result.reads.filter((r) => r.tx === "T1");
-      return reads.length === 2 ? reads.reduce((sum, r) => sum + r.value, 0) : null;
-    },
-  },
-  crossTransfers: { options: [0, 1, 2], answer: (tr) => tr.result.committed.length },
+  crossTransfers: (tr) => tr.result.committed.length,
+};
+const valueOptions: Record<PresetId, number[]> = {
+  balance: [100, 120, 150, 170],
+  dirtyRead: [100, 150],
+  transfer: [100, 140],
+  crossTransfers: [0, 1, 2],
 };
 
-function defaultOrder(id: PresetId, m: Mode): string[] {
-  return id === "balance" && m === "atomic" ? ["T1", "T2", "T1", "T2"] : [...presets[id].order];
+/** What happened to the transactions, for the "outcome" question. Deadlocks never last. */
+function outcomeOf(tr: TxTrace): Outcome | null {
+  if (!tr.result.complete) return null;
+  if (tr.result.aborted.length > 0) return "abort";
+  return tr.result.lostUpdates > 0 ? "lost" : "both";
+}
+
+/** Orders traced by hand in the specs (isolation-anomalies.md, two-phase-locking.md). */
+function defaultOrder(id: PresetId, m: Mode, lvl: Isolation): string[] {
+  const twoPhase = lvl === "serializable-2pl";
+  if (id === "balance" && m === "atomic") return ["T1", "T2", "T1", "T2"];
+  if (id === "balance" && m === "app" && twoPhase) return ["T1", "T2", "T1", "T2", "T1"];
+  if (id === "transfer" && twoPhase) return ["T1", "T2", "T2", "T1", "T1", "T2", "T2", "T2"];
+  if (id === "crossTransfers" && !twoPhase) {
+    return ["T1", "T2", "T1", "T2", "T1", "T2", "T1", "T2", "T1"];
+  }
+  return [...presets[id].order];
+}
+
+function scriptsFor(id: PresetId, m: Mode): readonly (readonly Operation[])[] {
+  return id === "balance" && m !== "app" ? fixBalance(m) : presets[id].transactions;
+}
+
+/** Whether an order can run (it never names an ended or waiting transaction). */
+function runs(id: PresetId, m: Mode, lvl: Isolation, o: readonly string[]): boolean {
+  try {
+    simulate({
+      items: presets[id].items,
+      transactions: scriptsFor(id, m),
+      isolation: lvl,
+      order: o,
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // svelte-ignore state_referenced_locally
-let presetId = $state<PresetId>(preset);
+const startLevel: Isolation = level ?? presets[preset].isolation;
 // svelte-ignore state_referenced_locally
-let isolation = $state<Isolation>(presets[preset].isolation);
+let presetId = $state<PresetId>(preset);
+let isolation = $state<Isolation>(startLevel);
 let mode = $state<Mode>("app");
 // svelte-ignore state_referenced_locally
-let order = $state<string[]>(defaultOrder(preset, "app"));
-let guess = $state<number | null>(null);
+let order = $state<string[]>(defaultOrder(preset, "app", startLevel));
+let guess = $state<string | null>(null);
 let confidence = $state<Confidence | null>(null);
 let predictionState = $state<"open" | "locked" | "skipped">("open");
 let runId = $state(0);
 
-const scripts = $derived<readonly (readonly Operation[])[]>(
-  presetId === "balance" && mode !== "app" ? fixBalance(mode) : presets[presetId].transactions,
-);
+const scripts = $derived(scriptsFor(presetId, mode));
 const items = $derived(presets[presetId].items);
 const ids = $derived(scripts.map((_, i) => `T${i + 1}`));
 const trace = $derived(simulate({ items, transactions: scripts, isolation, order }));
 const total = $derived(trace.steps.length);
-const question = $derived(questions[presetId]);
-const answer = $derived(question.answer(trace));
+const outcomeQuestion = $derived(questionKind === "outcome" && presetId === "balance");
+const options = $derived(
+  outcomeQuestion
+    ? outcomes.map((o) => ({ value: o, label: t(`tx.outcome.${o}`) }))
+    : valueOptions[presetId].map((n) => ({ value: String(n), label: String(n) })),
+);
+const answer = $derived.by((): string | null => {
+  if (outcomeQuestion) return outcomeOf(trace);
+  const v = scenarioValue[presetId](trace);
+  return v === null || !trace.result.complete ? null : String(v);
+});
+const labelOf = (value: string) => options.find((o) => o.value === value)?.label ?? value;
+/** Operations still to run; an ended transaction (even a deadlock victim) has none. */
 const opsLeft = $derived(
-  scripts.reduce((sum, s) => sum + s.length, 0) -
-    (trace.steps.at(-1)?.state.transactions.reduce((sum, x) => sum + x.pc, 0) ?? 0),
+  scripts.reduce((sum, s, i) => {
+    const x = trace.steps.at(-1)?.state.transactions[i];
+    if (!x) return sum + s.length;
+    return x.status === "committed" || x.status === "aborted" ? sum : sum + s.length - x.pc;
+  }, 0),
 );
 /** Transactions that can take the next turn: neither ended nor waiting for a lock. */
 const ready = $derived(
@@ -107,14 +168,20 @@ $effect(() => {
 
 function loadPreset(id: PresetId) {
   presetId = id;
-  isolation = presets[id].isolation;
+  isolation = levels.includes(presets[id].isolation) ? presets[id].isolation : startLevel;
   mode = "app";
-  order = defaultOrder(id, "app");
+  order = defaultOrder(id, "app", isolation);
 }
 
 function setMode(m: Mode) {
   mode = m;
-  order = defaultOrder(presetId, m);
+  order = defaultOrder(presetId, m, isolation);
+}
+
+/** Keeps the learner's order when it still runs under the new level. */
+function setLevel(lvl: Isolation) {
+  if (!runs(presetId, mode, lvl, order)) order = defaultOrder(presetId, mode, lvl);
+  isolation = lvl;
 }
 
 function give(id: string) {
@@ -180,7 +247,9 @@ function touched(explain: readonly TxExplanation[]): { items: Set<string>; txs: 
   for (const e of explain) {
     if ("item" in e.params) seenItems.add(e.params.item);
     if (e.key === "handoff") seenTxs.add(e.params.to);
-    else if (e.key !== "lock.wait" && e.key !== "deadlock") seenTxs.add(e.params.tx);
+    else if (e.key !== "lock.wait" && e.key !== "lock.wait.shared" && e.key !== "deadlock") {
+      seenTxs.add(e.params.tx);
+    }
   }
   return { items: seenItems, txs: seenTxs };
 }
@@ -241,7 +310,7 @@ const labels = $derived({
       <h3 id="tx-setup">{t("tx.setup")}</h3>
       <div class="presets" role="group" aria-label={t("cpu.presets")}>
         <span class="hint">{t("cpu.presets")}</span>
-        {#each presetIds as id (id)}
+        {#each scenarios as id (id)}
           <button type="button" class="pill small" aria-pressed={presetId === id} onclick={() => loadPreset(id)}>{t(`tx.preset.${id}`)}</button>
         {/each}
       </div>
@@ -249,8 +318,8 @@ const labels = $derived({
       <div class="option" role="group" aria-labelledby="tx-isolation">
         <span id="tx-isolation" class="field-name">{t("tx.isolation")}</span>
         <div class="row">
-          {#each levels as level (level)}
-            <button type="button" class="pill small" aria-pressed={isolation === level} onclick={() => (isolation = level)}>{t(`tx.isolation.${level}`)}</button>
+          {#each levels as lvl (lvl)}
+            <button type="button" class="pill small" aria-pressed={isolation === lvl} onclick={() => setLevel(lvl)}>{t(`tx.isolation.${lvl}`)}</button>
           {/each}
         </div>
         <p class="hint">{t(`tx.isolation.about.${isolation}`)}</p>
@@ -292,7 +361,7 @@ const labels = $derived({
       </p>
       <div class="row">
         <button type="button" class="pill small" disabled={order.length === 0} onclick={() => (order = order.slice(0, -1))}>{t("tx.order.undo")}</button>
-        <button type="button" class="pill small" onclick={() => (order = defaultOrder(presetId, mode))}>{t("tx.order.reset")}</button>
+        <button type="button" class="pill small" onclick={() => (order = defaultOrder(presetId, mode, isolation))}>{t("tx.order.reset")}</button>
         <button type="button" class="pill small" disabled={order.length === 0} onclick={() => (order = [])}>{t("tx.order.clear")}</button>
       </div>
     </section>
@@ -301,10 +370,10 @@ const labels = $derived({
   {#if predictionState === "open"}
     <section class="card" aria-labelledby="tx-predict">
       <h3 id="tx-predict">{t("cpu.predict.title")}</h3>
-      <p>{t(`tx.predict.${presetId}`)}</p>
+      <p>{outcomeQuestion ? t("tx.predict.outcome") : t(`tx.predict.${presetId}`)}</p>
       <div class="row" role="group" aria-labelledby="tx-predict">
-        {#each question.options as n (n)}
-          <button type="button" class="pill guess" aria-pressed={guess === n} aria-label={t("tx.predict.pick", { n })} onclick={() => (guess = guess === n ? null : n)}>{n}</button>
+        {#each options as o (o.value)}
+          <button type="button" class="pill guess" class:wide={outcomeQuestion} aria-pressed={guess === o.value} aria-label={t("tx.predict.pick", { n: o.label })} onclick={() => (guess = guess === o.value ? null : o.value)}>{o.label}</button>
         {/each}
       </div>
       <div class="option" role="group" aria-labelledby="tx-confidence">
@@ -354,8 +423,12 @@ const labels = $derived({
                 <div class="cell">
                   <span class="field-name">{t("tx.item.lock")}</span>
                   {#if it.holder}
-                    <span class="entity"><Token slot={slotForId(it.holder)} size={22} label={shapeName(it.holder)} />{it.holder}</span>
-                  {:else}
+                    <span class="lock-line"><span class="caption">{t("tx.item.exclusive")}</span><span class="entity"><Token slot={slotForId(it.holder)} size={22} label={shapeName(it.holder)} />{it.holder}</span></span>
+                  {/if}
+                  {#if it.readers.length > 0}
+                    <span class="lock-line"><span class="caption">{t("tx.item.shared")}</span>{#each it.readers as r (r)}<span class="entity"><Token slot={slotForId(r)} size={22} label={shapeName(r)} />{r}</span>{/each}</span>
+                  {/if}
+                  {#if !it.holder && it.readers.length === 0}
                     <span class="caption">{t("tx.item.free")}</span>
                   {/if}
                   {#if it.queue.length > 0}
@@ -385,9 +458,9 @@ const labels = $derived({
                   {#each scripts[k] ?? [] as op, i (i)}
                     {@const ran = ranNow && i === x.pc - 1}
                     {@const next = i === x.pc && !ended_}
-                    <li class:past={i < x.pc && !ran} class:ran class:next class:waiting={next && x.status === "blocked"} style:--fill="var(--entity-{slotForId(x.id)})" style:--on="var(--entity-{slotForId(x.id)}-on)">
+                    <li class:past={i < x.pc && !ran} class:ran class:next class:waiting={next && x.status === "blocked"} class:skipped={ended_ && i >= x.pc} style:--fill="var(--entity-{slotForId(x.id)})" style:--on="var(--entity-{slotForId(x.id)}-on)">
                       <code>{opText(op)}</code>
-                      {#if ran}<span class="visually-hidden">, {t("tx.line.ran")}</span>{:else if next}<span class="visually-hidden">, {x.status === "blocked" ? t("tx.line.waiting") : t("tx.line.next")}</span>{:else if i < x.pc}<span class="visually-hidden">, {t("tx.line.done")}</span>{/if}
+                      {#if ran}<span class="visually-hidden">, {t("tx.line.ran")}</span>{:else if next}<span class="visually-hidden">, {x.status === "blocked" ? t("tx.line.waiting") : t("tx.line.next")}</span>{:else if i < x.pc}<span class="visually-hidden">, {t("tx.line.done")}</span>{:else if ended_}<span class="visually-hidden">, {t("tx.line.skipped")}</span>{/if}
                     </li>
                   {/each}
                 </ol>
@@ -424,12 +497,12 @@ const labels = $derived({
               {:else if guess === answer}
                 <p class="score">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-good)" stroke-width="3" aria-hidden="true"><path d="M4 12l5 5L20 6" /></svg>
-                  {t("tx.predict.right", { answer })}
+                  {t("tx.predict.right", { answer: labelOf(answer) })}
                 </p>
               {:else}
                 <p class="score">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-bad)" stroke-width="3" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-                  {t("tx.predict.wrong", { guess: guess ?? 0, answer })}
+                  {t("tx.predict.wrong", { guess: guess === null ? "" : labelOf(guess), answer: labelOf(answer) })}
                 </p>
                 {#if confidence === "high"}<p>{t("tx.predict.wrongSure")}</p>{/if}
                 <p class="hint">{t("tx.predict.hint")}</p>
@@ -514,6 +587,7 @@ const labels = $derived({
           <p class="hint">{t("tx.writes.hint")}</p>
           {#if ended && trace.result.complete}
             <p class="tally">{t("tx.tally", { values: finalText(trace.result.final), lost: trace.result.lostUpdates, dirty: trace.result.dirtyReads })}</p>
+            {#if trace.result.aborted.length > 0}<p class="tally">{t("tx.tally.aborted", { ids: trace.result.aborted.join(", ") })}</p>{/if}
             {#if presetId === "transfer" && answer !== null}<p class="tally">{t("tx.tally.report", { total: answer })}</p>{/if}
           {:else if !trace.result.complete && (ended || total === 0)}
             <p class="tally">{t("tx.tally.incomplete", { n: opsLeft })}</p>
@@ -553,6 +627,22 @@ const labels = $derived({
     min-width: var(--target-min);
     padding: 0 var(--space-4);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Outcome answers are sentences: let them wrap inside the pill. */
+  .guess.wide {
+    height: auto;
+    min-height: var(--target-min);
+    padding: var(--space-2) var(--space-4);
+    text-align: left;
+    white-space: normal;
+  }
+
+  .lock-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
   }
 
   .order {
@@ -682,6 +772,12 @@ const labels = $derived({
   .listing li.ran {
     background: var(--fill);
     color: var(--on);
+  }
+
+  /* Operations a rolled-back transaction never got to run. */
+  .listing li.skipped {
+    color: var(--color-ink-muted);
+    text-decoration: line-through;
   }
 
   /* The number sits outside the filled line, on the board's ground: keep it in ink. */
