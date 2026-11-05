@@ -151,9 +151,9 @@ $effect(() => {
   predictionState = "open";
 });
 
+/** Loads a scenario at the level the learner has chosen, with its order fitted to that level. */
 function loadPreset(id: PresetId) {
   presetId = id;
-  isolation = levels.includes(presets[id].isolation) ? presets[id].isolation : startLevel;
   mode = "app";
   order = defaultOrder(id, "app", isolation);
 }
