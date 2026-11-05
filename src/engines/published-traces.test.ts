@@ -451,3 +451,92 @@ describe("two-phase locking: Berenson et al. 1995 Table 2 and Hermitage, MySQL I
     expect(result.final).toEqual([11, 20]);
   });
 });
+
+describe("snapshot isolation: Berenson et al. 1995 §4.2 and Hermitage, PostgreSQL, Repeatable Read", () => {
+  it("H1.SI: T2 reads the committed 50 and 50 while T1 moves 40; both commit", () => {
+    const result = history(
+      [50, 50],
+      [
+        [r("x"), wr("x", -40), r("y"), wr("y", 40), commit],
+        [r("x"), r("y"), commit],
+      ],
+      "T1 T1 T2 T2 T2 T1 T1 T1",
+      "snapshot",
+    );
+    expect(readsOf(result, "T2")).toEqual(["x=50", "y=50"]);
+    expect(result.committed).toEqual(["T2", "T1"]);
+    expect(result.final).toEqual([10, 90]);
+  });
+
+  it("H5, write skew (A5B): both commit and x + y > 0 is violated", () => {
+    const result = history(
+      [50, 50],
+      [
+        [r("x"), r("y"), wr("y", -90), commit],
+        [r("x"), r("y"), wr("x", -90), commit],
+      ],
+      "T1 T1 T2 T2 T1 T2 T1 T2",
+      "snapshot",
+    );
+    expect(result.committed).toEqual(["T1", "T2"]);
+    expect(result.final).toEqual([-40, -40]);
+  });
+
+  it("H4 cannot happen: first updater wins aborts T1", () => {
+    const result = history(
+      [100],
+      [
+        [r("x"), wr("x", 30), commit],
+        [r("x"), wr("x", 20), commit],
+      ],
+      "T1 T2 T2 T2 T1",
+      "snapshot",
+    );
+    expect(result.aborted).toEqual(["T1"]);
+    expect(result.final).toEqual([120]);
+    expect(result.lostUpdates).toBe(0);
+  });
+
+  it("P4 (postgres.md): T2's update waits, then fails when T1 commits", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), w("x", 11), commit],
+        [r("x"), w("x", 11), commit],
+      ],
+      "T1 T2 T1 T2 T1",
+      "snapshot",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item, b.holder])).toEqual([["T2", "x", "T1"]]);
+    expect(result.committed).toEqual(["T1"]);
+    expect(result.aborted).toEqual(["T2"]);
+    expect(result.final).toEqual([11, 20]);
+  });
+
+  it("G-single (postgres.md): T1 still sees 2 => 20 after T2 commits 18", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), r("y"), commit],
+        [r("x"), r("y"), w("x", 12), w("y", 18), commit],
+      ],
+      "T1 T2 T2 T2 T2 T2 T1 T1",
+      "snapshot",
+    );
+    expect(readsOf(result, "T1")).toEqual(["x=10", "y=20"]);
+  });
+
+  it("G2-item (postgres.md): both commit; write skew is not prevented", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), r("y"), w("x", 11), commit],
+        [r("x"), r("y"), w("y", 21), commit],
+      ],
+      "T1 T1 T2 T2 T1 T2 T1 T2",
+      "snapshot",
+    );
+    expect(result.committed).toEqual(["T1", "T2"]);
+    expect(result.final).toEqual([11, 21]);
+  });
+});
