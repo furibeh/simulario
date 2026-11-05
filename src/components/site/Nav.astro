@@ -1,6 +1,7 @@
 ---
 import { type Locale, locales, localizedPath, pagePathname, switchLocale } from "../../i18n/config";
 import { useTranslations } from "../../i18n/t";
+import Search from "../search/Search.svelte";
 import { shapePaths } from "../token/shapes";
 import ThemeToggle from "./ThemeToggle.svelte";
 
@@ -40,6 +41,7 @@ const logo = [
       <li><a href={localizedPath(lang, "about")}>{t("nav.about")}</a></li>
     </ul>
     <div class="tools">
+      <Search client:load lang={lang} />
       <ul class="langs" aria-label={t("lang.label")}>
         {
           locales.map((locale) => (

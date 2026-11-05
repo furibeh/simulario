@@ -1,0 +1,90 @@
+---
+import SearchPanel from "../../components/search/SearchPanel.svelte";
+import { type Locale, locales, localizedPath } from "../../i18n/config";
+import { useTranslations } from "../../i18n/t";
+import Page from "../../layouts/Page.astro";
+import { getCatalog, getLessonPages, lessonHref } from "../../lib/catalog";
+
+// Search page: the target of the nav link without JS, and a linkable search (?q=…) with it.
+// Not indexed by search engines or by Pagefind: it has no content of its own.
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Locale;
+const t = useTranslations(lang);
+const { paths } = await getCatalog();
+const pages = (await getLessonPages()).filter((p) => p.lang === lang);
+const browse = paths.map((p) => ({
+  id: p.id,
+  title: p.data.title[lang],
+  lessons: pages
+    .filter((page) => page.pathId === p.id)
+    .sort(
+      (a, b) =>
+        a.module.data.order - b.module.data.order || a.entry.data.order - b.entry.data.order,
+    )
+    .map((page) => ({ href: lessonHref(lang, p.id, page.slug), title: page.entry.data.title })),
+}));
+---
+
+<Page
+  lang={lang}
+  title={`${t("search.title")} | ${t("site.name")}`}
+  description={t("search.page.description")}
+  indexable={false}
+>
+  <h1>{t("search.title")}</h1>
+
+  <div class="panel" data-search-page>
+    <SearchPanel client:load lang={lang} headingLevel={2} syncUrl />
+  </div>
+
+  <noscript>
+    <section class="browse">
+      <p>{t("search.noscript")}</p>
+      {
+        browse.map((p) => (
+          <div>
+            <h2>
+              <a href={localizedPath(lang, p.id)}>{p.title}</a>
+            </h2>
+            <ul>
+              {p.lessons.map((l) => (
+                <li>
+                  <a href={l.href}>{l.title}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </section>
+  </noscript>
+</Page>
+
+<style>
+  /* Without scripts the field cannot search, so only the list of lessons shows. */
+  :global(html:not(.js)) .panel {
+    display: none;
+  }
+
+  .panel {
+    max-width: 44rem;
+  }
+
+  .browse {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+  }
+
+  .browse ul {
+    margin: var(--space-2) 0 0;
+    padding-left: 1.2em;
+  }
+
+  .browse li + li {
+    margin-top: var(--space-2);
+  }
+</style>

@@ -18,10 +18,10 @@ export default defineConfig({
     svelte(),
     mdx(),
     sitemap({
-      // `/` only picks a language; the 404 pages are not content. All of them are noindex.
+      // `/` only picks a language; the 404 and search pages are not content. All are noindex.
       filter: (page) => {
         const { pathname } = new URL(page);
-        return pathname !== "/" && !/(^|\/)404\/?$/.test(pathname);
+        return pathname !== "/" && !/(^|\/)(404|search)\/?$/.test(pathname);
       },
       i18n: {
         defaultLocale: "es",
