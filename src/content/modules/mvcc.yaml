@@ -3,4 +3,4 @@ order: 7
 title:
   es: "MVCC e instantáneas"
   en: "MVCC and snapshots"
-status: planned
+status: available
