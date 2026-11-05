@@ -393,3 +393,61 @@ describe("Hermitage, PostgreSQL, Read Committed (row 1 is x = 10, row 2 is y = 2
     expect(readsOf(result, "T1")).toEqual(["x=10", "y=18"]);
   });
 });
+
+describe("two-phase locking: Berenson et al. 1995 Table 2 and Hermitage, MySQL InnoDB, Serializable", () => {
+  it("H4 cannot happen under Locking SERIALIZABLE: the lost update becomes a deadlock", () => {
+    const result = history(
+      [100],
+      [
+        [r("x"), wr("x", 30), commit],
+        [r("x"), wr("x", 20), commit],
+      ],
+      "T1 T2 T2 T1 T2",
+      "serializable-2pl",
+    );
+    expect(result.deadlocks.map((d) => [d.victim, d.path])).toEqual([
+      ["T1", "T1 → x → T2 → x → T1"],
+    ]);
+    expect(result.committed).toEqual(["T2"]);
+    expect(result.final).toEqual([120]);
+    expect(result.lostUpdates).toBe(0);
+  });
+
+  it("P4 (mysql.md): T1's update waits, T2's update gets the deadlock error, T1 commits", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), w("x", 11), commit],
+        [r("x"), w("x", 11), commit],
+      ],
+      "T1 T2 T1 T2 T1",
+      "serializable-2pl",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item])).toEqual([
+      ["T1", "x"],
+      ["T2", "x"],
+    ]);
+    expect(result.deadlocks.map((d) => d.victim)).toEqual(["T2"]);
+    expect(result.committed).toEqual(["T1"]);
+    expect(result.final).toEqual([11, 20]);
+  });
+
+  it("G2-item (mysql.md): T1's update waits, T2's update gets the deadlock error, T1 commits", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), r("y"), w("x", 11), commit],
+        [r("x"), r("y"), w("y", 21), commit],
+      ],
+      "T1 T1 T2 T2 T1 T2 T1",
+      "serializable-2pl",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item])).toEqual([
+      ["T1", "x"],
+      ["T2", "y"],
+    ]);
+    expect(result.deadlocks.map((d) => d.victim)).toEqual(["T2"]);
+    expect(result.committed).toEqual(["T1"]);
+    expect(result.final).toEqual([11, 20]);
+  });
+});
