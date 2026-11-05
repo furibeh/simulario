@@ -1,0 +1,186 @@
+---
+title: Hilos y condiciones de carrera
+summary: Dos hilos suman 1 a la misma variable y el resultado no es 2. Intercala sus instrucciones una a una y descubre dónde se pierde la cuenta.
+module: threads
+order: 1
+minutes: 30
+prerequisites:
+  - process-states
+  - cpu-scheduling
+---
+
+import RaceConditions from "../../../components/race-conditions/RaceConditions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Los estados de un proceso y la interrupción del temporizador (lección *Procesos y sus estados*).
+- Round Robin y el cuanto (lección *Planificador de CPU*).
+- Leer un listado de tres líneas de pseudoensamblador. No necesitas saber programar.
+
+</Stage>
+
+<Stage stage="theory">
+
+Un **hilo** es una secuencia de instrucciones en ejecución dentro de un proceso. Un proceso puede tener varios hilos, y todos **comparten** su memoria (el código, las variables globales, el *heap*) y sus archivos abiertos. Lo que cada hilo tiene **para sí** son sus **registros**, su contador de programa y su pila.
+
+El sistema operativo planifica los hilos igual que los procesos: hay una sola CPU, un hilo la usa a la vez, y el temporizador puede quitársela al terminar su **cuanto**. En esta lección el cuanto se mide en **instrucciones**.
+
+Una línea como `counter++` sobre una variable global parece un solo paso, pero la CPU ejecuta tres instrucciones:
+
+| Instrucción | Qué hace |
+| --- | --- |
+| `load` | `reg = counter`: copia el valor de la memoria a un registro del hilo. |
+| `add` | `reg = reg + 1`: solo cambia el registro; la memoria sigue igual. |
+| `store` | `counter = reg`: copia el registro de vuelta a la memoria. |
+
+Cuando el sistema cambia de hilo, guarda los registros del que sale y los restaura cuando vuelve. La memoria no se guarda ni se restaura: es compartida.
+
+> Ejemplo: un solo hilo y `counter = 5`. Tras `load`, el registro vale 5. Tras `add`, el registro vale 6 y `counter` sigue en 5. Tras `store`, `counter` vale 6.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero de abajo empieza con el escenario **Dos incrementos**: dos hilos, T1 y T2, hacen `counter++` una vez cada uno, partiendo de `counter = 0`. Hay una sola CPU y el temporizador cambia de hilo cada **2 instrucciones**.
+
+**¿Cuánto valdrá `counter` cuando los dos terminen?** Elige un valor en el panel *Tu predicción* antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<RaceConditions client:visible lang="es" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- Tras la instrucción 2, ¿cuánto vale el registro de T1? ¿Y `counter`?
+- En la instrucción 3, T2 lee `counter`. ¿Está al día el valor que lee?
+- En la instrucción 6, T2 escribe. ¿Qué había en `counter` justo antes?
+
+Debajo del tablero, el registro de escrituras anota quién escribió, qué había leído y qué había en memoria justo antes.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era **1**. Se pidieron dos incrementos y solo uno sobrevive.
+
+**`counter++` no es un paso indivisible.** Tras la instrucción 2, T1 tiene un 1 en su registro, pero todavía no lo ha escrito: `counter` sigue en 0. El temporizador lo interrumpe justo ahí. T2 lee ese 0, suma 1 y también se queda con un 1. Al final los dos escriben 1. La escritura de T2 es **obsoleta**: la calculó a partir de un valor que ya no estaba al día, y borra el incremento de T1.
+
+**Una sola CPU basta.** No hizo falta que los hilos corrieran a la vez en dos núcleos. Bastó con que el temporizador cortara a T1 entre su `load` y su `store`.
+
+Esto se llama una **condición de carrera**: el resultado depende del orden en que el planificador intercala los hilos. El fragmento de código que toca el dato compartido, aquí las tres instrucciones de `load` a `store`, es una **sección crítica**. Lo que necesitamos es **exclusión mutua**: que, como mucho, un hilo esté dentro de la sección crítica a la vez.
+
+**Que funcione en las pruebas no demuestra nada.** Con cuanto 3, cada turno contiene un `counter++` completo y el resultado es 2. Pero nada en el código lo garantiza: otro hilo, un fallo de página o una interrupción mueven los turnos, y la carrera vuelve. Por eso se dice que el resultado es **indeterminado**: el mismo programa, con la misma entrada, da 1 o 2.
+
+**Un cuanto más largo no lo arregla.** En *Tres hilos*, con cuanto 4, los turnos cortan el segundo incremento entre `load` y `store`, y se pierden 2 de 6. Menos interrupciones hacen la carrera más rara, no imposible.
+
+**Puede salir muy mal.** En *Tres hilos* con cuanto 2, seis incrementos dejan `counter` en 2. Una sola escritura obsoleta puede borrar varios incrementos a la vez: todos los que otros hicieron entre su lectura y su escritura. Con dos hilos que hacen *n* incrementos cada uno (*n* ≥ 2), el resultado puede bajar hasta 2.
+
+**Qué comparten los hilos.** El 1 de T1 estaba a salvo en su registro mientras T2 corría, porque cada hilo tiene sus propios registros y el sistema los guarda en cada cambio. `counter`, en cambio, existe una sola vez en la memoria. Justamente por eso hay carrera.
+
+**La solución del hardware: instrucciones atómicas.** Los procesadores ofrecen instrucciones de lectura-modificación-escritura que se completan sin que otro hilo toque esa memoria en medio: `lock xadd` en x86, `atomic_fetch_add` en C11, `std::atomic<int>::fetch_add` en C++, `AtomicInteger` en Java. Con ellas `counter++` es una sola operación indivisible y ningún intercalado puede partirla. Para secciones críticas más largas que una instrucción hacen falta cerrojos, el tema del siguiente módulo.
+
+**En sistemas reales.** Con varios núcleos los hilos corren de verdad en paralelo y las cachés añaden sorpresas (reordenamiento de memoria), pero la actualización perdida aparece ya con un núcleo. En C y C++, dos accesos sin sincronizar a la misma variable, con al menos una escritura, son una *carrera de datos* y el comportamiento queda indefinido; herramientas como ThreadSanitizer las detectan. En Python, `counter += 1` son varias instrucciones de bytecode y tampoco es atómico; la versión sin GIL (con soporte oficial desde Python 3.14) solo hace que la carrera aparezca más a menudo.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Haz que <em>Dos incrementos</em> termine en 2 sin hacer atómico <code>counter++</code>.</summary>
+
+Pon el cuanto en 3 (o más). Cada turno contiene un `load`, `add`, `store` completo, así que ningún hilo lee un valor desactualizado. Es correcto por suerte: depende de dónde caen los turnos.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Haz que <em>Tres hilos</em> pierda incrementos con un cuanto mayor que 3.</summary>
+
+Cuanto 4 (o 5): `counter` termina en 4 y se pierden 2. Los turnos de 4 instrucciones cortan el segundo incremento entre `load` y `store`. La escritura obsoleta de T1 borra dos incrementos de golpe, el de T2 y el de T3.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Con dos hilos que hacen tres incrementos cada uno, consigue que <code>counter</code> termine en 2.</summary>
+
+Elige *Tú decides* y construye este orden (o carga *Peor caso*): T1; T2 seis veces; T1 dos veces; T2; T1 seis veces; T2 dos veces. T1 lee 0 y lo guarda mientras T2 hace dos incrementos completos; al escribir 1, los borra. Luego T2 lee ese 1 y espera mientras T1 hace sus dos últimos incrementos; al escribir 2, los borra.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Consigue que cualquier intercalado dé el resultado correcto.</summary>
+
+Elige *Atómico*. `counter++` pasa a ser una sola instrucción indivisible: no hay ningún punto en el que otro hilo pueda colarse entre la lectura y la escritura.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="race-conditions"
+  questions={[
+    {
+      question: "¿En cuántas instrucciones de máquina se convierte counter++ sobre una variable global en esta lección?",
+      options: ["Una", "Dos", "Tres"],
+      answer: 2,
+      explanation: "Tres: load copia counter a un registro, add suma 1 en el registro y store lo escribe de vuelta.",
+    },
+    {
+      question: "Un programa con una carrera dio el resultado correcto en 1000 pruebas. ¿Qué puedes concluir?",
+      options: ["Que no tiene carrera", "Que la carrera solo aparece con varios núcleos", "Nada: otro intercalado todavía puede perder incrementos"],
+      answer: 2,
+      explanation: "El resultado depende de dónde caen los cambios de hilo. Que no haya fallado aún no garantiza que no falle.",
+    },
+    {
+      question: "¿Puede haber una condición de carrera en un computador con un solo núcleo?",
+      options: ["No, los hilos se turnan", "Sí, el temporizador puede cambiar de hilo entre el load y el store"],
+      answer: 1,
+      explanation: "Basta con que un hilo sea interrumpido en medio de su sección crítica, como T1 en Dos incrementos.",
+    },
+    {
+      question: "Dos hilos del mismo proceso. ¿Qué comparten?",
+      options: ["La variable global counter", "Los registros", "La pila", "Todo lo anterior"],
+      answer: 0,
+      explanation: "La memoria global es compartida. Cada hilo tiene sus propios registros y su propia pila.",
+    },
+    {
+      question: "Dos hilos hacen counter++ tres veces cada uno, desde 0 y sin sincronización. ¿Cuál es el menor valor final posible?",
+      options: ["1", "2", "3", "6"],
+      answer: 1,
+      explanation: "2, con el intercalado de Peor caso: cada uno guarda un valor viejo en su registro y al escribirlo borra varios incrementos del otro.",
+    },
+    {
+      question: "¿Qué parte de counter++ es la sección crítica?",
+      options: ["Solo el load", "Solo el store", "Las tres instrucciones juntas, del load al store"],
+      answer: 2,
+      explanation: "Si otro hilo entra en cualquier punto entre el load y el store, puede perderse un incremento.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Cerrojos y semáforos.** Para proteger secciones críticas de más de una instrucción, el siguiente módulo construye la exclusión mutua.
+- **Reordenamiento de memoria.** En procesadores con varios núcleos, las escrituras de un hilo pueden verse en otro orden desde otro núcleo. Los modelos de memoria de C11 y de Java dicen qué órdenes están garantizados.
+- **Comprobar y luego actuar.** `if (!existe(f)) crear(f)` tiene una carrera aunque cada llamada sea atómica: otro hilo puede crear el archivo entre la comprobación y la creación.
+- **Detectores de carreras.** ThreadSanitizer (`-fsanitize=thread` en GCC y Clang) observa los accesos a memoria y avisa de las carreras de datos que ocurren durante una ejecución.
+
+Para leer más:
+
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, cap. 26, secciones 26.3 y 26.4. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., secciones 4.1 y 6.1.
+- cppreference, *Multi-threaded executions and data races*: [en.cppreference.com](https://en.cppreference.com/w/cpp/language/multithread).
+- PEP 779, criterios de soporte para Python sin GIL: [peps.python.org](https://peps.python.org/pep-0779/).
+
+</Stage>

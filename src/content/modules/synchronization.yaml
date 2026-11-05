@@ -1,0 +1,6 @@
+path: operating-systems
+order: 4
+title:
+  es: "Sincronización: mutex y semáforos"
+  en: "Synchronization: mutexes and semaphores"
+status: available

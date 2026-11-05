@@ -5,14 +5,14 @@ import { dictionaries, format, formatNumber, useTranslations } from "./t";
 describe("localizedPath", () => {
   it("prefixes the locale and normalizes slashes", () => {
     expect(localizedPath("es")).toBe("/es");
-    expect(localizedPath("en", "/sistemas-operativos/")).toBe("/en/sistemas-operativos");
+    expect(localizedPath("en", "/operating-systems/")).toBe("/en/operating-systems");
   });
 });
 
 describe("switchLocale", () => {
   it("keeps the rest of the path", () => {
-    expect(switchLocale("/es/sistemas-operativos/planificador-cpu", "en")).toBe(
-      "/en/sistemas-operativos/planificador-cpu",
+    expect(switchLocale("/es/operating-systems/cpu-scheduling", "en")).toBe(
+      "/en/operating-systems/cpu-scheduling",
     );
   });
 
@@ -24,11 +24,11 @@ describe("switchLocale", () => {
 
 describe("pagePathname", () => {
   it("drops the .html extension, a trailing index and trailing slashes", () => {
-    expect(pagePathname("/es/sistemas-operativos/planificador-cpu.html")).toBe(
-      "/es/sistemas-operativos/planificador-cpu",
+    expect(pagePathname("/es/operating-systems/cpu-scheduling.html")).toBe(
+      "/es/operating-systems/cpu-scheduling",
     );
     expect(pagePathname("/es.html")).toBe("/es");
-    expect(pagePathname("/es/acerca/")).toBe("/es/acerca");
+    expect(pagePathname("/es/about/")).toBe("/es/about");
     expect(pagePathname("/index.html")).toBe("/");
     expect(pagePathname("/")).toBe("/");
   });

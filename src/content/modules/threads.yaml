@@ -1,0 +1,6 @@
+path: operating-systems
+order: 3
+title:
+  es: "Hilos y condiciones de carrera"
+  en: "Threads and race conditions"
+status: available

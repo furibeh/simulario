@@ -1,0 +1,198 @@
+---
+title: "Sincronización: mutex y semáforos"
+summary: Un productor llena un búfer pequeño y un consumidor lo vacía. Tres semáforos los coordinan sin que nadie gire en vano, y basta invertir dos líneas para que todo se detenga.
+module: synchronization
+order: 1
+minutes: 35
+prerequisites:
+  - race-conditions
+  - process-states
+---
+
+import BoundedBuffer from "../../../components/bounded-buffer/BoundedBuffer.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Condiciones de carrera, sección crítica y exclusión mutua (lección *Hilos y condiciones de carrera*).
+- Los estados listo y bloqueado, y la cola de listos (lección *Procesos y sus estados*).
+
+</Stage>
+
+<Stage stage="theory">
+
+Un **semáforo** es un contador que nunca baja de 0, más una cola de hilos bloqueados. Tiene dos operaciones, y cada una es indivisible:
+
+- `wait(s)`: si `s > 0`, le resta 1 y el hilo sigue. Si `s = 0`, el hilo **se bloquea** en la cola de `s` y suelta la CPU.
+- `signal(s)`: si hay un hilo bloqueado en `s`, despierta al primero: su `wait` se completa y pasa a la cola de listos; el contador no cambia. Si no hay nadie, le suma 1.
+
+Piensa en el contador como una cantidad de permisos. `wait` toma uno o espera a que haya; `signal` devuelve uno y, si alguien espera, se lo entrega directamente.
+
+Un semáforo que empieza en 1 y se usa siempre como `wait … signal` alrededor de una sección crítica da **exclusión mutua**: es un **mutex**.
+
+El **búfer acotado** tiene *N* casillas que se usan en círculo. Los productores escriben en la casilla `in` y los consumidores leen en la casilla `out`; los dos índices avanzan de uno en uno y vuelven a 0 al final. Escribir una casilla y avanzar `in` es una sección crítica, igual que `counter++`. La solución usa tres semáforos:
+
+| Semáforo | Cuenta | Empieza en |
+| --- | --- | --- |
+| `empty` | casillas libres | *N* |
+| `full` | casillas ocupadas | 0 |
+| `mutex` | permiso para tocar los índices | 1 |
+
+```
+productor:             consumidor:
+  wait(empty)            wait(full)
+  wait(mutex)            wait(mutex)
+  dejar elemento         sacar elemento
+  signal(mutex)          signal(mutex)
+  signal(full)           signal(empty)
+```
+
+> Ejemplo: `s = 1`. El hilo A hace `wait(s)`: `s` pasa a 0 y A sigue. El hilo B hace `wait(s)`: B se bloquea. A hace `signal(s)`: B despierta con el permiso y `s` se queda en 0.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero empieza con **Productor rápido**: un productor, P1, que fabrica 3 elementos; un consumidor, C1; un búfer de **2 casillas**; el código correcto y **sin cuanto**, así que un hilo conserva la CPU hasta que se bloquea o termina. P1 corre primero.
+
+Responde las dos preguntas del panel *Tu predicción* antes de ejecutar:
+
+1. **¿Qué hilo se bloquea primero, y en qué semáforo?**
+2. **¿Cuánto vale `empty` justo después del primer `signal(empty)` de C1?**
+
+</Stage>
+
+<Stage stage="run">
+
+<BoundedBuffer client:visible lang="es" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- En el paso 11, P1 intenta dejar un tercer elemento. ¿Sigue usando la CPU?
+- En el paso 16, C1 hace `signal(empty)`. ¿Cambia el contador?
+- En el paso 22, C1 hace `wait(full)`. ¿Quién recibe la CPU?
+
+Debajo del tablero aparecen los elementos consumidos, en orden, y cada bloqueo con su paso y su semáforo.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era: **P1 se bloquea primero, en `empty`**, y **`empty` vale 0** después del primer `signal(empty)`.
+
+**Bloquearse no es esperar dando vueltas.** P1 llena las dos casillas y en el paso 11 su `wait(empty)` encuentra 0. No sobrescribe nada ni se queda comprobando en un bucle: pasa a la cola de `empty` y suelta la CPU. Un hilo bloqueado no consume nada hasta que alguien lo despierta. Si pensaste que C1 se bloquearía primero porque el búfer empieza vacío, fíjate en que C1 ni siquiera recibe la CPU hasta que P1 se bloquea.
+
+**`signal` no siempre suma.** En el paso 16, C1 libera una casilla con `signal(empty)`, pero P1 está esperando en `empty`. El permiso pasa directamente a P1, que despierta, y el contador se queda en 0. En el paso 21, en cambio, nadie espera en `empty` (P1 ya está listo) y el contador sube a 1.
+
+**Dos clases de espera.** `empty` y `full` hacen esperar a los hilos por una **condición**: que haya sitio o que haya datos. `mutex` los hace esperar por **acceso exclusivo**. Un mutex por sí solo protege los índices, pero no sirve para esperar a que haya sitio: el productor tendría que soltar el cerrojo, volver a mirar una y otra vez, y gastar CPU.
+
+**El orden de los `wait` importa.** Si el productor hace `wait(mutex)` antes que `wait(empty)` y encuentra el búfer lleno, se bloquea **con el mutex tomado**. El consumidor, que es el único que podría liberar una casilla, necesita primero el mutex y también se bloquea. Nadie podrá hacer nunca un `signal`: es un **interbloqueo**. La regla: primero espera la condición, después toma el mutex, y suéltalo lo antes posible.
+
+**Un error que depende del intercalado.** La versión invertida termina sin problemas con cuanto 1, porque el consumidor libera una casilla antes de que el productor tome el mutex con el búfer lleno. Como una condición de carrera, un interbloqueo que depende del momento puede esconderse durante miles de ejecuciones.
+
+**POSIX hace lo mismo con otro orden.** Aquí `signal` entrega el permiso directamente a quien espera. En POSIX, `sem_post` suma 1 y despierta a un hilo, que al correr resta 1. Una vez que el hilo despertado avanza, el contador vale lo mismo en los dos casos.
+
+**Mutex y semáforo no son lo mismo.** Un mutex tiene dueño: solo lo puede liberar el hilo que lo tomó, y eso permite detectar errores y aplicar herencia de prioridad. Un semáforo no tiene dueño: cualquier hilo puede hacer `signal`, y justamente por eso `full` y `empty` sirven de aviso entre productor y consumidor.
+
+**En sistemas reales.** POSIX ofrece `sem_wait` y `sem_post`, y `pthread_mutex_lock` y `pthread_mutex_unlock`; Java tiene `java.util.concurrent.Semaphore`; Python tiene `threading.Semaphore` y `queue.Queue`, un búfer acotado listo para usar. En Linux, mutex y semáforos se construyen sobre la llamada al sistema `futex`: si nadie compite por el cerrojo, tomarlo y soltarlo no entra al núcleo.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Consigue que el programa se quede detenido para siempre.</summary>
+
+Carga *Orden invertido*. En el paso 12, P1 se bloquea en `empty` con el mutex tomado; en el paso 14, C1 se bloquea en `mutex`. Ninguno puede despertar al otro.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Haz que la versión invertida termine sin cambiar su código.</summary>
+
+En *Orden invertido*, elige *Con cuanto* y pon el cuanto en 1. Los turnos de una operación dejan que C1 libere una casilla antes de que P1 tome el mutex con el búfer lleno. Termina en 30 pasos, pero el error sigue ahí.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Haz que el productor de <em>Productor rápido</em> nunca se bloquee.</summary>
+
+Sube el búfer a 3 casillas. `empty` empieza en 3, un permiso por elemento. C1 tampoco se bloquea: cuando recibe la CPU, `full` ya vale 3.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Haz que un productor se bloquee en <code>mutex</code>.</summary>
+
+Carga *Dos productores*. En el paso 5, P2 intenta tomar el mutex mientras P1 lo tiene para dejar su elemento.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="mutex-semaphores"
+  questions={[
+    {
+      question: "Un semáforo vale 0 y un hilo hace wait sobre él. ¿Qué pasa?",
+      options: ["El contador baja a −1 y el hilo sigue", "El hilo se queda comprobando en un bucle", "El hilo se bloquea en la cola del semáforo y suelta la CPU"],
+      answer: 2,
+      explanation: "Se bloquea y no consume CPU hasta que otro hilo haga signal sobre ese semáforo.",
+    },
+    {
+      question: "¿Con qué valores empiezan empty, full y mutex en un búfer de 5 casillas?",
+      options: ["0, 5, 1", "5, 0, 1", "5, 0, 0"],
+      answer: 1,
+      explanation: "empty cuenta casillas libres (5), full las ocupadas (0) y mutex empieza en 1 para dejar entrar a un hilo.",
+    },
+    {
+      question: "El productor hace wait(mutex) y después wait(empty), y el búfer está lleno. ¿Qué puede pasar?",
+      options: ["Nada, el orden da igual", "Se bloquea con el mutex tomado y el consumidor se bloquea en mutex: interbloqueo", "El productor sobrescribe la casilla más antigua"],
+      answer: 1,
+      explanation: "El único hilo que podría liberar una casilla necesita un mutex que nunca se soltará.",
+    },
+    {
+      question: "Un hilo hace signal(empty) mientras otro está bloqueado en empty. ¿Qué pasa con el contador?",
+      options: ["Sube 1", "No cambia: el permiso pasa al hilo bloqueado, que despierta", "Baja 1"],
+      answer: 1,
+      explanation: "El permiso se entrega directamente. En POSIX el contador sube y el hilo despertado lo vuelve a bajar: el resultado es el mismo.",
+    },
+    {
+      question: "La versión invertida se ejecutó 100 veces sin detenerse. ¿Es correcta?",
+      options: ["Sí", "No: otro intercalado produce un interbloqueo"],
+      answer: 1,
+      explanation: "Con cuanto 1 termina; sin cuanto se detiene. El error depende del intercalado.",
+    },
+    {
+      question: "¿Qué permite un semáforo que un mutex no permite?",
+      options: ["Que lo libere un hilo distinto del que esperó en él", "Proteger una sección crítica", "Bloquear a un hilo"],
+      answer: 0,
+      explanation: "Un mutex tiene dueño. Un semáforo no, y por eso sirve para avisar entre hilos.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Variables de condición y monitores.** `pthread_cond_wait` y, en Java, `synchronized` con `wait` y `notify`, son otra forma de esperar una condición sin girar.
+- **Lectores y escritores, y los filósofos comensales.** Más problemas clásicos de sincronización; el de los filósofos abre el siguiente módulo, el interbloqueo.
+- **Inversión de prioridad.** Un hilo urgente espera un mutex que tiene uno poco urgente, al que a su vez desplaza uno intermedio. Le pasó a la sonda Mars Pathfinder en 1997; la herencia de prioridad lo resuelve.
+- **Futex.** Cómo Linux deja fuera del núcleo los cerrojos que nadie disputa.
+
+Para leer más:
+
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, cap. 31, sección 31.4. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., secciones 6.5, 6.6 y 7.1.1.
+- Dijkstra, *Cooperating sequential processes* (EWD 123), 1965: [cs.utexas.edu](https://www.cs.utexas.edu/~EWD/transcriptions/EWD01xx/EWD123.html).
+- Manuales `sem_overview(7)` y `futex(7)`: [man7.org](https://man7.org/linux/man-pages/man7/sem_overview.7.html).
+
+</Stage>

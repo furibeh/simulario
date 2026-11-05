@@ -1,0 +1,175 @@
+---
+title: Page replacement algorithms
+summary: When memory is full, someone has to leave. Compare FIFO, LRU, OPT and Clock, and find out why giving FIFO more frames can make things worse.
+module: page-replacement
+order: 1
+minutes: 30
+prerequisites:
+  - paging
+---
+
+import PageReplacement from "../../../components/page-replacement/PageReplacement.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Pages, frames, page faults and what happens when no frame is free (lesson *Virtual memory and paging*).
+
+</Stage>
+
+<Stage stage="theory">
+
+A process uses its pages in some order: the **reference string**. Memory has a fixed number of **frames**. If the page is already in a frame, it is a **hit**; otherwise, a **page fault**. If no frame is free, the algorithm picks a **victim** that leaves memory.
+
+| Algorithm | Who it evicts |
+| --- | --- |
+| **FIFO** | The page that was **loaded** first. Hits do not change the order. |
+| **LRU** (least recently used) | The page whose last **use** is the oldest. Every hit refreshes it. |
+| **OPT** (optimal, Belady's) | The page whose next use is **farthest in the future**, or that will never be used again. It needs to know the future. |
+| **Clock** (second chance) | Frames form a circle and each has a **use bit**, set to 1 when the page is loaded or used. On a fault the hand looks at its frame: bit 1, clear it and move on; bit 0, evict that page, put the new one there with bit 1 and move one frame on. |
+
+Free frames are filled in order, starting with frame 0. The first use of each page always faults.
+
+</Stage>
+
+<Stage stage="predict">
+
+The reference string is **1 2 3 4 1 2 5 1 2 3 4 5**. With FIFO and **3 frames** it causes **9 page faults**.
+
+The board starts with FIFO and **4 frames**. **How many faults will there be now?** Pick a number in the *Your prediction* panel before you run.
+
+</Stage>
+
+<Stage stage="run">
+
+<PageReplacement client:visible lang="en" />
+
+As it runs, watch three moments:
+
+- References 5 and 6 (pages 1 and 2): they are hits. Does the FIFO queue change?
+- Reference 7 (page 5): which page leaves? When was it last used?
+- References 8 to 12: how many of them hit?
+
+When the run ends, the comparison table appears: the four algorithms with 1 to 6 frames on the same string.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answer was **10 faults**: one more than with 3 frames.
+
+**More frames are not always better.** This is **Belady's anomaly**. With 4 frames, FIFO keeps pages 1 to 4 until page 5 arrives at reference 7. From then on it evicts 1, 2, 3, 4 and 5 just before each one is needed again: references 7 to 12 all fault. The set of pages FIFO keeps with 4 frames does not always include the set it would keep with 3.
+
+**FIFO does not look at use.** At reference 7 it evicts page 1, used two references earlier, because it was the first one loaded. The hits at references 5 and 6 did not move the queue.
+
+**LRU and OPT do not suffer the anomaly.** They are **stack algorithms**: with *n* + 1 frames they always keep what they would keep with *n*, plus one more page. On this string LRU goes from 10 to 8 faults and OPT from 7 to 6 when going from 3 to 4 frames.
+
+**What each one bets on.** FIFO ignores use. LRU assumes the recent past predicts the near future (locality). OPT reads the future, which can only be done after the fact: it is the yardstick, because no algorithm can fault less. On the *Classic* string with 3 frames: OPT 9, LRU 12, Clock 14, FIFO 15.
+
+**Why Clock.** Exact LRU would have to record a time or move a list node on every memory access, billions per second. Instead, the hardware sets a use bit in the page-table entry, and Clock only reads and clears those bits when it needs a victim. If every bit is 1, Clock clears them all and behaves like FIFO: that is why it also shows the anomaly on this string.
+
+**Faults no one can avoid.** The first reference to each page always faults. The Belady string has 5 different pages, so 5 faults is the minimum for any algorithm; with 5 frames or more, they all reach it.
+
+**In real systems.** Linux approximates LRU with active and inactive page lists driven by the accessed bit, and since version 6.1 it includes the multi-generational LRU (MGLRU). Whether it is on depends on how the kernel was built; it can be switched on or off in `/sys/kernel/mm/lru_gen/enabled`, and distributions such as Fedora and Arch ship it enabled. Windows trims each process's working set. All of them approximate LRU; none is FIFO or OPT.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Find an algorithm and a frame count where adding a frame adds faults.</summary>
+
+FIFO (or Clock) with the *Belady* string: from 3 to 4 frames, from 9 to 10 faults. Neither keeps, with more frames, everything it kept with fewer.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Show that LRU does not suffer the anomaly on this string.</summary>
+
+LRU with 1 to 6 frames: 12, 12, 10, 8, 5, 5. It never goes up: LRU is a stack algorithm.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Rank the four algorithms on the <em>Classic</em> string with 3 frames.</summary>
+
+OPT 9, LRU 12, Clock 14, FIFO 15. Clock's second chances save it one fault over FIFO; LRU's exact recency saves three more.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Make all four algorithms fault the same number of times on <em>Belady</em>.</summary>
+
+With 5 or 6 frames, they all have 5 faults. Every page fits and only the unavoidable faults remain.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="page-replacement"
+  questions={[
+    {
+      question: "FIFO with 3 frames holding pages 4, 1 and 2, loaded in that order; page 1 was just used. Page 5 faults. Which page leaves?",
+      options: ["Page 4", "Page 1", "Page 2"],
+      answer: 0,
+      explanation: "FIFO evicts the first one loaded, regardless of whether it was used recently.",
+    },
+    {
+      question: "Can giving FIFO more frames increase page faults?",
+      options: ["No, never", "Yes: that is Belady's anomaly"],
+      answer: 1,
+      explanation: "On the lesson's string, FIFO goes from 9 faults with 3 frames to 10 with 4.",
+    },
+    {
+      question: "Why do operating systems not use OPT?",
+      options: ["Because it is slow to compute", "Because it needs to know future references", "Because it suffers Belady's anomaly"],
+      answer: 1,
+      explanation: "OPT is a yardstick for comparison: no algorithm can fault less.",
+    },
+    {
+      question: "With FIFO, a page already in memory is used again. What happens to the FIFO queue?",
+      options: ["The page moves to the end", "Nothing: only loads change the queue", "The page leaves"],
+      answer: 1,
+      explanation: "That is why FIFO can evict a page that was just used.",
+    },
+    {
+      question: "Clock: the hand points to a frame whose use bit is 1. What does it do?",
+      options: ["Evicts that page", "Clears the bit and moves on: the page gets a second chance", "Stops"],
+      answer: 1,
+      explanation: "It only evicts a page when it finds a bit set to 0.",
+    },
+    {
+      question: "A string uses 5 different pages. What is the fewest faults any algorithm can have, starting with empty memory?",
+      options: ["0", "1", "5"],
+      answer: 2,
+      explanation: "The first use of each page always faults.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Working sets and thrashing**: what happens when a process has fewer frames than the pages it actively uses.
+- **Enhanced Clock with the dirty bit**: prefer clean pages, which do not have to be written to disk before eviction.
+- **Linux active and inactive lists and MGLRU**, in detail.
+- **Stack algorithms**: why the inclusion property makes Belady's anomaly impossible.
+
+Further reading:
+
+- Belady, "A study of replacement algorithms for a virtual-storage computer", *IBM Systems Journal* 5(2), 1966.
+- Belady, Nelson and Shedler, "An anomaly in space-time characteristics of certain programs running in a paging machine", *Communications of the ACM* 12(6), 1969.
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 22. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., section 10.4.
+- Linux kernel documentation, *Multi-Gen LRU*: [docs.kernel.org](https://docs.kernel.org/admin-guide/mm/multigen_lru.html).
+
+</Stage>

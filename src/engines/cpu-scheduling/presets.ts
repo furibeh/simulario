@@ -6,7 +6,7 @@ export type PresetId = (typeof presetIds)[number];
 const make = (rows: readonly (readonly [number, number, number])[]): ProcessSpec[] =>
   rows.map(([arrival, burst, priority], i) => ({ id: `P${i + 1}`, arrival, burst, priority }));
 
-/** Workloads from docs/lessons/planificador-cpu.md. Rows: [arrival, burst, priority]. */
+/** Workloads from docs/lessons/cpu-scheduling.md. Rows: [arrival, burst, priority]. */
 export const presets: Record<PresetId, readonly ProcessSpec[]> = {
   convoy: make([
     [0, 10, 3],

@@ -1,0 +1,187 @@
+---
+title: Virtual memory and paging
+summary: Follow each virtual address through the TLB, the page table and the disk to its physical address, and find out why a page fault is not an error.
+module: virtual-memory
+order: 1
+minutes: 35
+prerequisites:
+  - process-states
+---
+
+import AddressTranslation from "../../../components/address-translation/AddressTranslation.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- What a process is (lesson *Processes and their states*).
+- Reading binary numbers. It is enough to know that the last 4 bits of a number are its remainder when divided by 16.
+
+</Stage>
+
+<Stage stage="theory">
+
+Every address a program uses is **virtual**. The operating system and the hardware translate it into a **physical** address in RAM.
+
+Memory is cut into blocks of the same size: **pages** in virtual memory and **frames** in physical memory. Here they are 16 bytes; in real systems, 4 KiB.
+
+A virtual address splits in two:
+
+- **Page number** = address ÷ page size (integer division).
+- **Offset** = the remainder.
+
+With 16-byte pages, the offset is the 4 rightmost bits and the page number is the rest. For example, 70 = `100 0110`: page 4 (`100`), offset 6 (`0110`).
+
+The **page table** says where each page is: in a frame, on disk (valid but not loaded) or invalid (not part of the program). The **physical address** is frame × page size + offset. The offset never changes.
+
+The **TLB** is a tiny, fast cache inside the CPU with recent translations (page → frame). If the page is there (a hit), there is no need to read the page table. If not (a TLB miss), the table is read and the translation is stored; if the TLB is full, the one unused for the longest time is forgotten.
+
+A **page fault** happens when the page is valid but on disk: the operating system loads it into a free frame, updates the table, and the access is repeated. It is slow, but normal. If the page is **invalid**, the system kills the process (segmentation fault).
+
+Costs in this simulator: TLB 1, memory 100, page fault 10,000 time units.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board starts with **Walkthrough**: 16-byte pages, 8 virtual pages, 4 frames and a 2-entry TLB, empty at the start. Frame 1 is free.
+
+| Page | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Where it is | frame 2 | frame 0 | disk | frame 3 | disk | invalid | invalid | disk |
+
+The program accesses addresses **20, 25, 70, 23, 3 and 90**. **What happens on each access?** TLB hit, TLB miss with the page in memory, page fault, or invalid page. Answer in the *Your prediction* panel before you run.
+
+</Stage>
+
+<Stage stage="run">
+
+<AddressTranslation client:visible lang="en" />
+
+As it runs, watch four moments:
+
+- Access 1 (20): which part of the address changes when it is translated?
+- Access 3 (70): how much does it cost compared with the others?
+- Access 5 (3): the TLB is full. What leaves the TLB? Does it leave memory too?
+- Access 6 (90): why is this one not solved by loading the page?
+
+Below the board, the access table adds up the cost of each one.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answer was: **TLB miss, hit, page fault, hit, TLB miss and invalid page**.
+
+**A page fault is not an error.** The page table tells "on disk" apart from "invalid". Page 4 is on disk: the operating system loads it into the free frame and the access ends at physical address 22. Page 5 is not part of the program: that is an error, and Linux sends the `SIGSEGV` signal. Page faults are the normal way pages are loaded when needed (demand paging); a program can take thousands per second.
+
+**What the TLB is for.** Without it, every access needs at least two memory reads: the page table and the data. Accesses 2 and 4 are on page 1, already in the TLB since access 1, so they skip the table. Real TLBs hold from tens to a few thousand entries and hit more than 99% of the time, because programs reuse nearby addresses (locality).
+
+**Only the page number is translated.** The offset bits pass through unchanged: 20 = page 1, offset 4, and the physical address is 0 × 16 + 4 = 4. That is why the page size is a power of 2.
+
+**Any page in any frame.** Page 0 is in frame 2 and page 1 in frame 0. Contiguous virtual memory does not need contiguous physical memory, which removes external fragmentation.
+
+**Page faults dominate the cost.** The walkthrough costs 201 + 101 + 10,201 + 101 + 201 + 101 = 10,906 units, and the access with the page fault is 94% of that total. On a real machine the TLB answers in about 1 ns, DRAM in about 100 ns, and a page fault served from an SSD takes tens to hundreds of microseconds; from a hard disk, milliseconds.
+
+**Evicting a page.** If no frame is free, the system moves a page out to disk (here, the one loaded first; the next lesson compares better choices). Its page-table entry goes back to "disk", and its TLB entry **must be removed**: otherwise the TLB would translate to a frame that now holds another page. The page is not lost: the next access to it is a page fault.
+
+**Real page tables.** With 4 KiB pages and 48-bit addresses, a flat table would need 2³⁶ entries per process. x86-64 uses a 4-level tree (5 levels and 57-bit addresses on recent processors with LA57), so a TLB miss may walk 4 or 5 levels. Huge pages (2 MiB, 1 GiB) let a single TLB entry cover much more memory, and entries carry an address-space id (PCID) so the TLB does not have to be flushed on every context switch.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Make <em>Walkthrough</em> cost more without changing the accesses.</summary>
+
+Set the TLB to 0 entries: the total rises to 11,100. Every access now reads the page table, so the ones that used to hit the TLB go from 101 to 200.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Get four TLB hits out of six accesses.</summary>
+
+Accesses 20, 25, 23, 30, 3 and 6, with a 2-entry TLB: accesses 2, 3, 4 and 6 hit. They all fall on page 1 or page 0: each page misses once and then hits.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Make a page come back from disk after it was evicted.</summary>
+
+Load *Full memory*. There are no free frames, so at access 2 page 0 goes out to disk and the TLB forgets it. At access 5 the program asks for it again and there is another page fault.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Make the simulation stop at the first access.</summary>
+
+Make the first access address 100: page 6, invalid. There is nothing to load; the process is killed.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="paging"
+  questions={[
+    {
+      question: "A program accesses a valid page that is on disk. What happens?",
+      options: ["The system kills the program", "Page fault: the system loads it into a frame and the access completes", "The access is ignored"],
+      answer: 1,
+      explanation: "It is a page fault, a normal part of virtual memory. Only invalid pages kill the program.",
+    },
+    {
+      question: "Two accesses in a row to the same page, with a TLB. How many page-table reads does the second one need?",
+      options: ["None", "One", "Two"],
+      answer: 0,
+      explanation: "The translation was stored in the TLB by the first access: the second one hits.",
+    },
+    {
+      question: "16-byte pages; virtual address 37 is on a page loaded in frame 5. What is the physical address?",
+      options: ["37", "85", "80"],
+      answer: 1,
+      explanation: "37 is page 2, offset 5. Physical: 5 × 16 + 5 = 85. The offset does not change.",
+    },
+    {
+      question: "The system moves page 4 out to disk. What must happen to its TLB entry?",
+      options: ["Nothing", "It must be removed, or the TLB would point to a frame that now holds another page", "It must point to the disk"],
+      answer: 1,
+      explanation: "A stale translation in the TLB would send the access to another page's data.",
+    },
+    {
+      question: "Page 0 went out to disk and the program uses it again. What happens?",
+      options: ["Its data is lost", "A page fault brings it back into a frame", "The program is killed"],
+      answer: 1,
+      explanation: "A page that leaves memory is still on disk. Just like access 5 in Full memory.",
+    },
+    {
+      question: "Why do real systems use multi-level page tables?",
+      options: ["To make translation faster", "Because a flat table for 48 bits would be huge; with levels only the used parts exist", "To get more physical memory"],
+      answer: 1,
+      explanation: "With 4 KiB pages and 48 bits, a flat table would have 2³⁶ entries per process.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Multi-level tables by hand**, and inverted page tables.
+- **Copy-on-write and memory-mapped files.** After `fork()`, parent and child share pages until one writes; `mmap` loads a file through page faults.
+- **Minor and major faults.** A minor fault finds the page already in memory (for example, shared); a major one reads it from disk. `/usr/bin/time -v` and `perf stat -e page-faults` count them.
+- **TLB shootdowns on multicore machines.** When a page leaves memory, every core that has it in its TLB must forget it.
+
+Further reading:
+
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 18 to 21. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., sections 9.3 and 10.2.
+- Linux kernel documentation, *5-level paging*: [docs.kernel.org](https://docs.kernel.org/arch/x86/x86_64/5level-paging.html).
+
+</Stage>

@@ -35,7 +35,7 @@ export function effectiveScript(
   return script.map((o) => (o.op === "acquire" ? { op: "acquire", res: sorted[k++] ?? o.res } : o));
 }
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/interbloqueo.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/deadlock.md. */
 export function assertValidInput(input: GraphInput): void {
   if (!inRange(input.resources, limits.resources)) throw new RangeError("Invalid resources");
   if (!inRange(input.threads.length, limits.threads)) throw new RangeError("Invalid threads");

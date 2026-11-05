@@ -9,15 +9,15 @@ export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (locales as readonly string[]).includes(value);
 }
 
-/** Builds a localized path: localizedPath("en", "/sistemas-operativos") → "/en/sistemas-operativos". */
+/** Builds a localized path: localizedPath("en", "/operating-systems") → "/en/operating-systems". */
 export function localizedPath(locale: Locale, path = "/"): string {
   const clean = path.replace(/^\/+|\/+$/g, "");
   return clean ? `/${locale}/${clean}` : `/${locale}`;
 }
 
 /**
- * Public path of a page from Astro.url.pathname. The build emits files ("/es/acerca.html"),
- * which Cloudflare Pages serves without the extension: "/es/acerca".
+ * Public path of a page from Astro.url.pathname. The build emits files ("/es/about.html"),
+ * which Cloudflare Pages serves without the extension: "/es/about".
  */
 export function pagePathname(pathname: string): string {
   const clean = pathname

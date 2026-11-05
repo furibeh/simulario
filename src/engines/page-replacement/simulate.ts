@@ -12,7 +12,7 @@ import {
 const inRange = (v: number, r: { min: number; max: number }) =>
   Number.isInteger(v) && v >= r.min && v <= r.max;
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/reemplazo-paginas.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/page-replacement.md. */
 export function assertValidInput(input: ReplacementInput): void {
   if (!inRange(input.refs.length, limits.refs)) throw new RangeError("Invalid reference count");
   if (!input.refs.every((p) => inRange(p, limits.page))) throw new RangeError("Invalid page");

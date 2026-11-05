@@ -15,7 +15,7 @@ import {
 const inRange = (v: number, r: { min: number; max: number }) =>
   Number.isInteger(v) && v >= r.min && v <= r.max;
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/paginacion.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/paging.md. */
 export function assertValidInput(input: TranslationInput): void {
   if (!(limits.pageSizes as readonly number[]).includes(input.pageSize)) {
     throw new RangeError("Invalid page size");

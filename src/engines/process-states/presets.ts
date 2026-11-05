@@ -6,7 +6,7 @@ export type PresetId = (typeof presetIds)[number];
 const make = (rows: readonly (readonly [number, ...number[]])[]): ProcessSpec[] =>
   rows.map(([arrival, ...bursts], i) => ({ id: `P${i + 1}`, arrival, bursts }));
 
-/** Workloads from docs/lessons/procesos-estados.md. Rows: [arrival, ...bursts]. */
+/** Workloads from docs/lessons/process-states.md. Rows: [arrival, ...bursts]. */
 export const presets: Record<PresetId, readonly ProcessSpec[]> = {
   /** "Esperando al disco" / "Waiting for the disk". */
   diskWait: make([

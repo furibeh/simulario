@@ -26,11 +26,11 @@ describe("progress", () => {
 
   it("marks a lesson completed once and keeps the first date", () => {
     const storage = memory();
-    markCompleted(storage, "planificador-cpu", new Date("2026-11-02T10:00:00Z"));
-    markCompleted(storage, "planificador-cpu", new Date("2026-11-05T10:00:00Z"));
+    markCompleted(storage, "cpu-scheduling", new Date("2026-11-02T10:00:00Z"));
+    markCompleted(storage, "cpu-scheduling", new Date("2026-11-05T10:00:00Z"));
     const progress = readProgress(storage);
-    expect(progress.lessons["planificador-cpu"]?.completedAt).toBe("2026-11-02T10:00:00.000Z");
-    expect(isCompleted(progress, "planificador-cpu")).toBe(true);
+    expect(progress.lessons["cpu-scheduling"]?.completedAt).toBe("2026-11-02T10:00:00.000Z");
+    expect(isCompleted(progress, "cpu-scheduling")).toBe(true);
     expect(isCompleted(progress, "otra")).toBe(false);
   });
 
@@ -38,6 +38,38 @@ describe("progress", () => {
     expect(readProgress(memory("not json"))).toEqual({ v: 1, lessons: {} });
     expect(readProgress(memory('{"v":2,"lessons":{}}'))).toEqual({ v: 1, lessons: {} });
     expect(readProgress(memory("null"))).toEqual({ v: 1, lessons: {} });
+  });
+
+  it("moves progress stored under an old Spanish lesson id to its new id", () => {
+    const stored = {
+      v: 1,
+      lessons: {
+        "planificador-cpu": { unlockedAt: "2026-11-02T09:00:00.000Z" },
+        interbloqueo: { completedAt: "2026-11-03T10:00:00.000Z" },
+        // Visited again after the rename, so both ids hold progress.
+        paging: { unlockedAt: "2026-11-06T10:00:00.000Z" },
+        paginacion: {
+          unlockedAt: "2026-11-01T10:00:00.000Z",
+          completedAt: "2026-11-01T11:00:00.000Z",
+        },
+      },
+    };
+    const progress = readProgress(memory(JSON.stringify(stored)));
+    expect(progress.lessons).toEqual({
+      "cpu-scheduling": { unlockedAt: "2026-11-02T09:00:00.000Z" },
+      deadlock: { completedAt: "2026-11-03T10:00:00.000Z" },
+      paging: { unlockedAt: "2026-11-01T10:00:00.000Z", completedAt: "2026-11-01T11:00:00.000Z" },
+    });
+    expect(isCompleted(progress, "deadlock")).toBe(true);
+  });
+
+  it("saves the renamed ids on the next write", () => {
+    const storage = memory(
+      '{"v":1,"lessons":{"interbloqueo":{"unlockedAt":"2026-11-03T10:00:00.000Z"}}}',
+    );
+    markCompleted(storage, "paging", new Date("2026-11-07T10:00:00Z"));
+    const saved = JSON.parse(storage.getItem(PROGRESS_KEY) ?? "{}");
+    expect(Object.keys(saved.lessons).sort()).toEqual(["deadlock", "paging"]);
   });
 
   it("survives storage that throws", () => {

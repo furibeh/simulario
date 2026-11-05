@@ -40,7 +40,7 @@ function rng(seed: number) {
 
 const RUNS = 300;
 
-describe("race conditions (condiciones-carrera)", () => {
+describe("race conditions (race-conditions)", () => {
   it("any interleaving: every store writes loaded + 1, and the result never exceeds the request", () => {
     const r = rng(1);
     for (let run = 0; run < RUNS; run++) {
@@ -80,7 +80,7 @@ describe("race conditions (condiciones-carrera)", () => {
   });
 });
 
-describe("bounded buffer (mutex-semaforos)", () => {
+describe("bounded buffer (mutex-semaphores)", () => {
   it("the correct version never deadlocks and keeps the semaphore invariants", () => {
     const r = rng(2);
     for (let run = 0; run < RUNS; run++) {
@@ -138,7 +138,7 @@ describe("bounded buffer (mutex-semaforos)", () => {
   });
 });
 
-describe("resource graph (interbloqueo)", () => {
+describe("resource graph (deadlock)", () => {
   function randomScript(r: ReturnType<typeof rng>, resources: number): GraphOperation[] {
     const want = r
       .shuffle(Array.from({ length: resources }, (_, i) => i + 1))
@@ -179,7 +179,7 @@ describe("resource graph (interbloqueo)", () => {
   });
 });
 
-describe("address translation (paginacion)", () => {
+describe("address translation (paging)", () => {
   it("keeps the offset, the page table, the frames and the TLB consistent", () => {
     const r = rng(5);
     for (let run = 0; run < RUNS; run++) {
@@ -223,7 +223,7 @@ describe("address translation (paginacion)", () => {
   });
 });
 
-describe("page replacement (reemplazo-paginas)", () => {
+describe("page replacement (page-replacement)", () => {
   /** Independent oracle: the fewest faults over every possible victim choice (exhaustive search). */
   function minimumFaults(refs: readonly number[], frames: number): number {
     const memo = new Map<string, number>();
@@ -285,7 +285,7 @@ describe("page replacement (reemplazo-paginas)", () => {
   });
 });
 
-describe("file system (inodos-enlaces)", () => {
+describe("file system (inodes-links)", () => {
   it("link counts, bitmaps and contents stay consistent under any script", () => {
     const r = rng(8);
     const names = ["a", "b", "c", "d"];

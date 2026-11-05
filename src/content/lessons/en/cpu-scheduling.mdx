@@ -1,0 +1,194 @@
+---
+title: CPU scheduler
+summary: Define a workload, pick an algorithm and watch it decide, turn by turn, who gets the CPU.
+module: cpu-scheduling
+order: 1
+minutes: 35
+prerequisites:
+  - process-states
+---
+
+import CpuScheduler from "../../../components/cpu-scheduler/CpuScheduler.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Know what a **process** is: a running program. A process is **ready** when it could use the CPU and is waiting for its turn, and **running** when it has it.
+- Read a timeline from left to right. No programming needed.
+
+</Stage>
+
+<Stage stage="theory">
+
+A computer with one CPU can run only one process at a time. When several processes are ready, the **scheduler** decides whose turn it is. In this lesson time moves in units and switching processes costs nothing.
+
+Each process has three values:
+
+- **Arrival**: the instant it enters the ready queue.
+- **Burst**: how many CPU units it needs to finish.
+- **Priority**: a number from 1 to 9. 1 is the most urgent.
+
+Algorithms come in two families. **Non-preemptive** ones let the process holding the CPU finish its burst. **Preemptive** ones can take the CPU away halfway.
+
+| Algorithm | Rule | Type |
+| --- | --- | --- |
+| FCFS | First in the queue goes first. | Non-preemptive |
+| SJF | Shortest burst among ready processes. | Non-preemptive |
+| SRTF | Least remaining time; a newcomer with less takes the CPU away. | Preemptive |
+| Priority | Lowest priority number. | Non-preemptive |
+| Round Robin | Queue order, but each turn lasts at most one **quantum**; then back to the end of the queue. | Preemptive |
+
+Three metrics per process let us compare algorithms:
+
+- **Turnaround** = finish − arrival: how long from arriving to finishing.
+- **Waiting** = turnaround − burst: how long it sat in the queue without the CPU.
+- **Response** = first turn − arrival: how long until it first got the CPU.
+
+> Example: P1 arrives at 0 with burst 3 and P2 arrives at 1 with burst 1. With FCFS, P1 runs from 0 to 3 and P2 from 3 to 4. P2 waited 2 units: it arrived at 1 and started at 3.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board below starts with the **Convoy effect** scenario and the **FCFS** algorithm:
+
+| Process | Arrival | Burst |
+| --- | --- | --- |
+| P1 | 0 | 10 |
+| P2 | 1 | 2 |
+| P3 | 2 | 1 |
+| P4 | 3 | 3 |
+
+**In what order will the four processes finish?** Before running, tap the tokens in the order you expect in the *Your prediction* panel. Think about the FCFS rule, not about what would seem fair.
+
+</Stage>
+
+<Stage stage="run">
+
+<CpuScheduler client:visible lang="en" />
+
+As it plays, watch two moments:
+
+- At instants 1 and 2, P2 and P3 arrive, much shorter than P1. Does anything happen to P1?
+- At instant 10, P1 finishes. How long had P2 been waiting for a job of just 2 units?
+
+</Stage>
+
+<Stage stage="explain">
+
+With FCFS the actual order is **P1, P2, P3, P4**. If you predicted that the short ones would finish first, you were thinking about bursts, but FCFS never looks at them: it serves processes in arrival order. P1 arrived alone at t = 0, took the CPU and keeps it until it finishes, even though P2 and P3 arrive later with much shorter jobs. Not even SJF would avoid this: it does not preempt either, so it also lets P1 finish.
+
+**Convoy effect.** A long process at the front of the queue makes every short process behind it wait, like a slow truck on a one-lane road. With this workload FCFS gives an average waiting time of 7.25 units. Switch the board to SRTF and it drops to 2.
+
+**SJF is optimal** for average waiting time among non-preemptive algorithms when all processes are available at once. The idea of the proof: if a long job goes before a short one, swapping them never increases the total wait.
+
+**SRTF** is the preemptive version of SJF: it minimizes average waiting time, but it needs to know each process's remaining time and can leave long processes waiting forever.
+
+**Starvation and aging.** With priority or SJF, a process can be postponed indefinitely if someone "better" always arrives. The classic fix is **aging**: raising a process's priority the longer it waits.
+
+**Response is not waiting.** In non-preemptive algorithms they match. With preemption, a process can get the CPU early and still wait a lot in total: with Round Robin on the convoy scenario, P1 has response 0 but waits 6.
+
+**The Round Robin quantum.** If the quantum is at least as long as the longest burst, Round Robin behaves like FCFS. If it is tiny, the system spends more time switching than working (switching is free in this simulator, not in reality). A rule of thumb: about 80% of bursts should fit in one quantum.
+
+**In real systems.** For years Linux used CFS, which shares the CPU by accumulated run time, and since version 6.6 it uses EEVDF. Neither is one of the five classic algorithms, but both balance the same tensions: waiting, response and fairness.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one reveals a possible solution when expanded.
+
+<details>
+<summary><strong>1.</strong> Make Round Robin behave exactly like FCFS.</summary>
+
+Load the *Similar bursts* scenario and set the quantum to 5 or 6. When every burst fits in one quantum, no turn is ever cut and Round Robin is FCFS.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Find a workload where SJF and SRTF produce different schedules.</summary>
+
+The *Convoy effect* works: P2 arrives while P1 runs and only SRTF interrupts it (P1 runs from 0 to 1, P2 from 1 to 3…).
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Find a workload where Round Robin has a higher average waiting time than FCFS.</summary>
+
+*Similar bursts* with quantum 2: Round Robin waits 9.5 and FCFS 5.75. When bursts are alike, interleaving them makes all of them finish late.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> With priority scheduling, make the priority-9 process wait as long as possible.</summary>
+
+Give it an early arrival and add processes with priority 1 or 2 that arrive before the CPU frees up. Priority scheduling always picks the others first: starvation in miniature.
+
+</details>
+
+<details>
+<summary><strong>5.</strong> Get an average waiting time of 0 with any algorithm.</summary>
+
+Space the arrivals so each process arrives after the previous one finishes, for example P1 arrives at 0 with burst 2, P2 at 2 with burst 3 and P3 at 5 with burst 1. Nobody waits in the queue.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="cpu-scheduling"
+  questions={[
+    {
+      question: "With FCFS on the Convoy effect scenario, what is the average waiting time?",
+      options: ["2", "7", "7.25", "11.25"],
+      answer: 2,
+      explanation: "Waiting times are 0, 9, 10 and 10. Their average is 29 / 4 = 7.25. 11.25 is the average turnaround.",
+    },
+    {
+      question: "Among non-preemptive algorithms, which one minimizes average waiting time?",
+      options: ["FCFS", "SJF", "Priority"],
+      answer: 1,
+      explanation: "SJF: serving short jobs first reduces everyone else's wait.",
+    },
+    {
+      question: "P1 (burst 8) is running under SJF and P2 (burst 1) arrives. When does P2 start?",
+      options: ["As soon as it arrives", "When P1 finishes", "After one quantum"],
+      answer: 1,
+      explanation: "SJF does not preempt: it picks the shortest job only when the CPU becomes free.",
+    },
+    {
+      question: "With Round Robin on the Convoy effect, P1 has response time 0. Is its waiting time also 0?",
+      options: ["Yes", "No, it is 6"],
+      answer: 1,
+      explanation: "It gets the CPU right away, but then spends 6 units in the queue between its turns.",
+    },
+    {
+      question: "Processes A (priority 1) and B (priority 4) are ready. Which one runs first?",
+      options: ["A", "B"],
+      answer: 0,
+      explanation: "In this simulator the lowest number is the most urgent priority.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Estimating the next burst.** A real system does not know bursts in advance. It estimates them with an exponential average: τₙ₊₁ = α·tₙ + (1 − α)·τₙ, where tₙ is the last measured burst and α is usually 0.5.
+- **Multilevel feedback queues.** Several queues with different priorities; a process that uses its whole quantum moves down a level. This approximates SJF without knowing bursts.
+- **Context-switch cost.** Saving and restoring a process's state takes time, which is why a tiny quantum reduces useful work.
+
+Further reading:
+
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., ch. 5.
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 7 and 8. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Tanenbaum and Bos, *Modern Operating Systems*, 4th ed., section 2.4.
+- Linux kernel documentation: [EEVDF Scheduler](https://docs.kernel.org/scheduler/sched-eevdf.html).
+
+</Stage>

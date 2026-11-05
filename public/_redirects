@@ -1,0 +1,22 @@
+# Old Spanish slugs, published until 2026-11-04. Keep in sync with src/lib/legacy-ids.ts
+# (checked by src/lib/legacy-ids.test.ts).
+/es/sistemas-operativos /es/operating-systems 301
+/en/sistemas-operativos /en/operating-systems 301
+/es/sistemas-operativos/procesos-estados /es/operating-systems/process-states 301
+/en/sistemas-operativos/procesos-estados /en/operating-systems/process-states 301
+/es/sistemas-operativos/planificador-cpu /es/operating-systems/cpu-scheduling 301
+/en/sistemas-operativos/planificador-cpu /en/operating-systems/cpu-scheduling 301
+/es/sistemas-operativos/condiciones-carrera /es/operating-systems/race-conditions 301
+/en/sistemas-operativos/condiciones-carrera /en/operating-systems/race-conditions 301
+/es/sistemas-operativos/mutex-semaforos /es/operating-systems/mutex-semaphores 301
+/en/sistemas-operativos/mutex-semaforos /en/operating-systems/mutex-semaphores 301
+/es/sistemas-operativos/interbloqueo /es/operating-systems/deadlock 301
+/en/sistemas-operativos/interbloqueo /en/operating-systems/deadlock 301
+/es/sistemas-operativos/paginacion /es/operating-systems/paging 301
+/en/sistemas-operativos/paginacion /en/operating-systems/paging 301
+/es/sistemas-operativos/reemplazo-paginas /es/operating-systems/page-replacement 301
+/en/sistemas-operativos/reemplazo-paginas /en/operating-systems/page-replacement 301
+/es/sistemas-operativos/inodos-enlaces /es/operating-systems/inodes-links 301
+/en/sistemas-operativos/inodos-enlaces /en/operating-systems/inodes-links 301
+/es/acerca /es/about 301
+/en/acerca /en/about 301

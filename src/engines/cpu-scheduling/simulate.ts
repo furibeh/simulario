@@ -21,7 +21,7 @@ interface Proc {
   finish: number | null;
 }
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/planificador-cpu.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/cpu-scheduling.md. */
 export function assertValidInput(input: CpuInput): void {
   const { processes, quantum } = input;
   const inRange = (v: number, r: { min: number; max: number }) =>

@@ -1,0 +1,208 @@
+---
+title: Processes and their states
+summary: Follow each process instant by instant between the ready queue, the CPU and the wait for I/O, and find out why the CPU almost never waits.
+module: processes
+order: 1
+minutes: 30
+prerequisites: []
+---
+
+import ProcessStates from "../../../components/process-states/ProcessStates.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Knowing that a program is a file and that, when it runs, it uses the CPU and memory.
+- Reading a timeline left to right. No programming needed.
+
+</Stage>
+
+<Stage stage="theory">
+
+A **process** is a program in execution. The operating system keeps a record of each one, the **process control block** (PCB), where it notes, among other things, which **state** the process is in.
+
+A process alternates **CPU bursts**, when it computes, and **I/O bursts**, when it waits for a disk, the network or the keyboard. It always starts and ends with a CPU burst.
+
+In this simulator there is one CPU, and only one process can use it at a time. Time advances in units and switching processes costs nothing. There are five states:
+
+| State | What it means |
+| --- | --- |
+| **New** | Being created. Here it lasts zero time: an arriving process is admitted at once. |
+| **Ready** | Could use the CPU right now and waits for its turn in the **ready queue**. |
+| **Running** | Has the CPU. |
+| **Blocked** | Waits for an I/O operation to finish. Giving it the CPU would be useless. |
+| **Terminated** | Finished its last burst. |
+
+The **scheduler** gives the CPU to the first process in the ready queue (first come, first served) whenever the CPU is free. I/O devices work in parallel with the CPU and with each other: here every process has its own device, so I/O never queues.
+
+> Example: P1 arrives at 0 with CPU 1, I/O 2 and CPU 1, and it is alone. It runs from 0 to 1, is blocked from 1 to 3, becomes ready at t = 3 and immediately runs again until 4, when it exits. The CPU is idle from 1 to 3.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board below starts with the **Waiting for the disk** scenario, with no quantum:
+
+| Process | Arrival | Bursts |
+| --- | --- | --- |
+| P1 | 0 | CPU 2, I/O 3, CPU 2 |
+| P2 | 0 | CPU 3 |
+| P3 | 1 | CPU 1, I/O 2, CPU 1 |
+
+**What state will each process be in at t = 3? And at t = 5?** Pick a state for each cell in the *Your prediction* panel before you run. The state at an instant is the one the process has after that instant's changes, that is, during the unit that starts there.
+
+</Stage>
+
+<Stage stage="run">
+
+<ProcessStates client:visible lang="en" />
+
+As it plays, watch three moments:
+
+- At t = 2, P1 requests I/O. What does the CPU do while P1 waits for the disk?
+- At t = 5, three things happen at once. Where does P1 go when its I/O finishes?
+- At t = 8, P3's I/O finishes. Does it pass through the ready queue even though nobody else is waiting?
+
+Below the board, the *So far* table adds up each process's time on the CPU, in I/O and in the ready queue, and shows how much of the time the CPU was busy.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answer was:
+
+| Process | t = 3 | t = 5 |
+| --- | --- | --- |
+| P1 | Blocked | Ready |
+| P2 | Running | Terminated |
+| P3 | Ready | Running |
+
+**The CPU does not wait for the disk.** At t = 2, P1 requests I/O and, in that same instant, leaves the CPU and becomes blocked. The scheduler dispatches P2 right away. If you put P1 as running at t = 3, you pictured the process keeping the CPU while it waits, or the CPU waiting for it. Neither happens.
+
+**When its I/O finishes, a process goes back to the queue, not to the CPU.** At t = 5, P1's I/O ends, but it becomes ready and joins the queue behind P3, which has been waiting since t = 1. The scheduler picks P3. Even when the queue is empty, as it is for P3 at t = 8, the process passes through ready, just for zero time.
+
+**There are six possible transitions**, and each one has a cause:
+
+| Transition | Event | Who causes it |
+| --- | --- | --- |
+| New → ready | Admit | The operating system finishes creating the process. |
+| Ready → running | Dispatch | The scheduler. |
+| Running → blocked | I/O request | The process itself, through a system call. |
+| Blocked → ready | I/O completion | An interrupt from the device. |
+| Running → ready | Timeout | A timer interrupt. Only in preemptive systems. |
+| Running → terminated | Exit | The process itself. |
+
+No other transition is possible. A ready process cannot block, because it is not executing anything that could request I/O. A blocked process cannot run, because the scheduler only picks from the ready queue.
+
+**Ready and blocked are not the same wait.** A ready process waits only for the CPU: if it got it, it would make progress. A blocked one waits for an event and would not use the CPU even if it had it.
+
+**Multiprogramming.** On *Waiting for the disk* the CPU is busy all 9 units. Running the three processes one after another would take 2 + 3 + 2 + 3 + 1 + 2 + 1 = 14. The gain comes from overlapping one process's I/O with another's CPU burst. **CPU utilization** is the fraction of time the CPU is busy: busy units / total time.
+
+**The PCB and the context switch.** On every dispatch the operating system saves the registers of the outgoing process in its PCB and loads the incoming one's. Here it is free; in a real system it takes a few microseconds.
+
+**Real systems.** On Linux, `ps -o pid,stat,cmd` and `top` show each process's state. `R` means running or runnable (ready): Linux does not tell them apart. `S` and `D` are blocked (interruptible and uninterruptible sleep), `T` is stopped and `Z` is zombie: terminated, but not yet collected by its parent.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one shows a possible solution when you open it.
+
+<details>
+<summary><strong>1.</strong> Make a process go from running back to ready without finishing its burst.</summary>
+
+On *Waiting for the disk*, choose *Quantum* and set it to 2. At t = 4, P2's quantum runs out: the timer interrupt takes the CPU away and P2 goes back to the end of the queue.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Make the CPU sit idle while some processes have not finished yet.</summary>
+
+Load *Everyone in I/O*. From 2 to 5 every unfinished process is blocked, and a blocked process cannot use the CPU.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Finish all the work in less than half the time it takes one process after another.</summary>
+
+Three processes, P1 to P3, arriving at 0 with CPU 1, I/O 6 and CPU 1. Together they take 10 units; one after another they would take 24. Their I/O waits overlap, so the total time stays far below the sum, even with only 60% utilization.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Make a process spend more time ready than running and blocked together.</summary>
+
+P1 arrives at 0 with CPU 6 and P2 arrives at 1 with CPU 1. P2 waits in the queue from 1 to 6, 5 units, for a 1-unit burst.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="process-states"
+  questions={[
+    {
+      question: "P1's disk read finishes. Which state does it move to?",
+      options: ["Running", "Ready", "Blocked"],
+      answer: 1,
+      explanation: "Ready. It needs the scheduler to dispatch it before it runs again.",
+    },
+    {
+      question: "Which transition only happens in a preemptive system?",
+      options: ["Ready → running", "Running → ready", "Blocked → ready"],
+      answer: 1,
+      explanation: "Running → ready: the timer takes the CPU away when the quantum runs out.",
+    },
+    {
+      question: "On Waiting for the disk the processes finish at t = 9. How long would they take one after another?",
+      options: ["9 units", "11 units", "14 units"],
+      answer: 2,
+      explanation: "2 + 3 + 2 + 3 + 1 + 2 + 1 = 14. Together they take 9 because one process's I/O overlaps another's CPU burst.",
+    },
+    {
+      question: "A ready process and a blocked process are both waiting. What is each one waiting for?",
+      options: [
+        "Both wait for the CPU",
+        "The ready one waits for the CPU; the blocked one for its I/O to finish",
+        "The ready one waits for its I/O; the blocked one for the CPU",
+      ],
+      answer: 1,
+      explanation: "The ready one would make progress if it got the CPU. The blocked one could not use it until its event arrives.",
+    },
+    {
+      question: "Which of these transitions is impossible?",
+      options: ["Ready → running", "Blocked → ready", "Ready → blocked"],
+      answer: 2,
+      explanation: "A ready process is not executing anything, so it cannot request I/O.",
+    },
+    {
+      question: "ps shows a process with state R. Is it necessarily using a CPU right now?",
+      options: ["Yes, always", "Not necessarily"],
+      answer: 1,
+      explanation: "R means running or runnable (ready): Linux does not tell them apart.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Suspended states.** When memory runs short, the system can move ready or blocked processes out to disk (swapping): this adds the ready-suspended and blocked-suspended states.
+- **The long-term scheduler.** It can hold processes in the new state to cap how many compete at once, the **degree of multiprogramming**.
+- **`fork()`, `exec()` and `wait()`.** On Unix a process creates another with `fork()`, replaces its program with `exec()` and waits for it to end with `wait()`. If the parent never calls `wait()`, the terminated child stays a zombie.
+- **Devices with queues.** Here every process has its own device. If two processes need the same disk, the second one waits in the device's queue, not only for its own operation to finish.
+
+Further reading:
+
+- Silberschatz, Galvin and Gagne, *Operating System Concepts*, 10th ed., ch. 3, section 3.1.
+- Arpaci-Dusseau and Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, ch. 4. [Free online](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Stallings, *Operating Systems: Internals and Design Principles*, 9th ed., section 3.2.
+- The `ps(1)` manual, section *PROCESS STATE CODES*: [man7.org](https://man7.org/linux/man-pages/man1/ps.1.html).
+
+</Stage>

@@ -4,7 +4,7 @@ import { simulate } from "./simulate";
 import type { Algorithm, CpuInput, ProcessSpec } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/planificador-cpu.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/cpu-scheduling.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 interface Expected {

@@ -4,7 +4,7 @@ import { simulate } from "./simulate";
 import type { FsExplanation, FsTrace, Operation } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/inodos-enlaces.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/inodes-links.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 

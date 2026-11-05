@@ -4,7 +4,7 @@ import { consumerShares, simulate } from "./simulate";
 import type { BufferExplanation, BufferInput, BufferTrace } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/mutex-semaforos.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/mutex-semaphores.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 

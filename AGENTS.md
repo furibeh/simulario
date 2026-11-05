@@ -38,7 +38,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 - TypeScript with Astro's `strictest` preset. Prefer `type` imports, named exports and small pure functions. No `any`; use `unknown` and narrow it.
 - Svelte 5 runes (`$state`, `$derived`, `$props`); no legacy stores in new code.
 - File names: `kebab-case.ts`, `PascalCase.svelte` / `.astro` for components.
-- URL slugs and content ids are shared across languages and written in Spanish kebab-case (`planificador-cpu`).
+- URL slugs and content ids (paths, modules, lessons, pages) are shared across languages and written in English kebab-case (`cpu-scheduling`). Lesson slugs and module ids are global, so they must be unique across paths. Renaming a published slug needs a 301 in `public/_redirects` and an entry in `src/lib/legacy-ids.ts`, so links and stored progress keep working.
 - Commits follow Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`). Keep each commit to one concern.
 
 ## Adding a simulation

@@ -1,0 +1,175 @@
+---
+title: Algoritmos de reemplazo de páginas
+summary: Cuando la memoria está llena, alguien tiene que salir. Compara FIFO, LRU, OPT y el reloj, y descubre por qué dar más marcos a FIFO puede empeorar las cosas.
+module: page-replacement
+order: 1
+minutes: 30
+prerequisites:
+  - paging
+---
+
+import PageReplacement from "../../../components/page-replacement/PageReplacement.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Páginas, marcos, fallos de página y qué pasa cuando no hay marcos libres (lección *Memoria virtual y paginación*).
+
+</Stage>
+
+<Stage stage="theory">
+
+Un proceso usa sus páginas en cierto orden: la **cadena de referencias**. La memoria tiene un número fijo de **marcos**. Si la página ya está en un marco, es un **acierto**; si no, un **fallo de página**. Si no queda ningún marco libre, el algoritmo elige una **víctima** que sale de la memoria.
+
+| Algoritmo | A quién saca |
+| --- | --- |
+| **FIFO** | A la página que **entró** primero. Los aciertos no cambian el orden. |
+| **LRU** (la menos usada recientemente) | A la página cuyo último **uso** es el más antiguo. Cada acierto la refresca. |
+| **OPT** (óptimo, de Belady) | A la página cuyo próximo uso está **más lejos en el futuro**, o que no se volverá a usar. Necesita conocer el futuro. |
+| **Reloj** (segunda oportunidad) | Los marcos forman un círculo y cada uno tiene un **bit de uso** que se pone a 1 al cargar o usar la página. En un fallo, la aguja mira su marco: bit 1, lo pone a 0 y avanza; bit 0, saca esa página, pone la nueva con bit 1 y avanza un marco. |
+
+Los marcos libres se llenan en orden, empezando por el 0. La primera vez que se usa cada página siempre hay un fallo.
+
+</Stage>
+
+<Stage stage="predict">
+
+La cadena de referencias es **1 2 3 4 1 2 5 1 2 3 4 5**. Con FIFO y **3 marcos** provoca **9 fallos de página**.
+
+El tablero empieza con FIFO y **4 marcos**. **¿Cuántos fallos habrá ahora?** Elige un número en el panel *Tu predicción* antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<PageReplacement client:visible lang="es" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- Referencias 5 y 6 (páginas 1 y 2): son aciertos. ¿Cambia la cola FIFO?
+- Referencia 7 (página 5): ¿qué página sale? ¿Cuándo se usó por última vez?
+- Referencias 8 a 12: ¿cuántas acierta?
+
+Al terminar aparece la tabla de comparación: los cuatro algoritmos con 1 a 6 marcos sobre la misma cadena.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era **10 fallos**: uno más que con 3 marcos.
+
+**Más marcos no siempre es mejor.** Es la **anomalía de Belady**. Con 4 marcos, FIFO guarda las páginas 1 a 4 hasta que llega la 5 en la referencia 7. A partir de ahí saca la 1, la 2, la 3, la 4 y la 5 justo antes de que cada una vuelva a hacer falta: las referencias 7 a 12 son todas fallos. El conjunto de páginas que FIFO guarda con 4 marcos no siempre incluye el que guardaría con 3.
+
+**FIFO no mira el uso.** En la referencia 7 saca la página 1, que se usó dos referencias antes, porque fue la primera en entrar. Los aciertos de las referencias 5 y 6 no movieron la cola.
+
+**LRU y OPT no sufren la anomalía.** Son **algoritmos de pila**: con *n* + 1 marcos siempre guardan lo que guardarían con *n*, más una página. En esta cadena LRU baja de 10 a 8 fallos y OPT de 7 a 6 al pasar de 3 a 4 marcos.
+
+**Qué apuesta cada uno.** FIFO ignora el uso. LRU supone que el pasado reciente predice el futuro cercano (localidad). OPT lee el futuro, cosa que solo se puede hacer después de los hechos: sirve como referencia, porque ningún algoritmo puede tener menos fallos. En la cadena *Clásica* con 3 marcos: OPT 9, LRU 12, Reloj 14, FIFO 15.
+
+**Por qué el reloj.** Un LRU exacto tendría que anotar la hora o mover un nodo de una lista en cada acceso a memoria, miles de millones por segundo. En su lugar, el hardware pone a 1 un bit de uso en la entrada de la tabla de páginas, y el reloj solo lee y borra esos bits cuando necesita una víctima. Si todos los bits están a 1, el reloj los borra todos y se comporta como FIFO: por eso también sufre la anomalía en esta cadena.
+
+**Fallos inevitables.** La primera referencia a cada página siempre falla. La cadena de Belady tiene 5 páginas distintas, así que 5 fallos es el mínimo para cualquier algoritmo; con 5 marcos o más, todos lo alcanzan.
+
+**En sistemas reales.** Linux aproxima LRU con listas de páginas activas e inactivas, guiadas por el bit de acceso, y desde la versión 6.1 incluye el LRU multigeneracional (MGLRU). Que esté activo depende de cómo se compiló el núcleo; se puede encender o apagar en `/sys/kernel/mm/lru_gen/enabled`, y distribuciones como Fedora y Arch lo traen activado. Windows recorta el conjunto de trabajo de cada proceso. Todos son aproximaciones de LRU, ni FIFO ni OPT.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Encuentra un algoritmo y un número de marcos en que añadir un marco añade fallos.</summary>
+
+FIFO (o el reloj) con la cadena *Belady*: de 3 a 4 marcos, de 9 a 10 fallos. Ninguno de los dos guarda con más marcos todo lo que guardaba con menos.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Demuestra que LRU no sufre la anomalía en esta cadena.</summary>
+
+LRU con 1 a 6 marcos: 12, 12, 10, 8, 5, 5. Nunca sube: LRU es un algoritmo de pila.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Ordena los cuatro algoritmos en la cadena <em>Clásica</em> con 3 marcos.</summary>
+
+OPT 9, LRU 12, Reloj 14, FIFO 15. Las segundas oportunidades del reloj le ahorran un fallo frente a FIFO; la recencia exacta de LRU, tres más.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Haz que los cuatro algoritmos tengan los mismos fallos en <em>Belady</em>.</summary>
+
+Con 5 o 6 marcos, todos tienen 5 fallos. Todas las páginas caben y solo quedan los fallos inevitables.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="page-replacement"
+  questions={[
+    {
+      question: "FIFO con 3 marcos que tienen las páginas 4, 1 y 2, cargadas en ese orden; la 1 se acaba de usar. Falla la página 5. ¿Qué página sale?",
+      options: ["La 4", "La 1", "La 2"],
+      answer: 0,
+      explanation: "FIFO saca la primera que entró, sin mirar si se usó hace poco.",
+    },
+    {
+      question: "¿Darle más marcos a FIFO puede aumentar los fallos de página?",
+      options: ["No, nunca", "Sí: es la anomalía de Belady"],
+      answer: 1,
+      explanation: "En la cadena de la lección, FIFO pasa de 9 fallos con 3 marcos a 10 con 4.",
+    },
+    {
+      question: "¿Por qué los sistemas operativos no usan OPT?",
+      options: ["Porque es lento de calcular", "Porque necesita conocer las referencias futuras", "Porque sufre la anomalía de Belady"],
+      answer: 1,
+      explanation: "OPT sirve como referencia para comparar: ningún algoritmo puede tener menos fallos.",
+    },
+    {
+      question: "Con FIFO, una página que ya está en memoria se vuelve a usar. ¿Qué pasa con la cola FIFO?",
+      options: ["La página pasa al final", "Nada: solo las cargas cambian la cola", "La página sale"],
+      answer: 1,
+      explanation: "Por eso FIFO puede sacar una página que se acaba de usar.",
+    },
+    {
+      question: "Reloj: la aguja apunta a un marco con bit de uso 1. ¿Qué hace?",
+      options: ["Saca esa página", "Pone el bit a 0 y avanza: la página tiene una segunda oportunidad", "Se detiene"],
+      answer: 1,
+      explanation: "Solo saca una página cuando encuentra un bit a 0.",
+    },
+    {
+      question: "Una cadena usa 5 páginas distintas. ¿Cuál es el menor número de fallos que puede tener cualquier algoritmo, empezando con la memoria vacía?",
+      options: ["0", "1", "5"],
+      answer: 2,
+      explanation: "La primera vez que se usa cada página siempre hay un fallo.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Conjunto de trabajo y hiperpaginación** (*thrashing*): qué pasa cuando un proceso tiene menos marcos que páginas usa de forma activa.
+- **Reloj mejorado con el bit de modificado**: preferir páginas limpias, que no hay que escribir en disco antes de sacarlas.
+- **Listas activas e inactivas de Linux y MGLRU**, en detalle.
+- **Algoritmos de pila**: por qué la propiedad de inclusión hace imposible la anomalía de Belady.
+
+Para leer más:
+
+- Belady, «A study of replacement algorithms for a virtual-storage computer», *IBM Systems Journal* 5(2), 1966.
+- Belady, Nelson y Shedler, «An anomaly in space-time characteristics of certain programs running in a paging machine», *Communications of the ACM* 12(6), 1969.
+- Arpaci-Dusseau y Arpaci-Dusseau, *Operating Systems: Three Easy Pieces*, cap. 22. [Gratis en línea](https://pages.cs.wisc.edu/~remzi/OSTEP/).
+- Silberschatz, Galvin y Gagne, *Operating System Concepts*, 10.ª ed., sección 10.4.
+- Documentación del núcleo Linux, *Multi-Gen LRU*: [docs.kernel.org](https://docs.kernel.org/admin-guide/mm/multigen_lru.html).
+
+</Stage>

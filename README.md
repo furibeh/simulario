@@ -4,16 +4,16 @@ Interactive learning paths for systems and software engineering, in Spanish and 
 
 The first path is **Operating systems**, with one lesson per module, each built around its own simulation:
 
-| Module                         | Lesson id             | Simulation                                                                    |
-| ------------------------------ | --------------------- | ----------------------------------------------------------------------------- |
-| 1. Processes and their states  | `procesos-estados`    | Processes moving between the ready queue, the CPU and I/O, instant by instant |
-| 2. CPU scheduling              | `planificador-cpu`    | FCFS, SJF, SRTF, priority and Round Robin on your own workload                |
-| 3. Threads and race conditions | `condiciones-carrera` | Interleaving `load`/`add`/`store` of a shared counter, by timer or by hand    |
-| 4. Mutexes and semaphores      | `mutex-semaforos`     | A bounded buffer with `empty`, `full` and `mutex`, and the swapped-wait bug   |
-| 5. Deadlock                    | `interbloqueo`        | A live resource-allocation graph: dining philosophers and lock ordering       |
-| 6. Virtual memory and paging   | `paginacion`          | Address translation through a TLB, a page table and page faults               |
-| 7. Page replacement            | `reemplazo-paginas`   | FIFO, LRU, OPT and Clock, with Belady's anomaly                               |
-| 8. File systems                | `inodos-enlaces`      | Directory, inodes and blocks under `link`, `symlink`, `unlink` and open files |
+| Module                         | Lesson id          | Simulation                                                                    |
+| ------------------------------ | ------------------ | ----------------------------------------------------------------------------- |
+| 1. Processes and their states  | `process-states`   | Processes moving between the ready queue, the CPU and I/O, instant by instant |
+| 2. CPU scheduling              | `cpu-scheduling`   | FCFS, SJF, SRTF, priority and Round Robin on your own workload                |
+| 3. Threads and race conditions | `race-conditions`  | Interleaving `load`/`add`/`store` of a shared counter, by timer or by hand    |
+| 4. Mutexes and semaphores      | `mutex-semaphores` | A bounded buffer with `empty`, `full` and `mutex`, and the swapped-wait bug   |
+| 5. Deadlock                    | `deadlock`         | A live resource-allocation graph: dining philosophers and lock ordering       |
+| 6. Virtual memory and paging   | `paging`           | Address translation through a TLB, a page table and page faults               |
+| 7. Page replacement            | `page-replacement` | FIFO, LRU, OPT and Clock, with Belady's anomaly                               |
+| 8. File systems                | `inodes-links`     | Directory, inodes and blocks under `link`, `symlink`, `unlink` and open files |
 
 Each lesson has a spec in [`docs/lessons/`](docs/lessons/) with its objectives, misconceptions and hand-computed expected results.
 

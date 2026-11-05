@@ -11,7 +11,7 @@ export default defineConfig({
   site,
   output: "static",
   trailingSlash: "never",
-  // Emit /es/acerca.html instead of /es/acerca/index.html: Cloudflare Pages serves it at
+  // Emit /es/about.html instead of /es/about/index.html: Cloudflare Pages serves it at
   // /es/acerca with no redirect, matching trailingSlash "never" and the canonical URLs.
   build: { format: "file" },
   integrations: [

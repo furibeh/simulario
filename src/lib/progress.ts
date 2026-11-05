@@ -1,5 +1,7 @@
 /** Lesson progress kept in the browser. No personal data. See docs/architecture.md, "Progress". */
 
+import { legacyLessonIds } from "./legacy-ids";
+
 export const PROGRESS_KEY = "simulario:progress:v1";
 
 export interface LessonProgress {
@@ -30,12 +32,36 @@ export function readProgress(storage: Reader): Progress {
       typeof (parsed as Progress).lessons === "object" &&
       (parsed as Progress).lessons !== null
     ) {
-      return parsed as Progress;
+      return renameLegacy(parsed as Progress);
     }
     return empty();
   } catch {
     return empty();
   }
+}
+
+/**
+ * Moves progress stored under an old lesson id to its new id. The first date of each field wins
+ * (ISO strings sort by time). The renamed copy is saved by the next write.
+ */
+function renameLegacy(progress: Progress): Progress {
+  const lessons: Record<string, LessonProgress> = {};
+  const earliest = (a?: string, b?: string) => (a && b ? (a < b ? a : b) : (a ?? b));
+  for (const [id, lesson] of Object.entries(progress.lessons)) {
+    const target = legacyLessonIds[id] ?? id;
+    const prev = lessons[target];
+    if (!prev) {
+      lessons[target] = lesson;
+      continue;
+    }
+    const merged: LessonProgress = {};
+    const unlockedAt = earliest(prev.unlockedAt, lesson.unlockedAt);
+    const completedAt = earliest(prev.completedAt, lesson.completedAt);
+    if (unlockedAt) merged.unlockedAt = unlockedAt;
+    if (completedAt) merged.completedAt = completedAt;
+    lessons[target] = merged;
+  }
+  return { ...progress, lessons };
 }
 
 /** Sets a timestamp field once (the first date is kept) and saves. */

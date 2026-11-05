@@ -3,7 +3,7 @@ import type { Operation } from "./types";
 export const presetIds = ["links", "openFile"] as const;
 export type PresetId = (typeof presetIds)[number];
 
-/** Scripts from docs/lessons/inodos-enlaces.md. */
+/** Scripts from docs/lessons/inodes-links.md. */
 export const presets: Record<PresetId, readonly Operation[]> = {
   /** "Enlaces" / "Links". */
   links: [

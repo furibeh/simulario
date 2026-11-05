@@ -25,7 +25,7 @@ interface Proc {
   finish: number | null;
 }
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/procesos-estados.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/process-states.md. */
 export function assertValidInput(input: ProcessStatesInput): void {
   const { processes, quantum } = input;
   const inRange = (v: number, r: { min: number; max: number }) =>
