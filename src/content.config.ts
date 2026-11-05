@@ -10,6 +10,8 @@ const paths = defineCollection({
     order: z.number().int(),
     title: localized,
     summary: localized,
+    /** Built by `pnpm dev` only; left out of production with its modules and lessons. */
+    draft: z.boolean().default(false),
   }),
 });
 

@@ -180,7 +180,7 @@ Ruta → Módulo → Lección → Componente (path → module → lesson → com
 
 ```ts
 // src/content.config.ts (summary)
-paths:   { id, order, title: {es,en}, summary: {es,en} }
+paths:   { id, order, title: {es,en}, summary: {es,en}, draft: boolean = false }
 modules: { id, path: reference('paths'), order, title: {es,en}, status: 'planned' | 'available' }
 lessons: { id: "<lang>/<slug>", module: reference('modules'), order, title, summary, minutes,
            prerequisites: string[] }   // MDX, one per language
@@ -188,6 +188,8 @@ pages:   { id: "<lang>/<slug>", title, description }   // standalone MDX pages
 ```
 
 A path's modules are the modules whose `path` points to it, sorted by `order`. Lesson `prerequisites` are lesson slugs kept as plain strings, not references, so a lesson can name a prerequisite that is still planned (`cpu-scheduling` lists `process-states`). Pages must not assume every prerequisite exists.
+
+A path with `draft: true` is built by `pnpm dev` but left out of production builds, together with its modules and lessons (`withoutDrafts` in `src/lib/drafts.ts`, applied by `getCatalog()`). Its pages, home card and sitemap entries appear only when the flag is removed. The Databases path (`databases`) is a draft while its first modules are written.
 
 A lesson's MDX body wraps each PEE stage in `<Stage stage="…">`: `prerequisites`, `theory`, `predict`, `run`, `explain`, `experiment`, `check` and `deeper` (`src/components/lesson/stages.ts`). `Lesson.astro` builds the stepper from them. "I already know the theory" is an in-page link to the Predict stage.
 

@@ -1,0 +1,6 @@
+path: databases
+order: 1
+title:
+  es: "Gestión de búferes"
+  en: "Buffer management"
+status: planned

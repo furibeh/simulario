@@ -1,0 +1,6 @@
+path: databases
+order: 3
+title:
+  es: "Índices y escaneos"
+  en: "Indexes and scans"
+status: planned

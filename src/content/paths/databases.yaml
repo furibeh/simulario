@@ -1,0 +1,8 @@
+order: 2
+draft: true
+title:
+  es: "Bases de datos"
+  en: "Databases"
+summary:
+  es: "Cómo una base de datos guarda, encuentra y protege tus datos por dentro: páginas en memoria, índices, consultas, transacciones y recuperación tras una caída."
+  en: "How a database stores, finds and protects your data on the inside: pages in memory, indexes, queries, transactions and crash recovery."

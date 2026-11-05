@@ -1,0 +1,6 @@
+path: databases
+order: 6
+title:
+  es: "Bloqueo en dos fases"
+  en: "Two-phase locking"
+status: planned

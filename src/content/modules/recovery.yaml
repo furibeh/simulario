@@ -1,0 +1,6 @@
+path: databases
+order: 8
+title:
+  es: "Registro y recuperación"
+  en: "Logging and recovery"
+status: planned

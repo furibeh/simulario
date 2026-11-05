@@ -1,5 +1,6 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import { type Locale, locales, localizedPath } from "../i18n/config";
+import { withoutDrafts } from "./drafts";
 
 export type LessonEntry = CollectionEntry<"lessons">;
 export type ModuleEntry = CollectionEntry<"modules">;
@@ -24,7 +25,7 @@ export async function getCatalog() {
   paths.sort((a, b) => a.data.order - b.data.order);
   modules.sort((a, b) => a.data.order - b.data.order);
   lessons.sort((a, b) => a.data.order - b.data.order);
-  return { paths, modules, lessons };
+  return withoutDrafts({ paths, modules, lessons }, !import.meta.env.PROD);
 }
 
 /** Every lesson slug with the entry to show in each locale (falling back to another language). */
