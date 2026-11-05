@@ -1,4 +1,5 @@
 <script lang="ts">
+import { fitOrder, runs } from "../../engines/transactions/order";
 import { fixBalance, type PresetId, presets } from "../../engines/transactions/presets";
 import { simulate } from "../../engines/transactions/simulate";
 import {
@@ -85,33 +86,15 @@ function outcomeOf(tr: TxTrace): Outcome | null {
 
 /** Orders traced by hand in the specs (isolation-anomalies.md, two-phase-locking.md). */
 function defaultOrder(id: PresetId, m: Mode, lvl: Isolation): string[] {
-  const twoPhase = lvl === "serializable-2pl";
-  if (id === "balance" && m === "atomic") return ["T1", "T2", "T1", "T2"];
-  if (id === "balance" && m === "app" && twoPhase) return ["T1", "T2", "T1", "T2", "T1"];
-  if (id === "transfer" && twoPhase) return ["T1", "T2", "T2", "T1", "T1", "T2", "T2", "T2"];
-  if (id === "crossTransfers" && !twoPhase) {
-    return ["T1", "T2", "T1", "T2", "T1", "T2", "T1", "T2", "T1"];
-  }
-  return [...presets[id].order];
+  return fitOrder({ ...inputFor(id, m, lvl), order: presets[id].order });
 }
 
 function scriptsFor(id: PresetId, m: Mode): readonly (readonly Operation[])[] {
   return id === "balance" && m !== "app" ? fixBalance(m) : presets[id].transactions;
 }
 
-/** Whether an order can run (it never names an ended or waiting transaction). */
-function runs(id: PresetId, m: Mode, lvl: Isolation, o: readonly string[]): boolean {
-  try {
-    simulate({
-      items: presets[id].items,
-      transactions: scriptsFor(id, m),
-      isolation: lvl,
-      order: o,
-    });
-    return true;
-  } catch {
-    return false;
-  }
+function inputFor(id: PresetId, m: Mode, lvl: Isolation) {
+  return { items: presets[id].items, transactions: scriptsFor(id, m), isolation: lvl };
 }
 
 // svelte-ignore state_referenced_locally
@@ -182,7 +165,8 @@ function setMode(m: Mode) {
 
 /** Keeps the learner's order when it still runs under the new level. */
 function setLevel(lvl: Isolation) {
-  if (!runs(presetId, mode, lvl, order)) order = defaultOrder(presetId, mode, lvl);
+  const next = { ...inputFor(presetId, mode, lvl), order };
+  if (!runs(next)) order = fitOrder(next);
   isolation = lvl;
 }
 
@@ -444,6 +428,19 @@ const labels = $derived({
                     </span>
                   {/if}
                 </div>
+                {#if isolation === "snapshot"}
+                  <div class="cell">
+                    <span class="field-name">{t("tx.item.versions")}</span>
+                    <ol class="chain">
+                      {#each it.versions as v, k (k)}
+                        <li class:newest={k === it.versions.length - 1}>
+                          <span class="version-value">{v.value}</span>
+                          <span class="caption">{v.by === null ? t("tx.version.initial") : t("tx.version.by", { id: v.by, n: (v.step ?? 0) + 1 })}</span>
+                        </li>
+                      {/each}
+                    </ol>
+                  </div>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -470,6 +467,12 @@ const labels = $derived({
                     </li>
                   {/each}
                 </ol>
+                {#if isolation === "snapshot"}
+                  <div class="seen">
+                    <span class="field-name">{t("tx.snapshot")}</span>
+                    <span class="caption">{x.start === null ? t("tx.snapshot.none") : t("tx.snapshot.at", { n: x.start + 1 })}</span>
+                  </div>
+                {/if}
                 <div class="seen">
                   <span class="field-name">{t("tx.lastReads")}</span>
                   {#if x.lastReads.length === 0}
@@ -719,6 +722,35 @@ const labels = $derived({
   .queue {
     display: inline-flex;
     gap: 2px;
+  }
+
+  /* Committed versions, oldest first; the newest one gets the solid outline. */
+  .chain {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .chain li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px var(--space-2);
+    border: var(--outline-waiting);
+    border-radius: var(--radius-bar);
+    background: var(--color-surface);
+  }
+
+  .chain li.newest {
+    border: var(--outline);
+  }
+
+  .version-value {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
   }
 
   .tx {

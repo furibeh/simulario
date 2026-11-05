@@ -31,7 +31,7 @@ src/
     address-translation/ simulate.ts, types.ts, presets.ts, simulate.test.ts
     page-replacement/ simulate.ts, types.ts, presets.ts, simulate.test.ts
     file-system/      simulate.ts, types.ts, presets.ts, simulate.test.ts
-    transactions/     simulate.ts, types.ts, presets.ts, simulate.test.ts
+    transactions/     simulate.ts, types.ts, presets.ts, order.ts (fitOrder), simulate.test.ts
     trace.ts          Trace contract shared by engines and the player
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
@@ -47,9 +47,10 @@ src/
     page-replacement/ PageReplacement: frame grid, FIFO queue / LRU list / OPT next uses / Clock dial, comparison table
     file-system/      FileSystem: script editor, bitmaps, directory, inode cards, data blocks, descriptors, output
     transactions/     Transactions: scenario, level and write mode (each lesson picks its scenarios, levels
-                      and question), order of turns, items (committed, uncommitted, exclusive and shared
-                      locks, queue), transaction scripts (lines a rolled-back one never ran are struck
-                      through), read and write logs
+                      and question), order of turns (fitted to the level by fitOrder), items (committed,
+                      uncommitted, exclusive and shared locks, queue, and the chain of versions under
+                      snapshots), transaction scripts with their snapshot turn (lines a rolled-back one
+                      never ran are struck through), read and write logs
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
