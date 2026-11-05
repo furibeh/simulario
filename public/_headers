@@ -2,3 +2,10 @@
 # Astro fingerprints everything under /_astro/ (the hash changes with the content), so it never goes stale.
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+# Pagefind fragments and index chunks carry a content hash in their names. pagefind.js,
+# pagefind-entry.json, the wasm files and the .pf_meta files keep the default (revalidate),
+# so a new index shows up at once. See docs/architecture.md, "Search".
+/pagefind/fragment/*
+  Cache-Control: public, max-age=31536000, immutable
+/pagefind/index/*
+  Cache-Control: public, max-age=31536000, immutable
