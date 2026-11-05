@@ -1,0 +1,189 @@
+---
+title: Two-phase locking and deadlocks
+summary: Locking reads too prevents the lost update, but it has a price. Replay the Balance deposits under two-phase locking and see who pays it.
+module: locking
+order: 1
+minutes: 30
+prerequisites:
+  - isolation-anomalies
+  - deadlock
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Transactions, isolation levels, the lost update and read skew (lesson [*Transactions and isolation anomalies*](/en/databases/isolation-anomalies)).
+- It helps to have seen deadlock as a cycle of waits (lesson [*Deadlock*](/en/operating-systems/deadlock)), but it is not required.
+
+</Stage>
+
+<Stage stage="theory">
+
+In the previous lesson, only writes took locks. With **two-phase locking** (2PL), every access asks for a lock first:
+
+- To **read** an item, a **shared** lock. Several transactions can share it.
+- To **write** it, an **exclusive** lock. While someone holds it, nobody else can hold any lock on that item.
+- A transaction that holds the shared lock and wants to write asks to **upgrade** it to exclusive, and for that every other reader has to be gone.
+
+| Can it be granted? | Someone else holds shared | Someone else holds exclusive |
+| --- | --- | --- |
+| I ask for shared | Yes | No, I wait |
+| I ask for exclusive | No, I wait | No, I wait |
+
+The **strict** version, the usual one, keeps every lock until commit or rollback. The two phases are a **growing** phase, in which the transaction only takes locks, and a **shrinking** phase, in which it only releases them; the strict version releases them all at once, at the end.
+
+If the waits form a **cycle**, the database **detects** it and **aborts** one transaction, the victim, so the others can go on. The application gets an error and has to retry it.
+
+> Example: T1 reads `x` and takes a shared lock. T2 reads `x` too: now there are two readers. If T2 wants to write `x`, it needs the exclusive lock, but T1 is still reading: T2 waits until T1 commits.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board replays the **Balance** scenario: `x` is 100, T1 reads `x` and writes `x + 50`, T2 reads `x` and writes `x + 20`. Now they run under **two-phase locking**, in this order: T1 reads, T2 reads, T1 writes, T2 writes.
+
+**What will happen to the two deposits?** Choose an option in *Your prediction* and say how sure you are before you run it.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="en" scenarios={["balance", "transfer", "crossTransfers"]} levels={["read-committed", "serializable-2pl"]} level="serializable-2pl" question="outcome" />
+
+As it runs, watch three moments:
+
+- On turns 1 and 2, how many transactions hold a lock on `x`, and of which kind?
+- On turn 3, T1 wants to write. Whom does it wait for?
+- On turn 4, T2 wants to write as well. Whom would it wait for? What does the database do?
+
+</Stage>
+
+<Stage stage="explain">
+
+The answer was **the database aborts one of them**: T2. T1 commits and `x` ends at 150. Nothing is lost silently: the application knows T2 failed and can retry it; run again, T2 would read 150 and the total would be 170.
+
+**One item is enough for a deadlock.** If you said both would wait forever, or that it takes two resources locked in opposite orders, you were thinking of the philosophers. Here each transaction holds a shared lock that the other needs gone before it can write. On turn 4 the cycle T2 → x → T1 → x → T2 closes.
+
+**A database does not hang.** Unlike the operating system, which does not break deadlocks between an application's locks, the database looks for cycles and aborts a victim. PostgreSQL looks for them when a wait exceeds `deadlock_timeout` (1 s by default) and aborts the transaction that runs the check; MySQL with InnoDB detects them at once and aborts the one that has changed fewer rows. On this board the victim is always the one that closes the cycle.
+
+**Why it is serializable.** Shared locks keep what a transaction read from changing until it ends, and exclusive locks keep others from seeing what it wrote. So every conflict between two committed transactions goes the same way, and the result is the same as running them one after another, in the order they committed (Eswaran et al., 1976).
+
+**Write locks were not enough.** If you said a deposit would be lost, you were thinking of Read Committed, which also locks when writing. What it lacked was locking when reading: T2 could write from a value T1 had already changed. Under 2PL, T2's shared lock forbids that change while T2 is alive.
+
+**What became of the previous module's anomalies.** The lost update turns into a deadlock and an abort, as you just saw. The read skew of *Transfer* turns into a wait: the transfer cannot write `x` while the report is reading it (experiment 1).
+
+**The price:**
+
+- **Readers block writers**, and writers block readers.
+- **Upgrading a shared lock to exclusive** causes deadlocks even with a single item.
+- **You have to retry**: an application that uses this level must catch deadlock or serialization errors and run the transaction again.
+
+**Avoiding the upgrade deadlock.** Reading with `SELECT … FOR UPDATE` takes the exclusive lock from the start: the second transaction waits at its read instead of deadlocking at its write (experiment 2).
+
+**Who uses it.** SQL Server and MySQL with InnoDB implement Serializable with locks like these; InnoDB turns every `SELECT` into a read with a shared lock. PostgreSQL's Serializable uses a different technique, *Serializable Snapshot Isolation*, built on the versions of the next module.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Under two-phase locking, make the report of <em>Transfer</em> see the real total.</summary>
+
+Choose *Transfer*. The scenario's order already does it: T1, T2, T2, T1, T1, T2, T2, T2. On turn 3 the transfer wants to write `x` and waits, because the report is reading it. It can only change it once the report commits. The report sees 50 + 50 = 100.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Make both deposits of <em>Balance</em> commit under two-phase locking.</summary>
+
+Clear the order and choose T1, T1, T2, T1, T2, T2: T2 reads when T1 already holds the exclusive lock, so it waits, and once T1 commits it reads 150. `x` ends at 170. Another way: choose *Read with FOR UPDATE* and keep the scenario's order.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> In <em>Crossed transfers</em>, find the turn where the cycle closes under two-phase locking, and then under Read Committed.</summary>
+
+Under 2PL, on turn 6: T2 wants to read `x`, which T1 holds exclusively, while T1 waits for `y`. Under Read Committed, on turn 8: reads do not wait, so the cycle only closes when T2 tries to write `x`.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Make both transfers of <em>Crossed transfers</em> commit.</summary>
+
+A serial order: T1 five times, then T2 five times. If they do not overlap, nobody waits for anybody and no cycle can form. Both accounts are back at 100.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="two-phase-locking"
+  questions={[
+    {
+      question: "Under two-phase locking, two transactions read the same row and then both try to update it. Can they deadlock?",
+      options: ["No, it takes a second resource", "Yes: each waits for the other's shared lock to go"],
+      answer: 1,
+      explanation: "Both hold the shared lock and neither can upgrade it to exclusive while the other is still reading.",
+    },
+    {
+      question: "Two transactions deadlock inside a database. What happens next?",
+      options: ["They wait until someone kills the process", "The database detects the cycle and aborts one; the other goes on", "Both are aborted"],
+      answer: 1,
+      explanation: "Databases look for cycles in the wait-for graph and pick a victim.",
+    },
+    {
+      question: "Your application uses the Serializable level. What must it do that it did not need under Read Committed?",
+      options: ["Nothing, it will just be slower", "Catch deadlock or serialization errors and retry the transaction", "Turn off read locks"],
+      answer: 1,
+      explanation: "Serializable does not make every transaction succeed: some are aborted and have to be run again.",
+    },
+    {
+      question: "Under two-phase locking, a long report is reading rows of a table. Can another transaction update one of those rows?",
+      options: ["Yes, reads never block", "Not until the report commits: its shared lock blocks the writer"],
+      answer: 1,
+      explanation: "Under 2PL readers block writers. It is part of the price of serializability.",
+    },
+    {
+      question: "Read Committed also locks rows when writing. Why does it allow the lost update while two-phase locking does not?",
+      options: [
+        "Because its reads take no lock: another transaction can change what you read before you write",
+        "Because Read Committed releases write locks before committing",
+        "Because Read Committed does not detect deadlocks",
+      ],
+      answer: 0,
+      explanation: "The lost update happens between the read and the write; only a lock taken at the read protects it.",
+    },
+    {
+      question: "What are the two phases of two-phase locking?",
+      options: ["A read phase and a write phase", "Growing (only taking locks) and shrinking (only releasing them)", "Locking and detecting deadlocks"],
+      answer: 1,
+      explanation: "Once a transaction releases a lock, it cannot take another one. The strict version releases them all at the end.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Granularity and intention locks.** A database can lock a row, a page or a whole table. Intention locks (IS, IX) let them coexist.
+- **Predicate and range locks.** They prevent the phantoms of the previous lesson.
+- **Preventing instead of detecting.** *Wait-die* and *wound-wait* use the age of transactions to decide who waits and who aborts, so a cycle never forms.
+- **Serializable Snapshot Isolation.** PostgreSQL's Serializable detects dangerous structures between transactions instead of locking reads (Cahill et al., 2008).
+
+Further reading:
+
+- Eswaran, Gray, Lorie and Traiger, *The Notions of Consistency and Predicate Locks in a Database System*, Communications of the ACM, 1976.
+- Berenson et al., *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995, section 2.3. [Free at Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- MySQL documentation, *Transaction Isolation Levels* and *Deadlock Detection*. [dev.mysql.com](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html).
+
+</Stage>

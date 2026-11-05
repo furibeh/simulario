@@ -1,0 +1,189 @@
+---
+title: Bloqueo en dos fases y deadlocks
+summary: Bloquear también al leer evita la actualización perdida, pero tiene un precio. Repite los depósitos de Saldo con bloqueo en dos fases y mira quién paga.
+module: locking
+order: 1
+minutes: 30
+prerequisites:
+  - isolation-anomalies
+  - deadlock
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Transacciones, niveles de aislamiento, la actualización perdida y el sesgo de lectura (lección [*Transacciones y anomalías de aislamiento*](/es/databases/isolation-anomalies)).
+- Ayuda haber visto el deadlock como un ciclo de esperas (lección [*Deadlock*](/es/operating-systems/deadlock)), aunque no es imprescindible.
+
+</Stage>
+
+<Stage stage="theory">
+
+En la lección anterior, solo las escrituras bloqueaban. Con **bloqueo en dos fases** (*two-phase locking*, 2PL), cada acceso pide antes un bloqueo:
+
+- Para **leer** un dato, un bloqueo **compartido**. Varias transacciones pueden compartirlo.
+- Para **escribir**, un bloqueo **exclusivo**. Mientras alguien lo tiene, nadie más puede tener ningún bloqueo sobre ese dato.
+- Una transacción que tiene el compartido y quiere escribir pide **convertirlo** en exclusivo, y para eso todos los demás lectores tienen que haberse ido.
+
+| ¿Se puede conceder? | Otro tiene compartido | Otro tiene exclusivo |
+| --- | --- | --- |
+| Pido compartido | Sí | No, espero |
+| Pido exclusivo | No, espero | No, espero |
+
+La versión **estricta**, la habitual, mantiene todos los bloqueos hasta confirmar o deshacer. Las dos fases son una de **crecimiento**, en la que la transacción solo toma bloqueos, y una de **decrecimiento**, en la que solo los suelta; la estricta los suelta todos de una vez, al final.
+
+Si las esperas forman un **ciclo**, la base de datos lo **detecta** y **aborta** una transacción, la víctima, para que las demás sigan. La aplicación recibe un error y tiene que reintentarla.
+
+> Ejemplo: T1 lee `x` y toma un compartido. T2 también lee `x`: ahora hay dos lectores. Si T2 quiere escribir `x`, necesita el exclusivo, pero T1 sigue leyendo: T2 espera a que T1 confirme.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero repite el escenario **Saldo**: `x` vale 100, T1 lee `x` y escribe `x + 50`, T2 lee `x` y escribe `x + 20`. Ahora corren con **bloqueo en dos fases**, en este orden: T1 lee, T2 lee, T1 escribe, T2 escribe.
+
+**¿Qué pasará con los dos depósitos?** Elige una opción en *Tu predicción* y di qué tan seguro estás antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="es" scenarios={["balance", "transfer", "crossTransfers"]} levels={["read-committed", "serializable-2pl"]} level="serializable-2pl" question="outcome" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- En los turnos 1 y 2, ¿cuántas transacciones tienen un bloqueo sobre `x`, y de qué tipo?
+- En el turno 3, T1 quiere escribir. ¿A quién espera?
+- En el turno 4, T2 también quiere escribir. ¿A quién esperaría? ¿Qué hace la base de datos?
+
+</Stage>
+
+<Stage stage="explain">
+
+La respuesta era **la base de datos aborta una de las dos**: T2. T1 confirma y `x` termina en 150. Nada se pierde en silencio: la aplicación sabe que T2 falló y puede reintentarla; al repetirse, T2 leería 150 y el total sería 170.
+
+**Basta un solo dato para un deadlock.** Si dijiste que las dos se quedarían esperando para siempre, o que hacen falta dos recursos tomados en orden opuesto, pensaste en los filósofos. Aquí cada transacción tiene un bloqueo compartido que la otra necesita que desaparezca para poder escribir. En el turno 4 se cierra el ciclo T2 → x → T1 → x → T2.
+
+**Una base de datos no se queda colgada.** A diferencia del sistema operativo, que no rompe los deadlocks entre cerrojos de una aplicación, la base de datos busca ciclos y aborta una víctima. PostgreSQL los busca cuando una espera supera `deadlock_timeout` (1 s por defecto) y aborta a la transacción que hace la comprobación; MySQL con InnoDB los detecta al instante y aborta a la que ha cambiado menos filas. En este tablero la víctima es siempre la que cierra el ciclo.
+
+**Por qué es serializable.** Los bloqueos compartidos impiden que cambie lo que una transacción leyó hasta que termina, y los exclusivos impiden que otros vean lo que escribió. Así, todos los conflictos entre dos transacciones confirmadas van en el mismo sentido, y el resultado es el mismo que si se hubieran ejecutado una detrás de otra, en el orden en que confirmaron (Eswaran y otros, 1976).
+
+**Los bloqueos de escritura no bastaban.** Si dijiste que se perdería un depósito, pensaste en Read Committed, que también bloquea al escribir. Lo que allí faltaba era bloquear al leer: T2 podía escribir a partir de un valor que T1 ya había cambiado. Con 2PL, el bloqueo compartido de T2 impide ese cambio mientras T2 siga viva.
+
+**Qué fue de las anomalías del módulo anterior.** La actualización perdida se convierte en un deadlock y un aborto, como acabas de ver. El sesgo de lectura de *Transferencia* se convierte en una espera: la transferencia no puede escribir `x` mientras el informe lo está leyendo (experimento 1).
+
+**El precio:**
+
+- **Los lectores bloquean a los escritores**, y los escritores a los lectores.
+- **Convertir un compartido en exclusivo** causa deadlocks incluso con un solo dato.
+- **Hay que reintentar**: una aplicación que usa este nivel tiene que capturar los errores de deadlock o de serialización y repetir la transacción.
+
+**Cómo evitar el deadlock de conversión.** Leer con `SELECT … FOR UPDATE` toma el exclusivo desde el principio: la segunda transacción espera en su lectura en lugar de bloquearse en su escritura (experimento 2).
+
+**Quién lo usa.** SQL Server y MySQL con InnoDB implementan Serializable con bloqueos como estos; InnoDB convierte cada `SELECT` en una lectura con bloqueo compartido. El Serializable de PostgreSQL usa otra técnica, *Serializable Snapshot Isolation*, que se apoya en las versiones del módulo siguiente.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Con bloqueo en dos fases, haz que el informe de <em>Transferencia</em> vea el total real.</summary>
+
+Elige *Transferencia*. El orden del escenario ya lo consigue: T1, T2, T2, T1, T1, T2, T2, T2. En el turno 3 la transferencia quiere escribir `x` y espera, porque el informe lo está leyendo. Solo cuando el informe confirma puede cambiarlo. El informe ve 50 + 50 = 100.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Consigue que los dos depósitos de <em>Saldo</em> confirmen con bloqueo en dos fases.</summary>
+
+Borra el orden y elige T1, T1, T2, T1, T2, T2: T2 lee cuando T1 ya tiene el exclusivo, así que espera, y al confirmar T1 lee 150. `x` termina en 170. Otra forma: elige *Lee con FOR UPDATE* y deja el orden del escenario.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> En <em>Transferencias cruzadas</em>, encuentra el turno en que se cierra el ciclo con bloqueo en dos fases, y luego con Read Committed.</summary>
+
+Con 2PL, en el turno 6: T2 quiere leer `x`, que T1 tiene en exclusivo, mientras T1 espera a `y`. Con Read Committed, en el turno 8: las lecturas no esperan, así que el ciclo solo se cierra cuando T2 intenta escribir `x`.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Haz que las dos transferencias de <em>Transferencias cruzadas</em> confirmen.</summary>
+
+Un orden en serie: T1 cinco veces y luego T2 cinco veces. Si no se solapan, nadie espera a nadie y no puede formarse un ciclo. Las dos cuentas vuelven a 100.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="two-phase-locking"
+  questions={[
+    {
+      question: "Con bloqueo en dos fases, dos transacciones leen la misma fila y luego las dos intentan actualizarla. ¿Pueden bloquearse mutuamente?",
+      options: ["No, hace falta un segundo recurso", "Sí: cada una espera a que desaparezca el bloqueo compartido de la otra"],
+      answer: 1,
+      explanation: "Las dos tienen el compartido y ninguna puede convertirlo en exclusivo mientras la otra siga leyendo.",
+    },
+    {
+      question: "Dos transacciones forman un deadlock dentro de una base de datos. ¿Qué pasa después?",
+      options: ["Se quedan esperando hasta que alguien mate el proceso", "La base de datos detecta el ciclo y aborta una; la otra sigue", "Las dos se abortan"],
+      answer: 1,
+      explanation: "Las bases de datos buscan ciclos en el grafo de esperas y eligen una víctima.",
+    },
+    {
+      question: "Tu aplicación usa el nivel Serializable. ¿Qué tiene que hacer que no necesitaba con Read Committed?",
+      options: ["Nada, solo irá más lenta", "Capturar los errores de deadlock o de serialización y reintentar la transacción", "Desactivar los bloqueos de lectura"],
+      answer: 1,
+      explanation: "Serializable no hace que todas las transacciones tengan éxito: algunas se abortan y hay que repetirlas.",
+    },
+    {
+      question: "Con bloqueo en dos fases, un informe largo está leyendo filas de una tabla. ¿Puede otra transacción actualizar una de esas filas?",
+      options: ["Sí, las lecturas nunca bloquean", "No hasta que el informe confirme: su bloqueo compartido bloquea al escritor"],
+      answer: 1,
+      explanation: "En 2PL los lectores bloquean a los escritores. Es parte del precio de la serializabilidad.",
+    },
+    {
+      question: "Read Committed también bloquea las filas al escribir. ¿Por qué permite la actualización perdida y el bloqueo en dos fases no?",
+      options: [
+        "Porque sus lecturas no bloquean: otra transacción puede cambiar lo que leíste antes de que escribas",
+        "Porque Read Committed suelta los bloqueos de escritura antes de confirmar",
+        "Porque Read Committed no detecta deadlocks",
+      ],
+      answer: 0,
+      explanation: "La actualización perdida ocurre entre la lectura y la escritura; solo un bloqueo tomado al leer la protege.",
+    },
+    {
+      question: "¿Cuáles son las dos fases del bloqueo en dos fases?",
+      options: ["Una fase de lectura y otra de escritura", "Crecimiento (solo toma bloqueos) y decrecimiento (solo los suelta)", "Bloquear y detectar deadlocks"],
+      answer: 1,
+      explanation: "Una vez que la transacción suelta un bloqueo, no puede tomar otro. La versión estricta los suelta todos al final.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Granularidad y bloqueos de intención.** Una base de datos puede bloquear una fila, una página o una tabla entera. Los bloqueos de intención (IS, IX) permiten que convivan.
+- **Bloqueos de predicado y de rango.** Impiden los fantasmas de la lección anterior.
+- **Prevenir en lugar de detectar.** *Wait-die* y *wound-wait* usan la antigüedad de las transacciones para decidir quién espera y quién aborta, de modo que nunca se forma un ciclo.
+- **Serializable Snapshot Isolation.** El Serializable de PostgreSQL detecta las estructuras peligrosas entre transacciones en lugar de bloquear las lecturas (Cahill y otros, 2008).
+
+Para leer más:
+
+- Eswaran, Gray, Lorie y Traiger, *The Notions of Consistency and Predicate Locks in a Database System*, Communications of the ACM, 1976.
+- Berenson y otros, *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995, sección 2.3. [Gratis en Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- Documentación de MySQL, *Transaction Isolation Levels* y *Deadlock Detection*. [dev.mysql.com](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html).
+
+</Stage>

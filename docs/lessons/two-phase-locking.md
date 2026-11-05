@@ -6,7 +6,7 @@
 | Path / module  | Databases (`databases`) / 6, Two-phase locking         |
 | Engine         | `src/engines/transactions/` (level `serializable-2pl`) |
 | Estimated time | 30 minutes                                             |
-| Status         | Draft                                                  |
+| Status         | Written                                                |
 
 The simulation is the **transaction board** of `isolation-anomalies`, with one more level: **Serializable by strict two-phase locking**. Reads now take a **shared** lock and keep it until the end, so each item can have several readers or one writer. The board shows every lock with its mode and owners, who waits for whom, and the moment a wait closes a cycle and the database aborts a victim. The same scenarios as module 5 can be replayed under Read Committed and under two-phase locking side by side.
 
@@ -50,9 +50,9 @@ By the end of the lesson the learner can:
 
 ## Predict
 
-- **Question**: "The _Saldo_ scenario again: x = 100, T1 reads x and writes x + 50, T2 reads x and writes x + 20. Now under two-phase locking, in this order: T1 reads, T2 reads, T1 writes, T2 writes. What happens?" Options: (a) both commit and x = 170; (b) both commit and x = 120, a deposit is lost; (c) the database aborts T2 and x ends at 150; (d) both wait forever. Then "How sure are you?".
+- **Question**: "The _Saldo_ scenario again: x = 100, T1 reads x and writes x + 50, T2 reads x and writes x + 20. Now under two-phase locking, in this order: T1 reads, T2 reads, T1 writes, T2 writes. What will happen to the two deposits?" Options: (a) both commit and both deposits are kept; (b) both commit, but a deposit is lost; (c) the database aborts one of them; (d) both wait forever. Then "How sure are you?". The board classifies a finished run as (c) if any transaction was aborted, (b) if a stale write committed, (a) otherwise; (d) never happens, because every cycle is broken.
 - **Setup**: preset _Saldo_, `serializable-2pl`, order T1, T2, T1, T2, T1.
-- **Correct answer**: (c).
+- **Correct answer**: (c): T2 is aborted and x ends at 150.
 - **Naive answers and why they fail**:
   - (d), M1 and M2: there is only one item, but each transaction holds a shared lock the other needs gone before it can write. At step 4, T2's request closes the cycle T2 → x → T1 → x → T2, and the database aborts T2 instead of waiting.
   - (a), M3: locks do not make both transactions succeed; one of them pays with an abort. Retried afterwards, T2 would read 150 and the total would be 170.
@@ -209,7 +209,7 @@ On seeded random inputs under `serializable-2pl`, with random valid orders run t
 
 ## Translations
 
-| Language | File                                           | Status      |
-| -------- | ---------------------------------------------- | ----------- |
-| es       | `src/content/lessons/es/two-phase-locking.mdx` | Not started |
-| en       | `src/content/lessons/en/two-phase-locking.mdx` | Not started |
+| Language | File                                           | Status             |
+| -------- | ---------------------------------------------- | ------------------ |
+| es       | `src/content/lessons/es/two-phase-locking.mdx` | Written, in review |
+| en       | `src/content/lessons/en/two-phase-locking.mdx` | Written, in review |
