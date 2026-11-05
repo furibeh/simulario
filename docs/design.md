@@ -19,6 +19,84 @@ This direction was chosen on 2026-11-01 from six explorations on the design canv
 5. **Motion shows a move.** Animation happens only when state changes: a token travels from the waiting row to the CPU slot. It never decorates. With `prefers-reduced-motion: reduce`, tokens jump instantly.
 6. **Say the move.** Copy names what happens: "Siguiente turno" / "Next turn", not "Submit". Explanations say why in one or two sentences, naming entities by id.
 
+## Teaching method
+
+Every lesson runs Predict → Run → Explain, followed by Experiment and Check. This section explains why the loop works, what it needs from each lesson, and how to design a simulation so that the board, not the prose, carries the understanding. The sources are listed under [References](#references).
+
+### Why this loop
+
+- **Watching alone teaches little.** Crouch et al. (2004) ran seven physics demonstrations under four conditions. Students who only watched understood the concept no better than students who never saw the demonstration; students who predicted the outcome first understood significantly more. A meta-study of 24 algorithm visualization experiments (Hundhausen et al., 2002) reached the same conclusion: what learners _do_ with a visualization matters more than what it shows them.
+- **Engagement has levels.** The engagement taxonomy of Naps et al. (2002) goes from _no viewing_ to _viewing_, _responding_ (answering questions about it), _changing_ (modifying inputs and watching the effect), _constructing_ and _presenting_. A Simulario lesson is designed to reach at least _responding_ (Predict, Check) and _changing_ (Experiment). The Run stage on its own is only _viewing_.
+- **Trying first, being told later.** Across 53 studies, attempting a problem before instruction beat instruction first (Sinha and Kapur, 2021, g = 0.36, higher when done carefully). The effect reversed for young children and for domain-general skills. Our audience is university students learning specific mechanisms, the case where it helps.
+- **Confident errors stick the correction.** Errors made with high confidence are corrected more often after feedback than low-confidence ones (the hypercorrection effect, Butterfield and Metcalfe, 2001). A prediction that feels right and turns out wrong is the most useful moment in a lesson.
+- **Explaining to yourself works.** Prompting learners to explain why a step follows from the previous one improves learning (Chi et al., 1994; meta-analysis by Bisra et al., 2018, g = 0.55).
+
+### What every lesson needs
+
+1. **The prediction targets a misconception.** Each Predict question exposes at least one row of the spec's "Misconceptions targeted" table. If most learners would answer it correctly, change the question: no surprise, no learning.
+2. **The learner can reason the answer.** Theory gives the names and rules needed to work it out (Mayer's pretraining principle), never the answer. If the only way to answer is to guess, the theory is missing something.
+3. **The prediction is short.** It should take under two minutes and about six answers at most. A larger grid is an exercise, not a prediction.
+4. **Commit before seeing.** The guess is locked when the run starts (the `onfirstplay` hook).
+5. **Explain contrasts the guess with the result.** It starts with the correct answer. Then, for each likely wrong answer, it names the belief behind it and the step of the run that contradicts it ("If you put P1 in running at t = 3, you imagined…").
+6. **Experiment asks the learner to make something happen** ("Make…", "Find a workload where…"), which is the _changing_ level. Check uses new cases, never a repeat of the run.
+
+### Keeping the loop fresh across a path
+
+The same loop repeated over many lessons turns into a routine that learners skip. To prevent it:
+
+- **Vary the form of the prediction**: the state of each entity at an instant, a number (waiting time, faults), which of two setups is better, yes or no ("will it deadlock?"), the order of events, or the step where something first goes wrong.
+- **Ask for confidence** when the prediction UI supports it ("How sure are you?"). It costs one click and makes a confident error visible, which is when the correction lands best.
+- **Use predictions to recall earlier lessons.** A paging lesson can ask what state the process is in during a page fault. This connects the modules of a path instead of leaving them as separate topics.
+- **Fade guidance as the path advances.** Detailed guidance helps novices but gets in the way of learners who already know the material (the expertise reversal effect, Kalyuga et al., 2003). Later lessons in a path can use shorter Theory and lean on earlier lessons; "I already know the theory" lets experienced learners skip ahead.
+
+### Designing the simulation
+
+Animation is not better than a static diagram by default. Reviews found mixed results (Tversky et al., 2002), and meta-analyses find a small-to-medium advantage overall (Höffler and Leutner, 2007, d = 0.37; smaller in Berney and Bétrancourt, 2016). The advantage is clearer when the animation shows exactly the change the learner has to understand (Ploetzner et al., 2021). Animations fail in two ways: they are too fast or too busy to perceive, and learners watch what stands out visually instead of what matters (Lowe and Boucheix). Interactivity and cueing are the known remedies. Simulations therefore follow these rules:
+
+1. **Animate only the change the lesson is about.** Everything else stays still. This is principle 5, "Motion shows a move", applied to teaching.
+2. **The step is the unit, and the learner sets the pace.** Each step is one event with one explanation (Mayer's segmenting principle). Play is a convenience; previous and next step are the primary controls. When several events share an instant and their order matters to the lesson, show them as separate steps or explain them in causal order.
+3. **Make the relevant thing stand out, at the moment it changes.** Highlight the token that moves, the cell that changed or the arrow that appeared, in sync with the event. Cues that show a relation (this interrupt causes this state change) work better than cues that only point at an entity (Boucheix et al., 2013).
+4. **Make hidden state visible.** Most misconceptions about a system concern what cannot be seen from outside: registers versus memory, the TLB, a link count, a semaphore queue. Program visualization research calls this the _notional machine_ (Sorva, 2013). The board's job is to draw that machine.
+5. **Show the state, not only the motion.** When paused, the board alone answers "where is everything now?". A history (the timeline, the "So far" table) lets the learner compare before and after without remembering it.
+6. **Put the words next to the picture, at the same time.** The step explanation sits beside the board and changes with the step (Mayer's contiguity principles). It is short and names entities by id and shape.
+7. **Keep one visual vocabulary across lessons.** A ready queue, a lock or a blocked entity looks the same in every lesson, so each lesson builds on what earlier boards taught.
+8. **Go up and down the ladder of abstraction** (Victor, 2011). Run shows one concrete case. Experiment varies one parameter at a time. The metrics table and comparison views summarize many cases. Two setups side by side that differ in one detail (contrasting cases, Schwartz and Bransford, 1998) prepare the learner for the explanation that follows.
+9. **Meaning never depends on motion.** With reduced motion, tokens jump. The highlight and the explanation must still say what changed.
+
+### Adapting the loop to other paths
+
+The loop fits best when a topic has a deterministic outcome a learner can compute: networking (TCP congestion control, routing, DNS resolution), databases (isolation anomalies, B-trees, query plans, write-ahead logging), distributed systems (Raft, logical clocks, with seeded randomness so predictions stay checkable), computer architecture (caches, pipelines), data structures and Git.
+
+It fits poorly in three cases:
+
+| Case                                                    | Example                                                                                          | Adaptation                                                                                                                                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No single right answer                                  | Software design and architecture, good practices                                                 | Predict becomes **choose and see the consequences**: the learner picks a design and predicts which one breaks first under a given change or load, and the simulation applies it. |
+| Only part of the topic is deterministic                 | Security: SQL injection, buffer overflows and authentication flows fit; threat modeling does not | Use the loop for the mechanisms and plain prose or worked examples for the judgment-based parts.                                                                                 |
+| Mostly vocabulary or concepts, no misconception to test | Definitions, taxonomies, history                                                                 | The topic probably belongs inside another lesson's Theory or Explain rather than as a lesson of its own.                                                                         |
+
+Today every lesson must have all stages in a fixed order (`src/components/lesson/stages.ts`, `AGENTS.md`), and the stepper always shows all of them. A path where most topics fall into the cases above would need a structural variant of the lesson: skipping Predict, several Predict → Run cycles, or a different stage set. Design that variant with the first real lesson that needs it, and update `AGENTS.md`, `stages.ts` and `Lesson.astro` together.
+
+### References
+
+- Berney, S. and Bétrancourt, M. (2016). Does animation enhance learning? A meta-analysis. _Computers & Education_ 101, 150–167.
+- Bisra, K., Liu, Q., Nesbit, J. C., Salimi, F. and Winne, P. H. (2018). Inducing self-explanation: a meta-analysis. _Educational Psychology Review_ 30, 703–725. [doi:10.1007/s10648-018-9434-x](https://doi.org/10.1007/s10648-018-9434-x)
+- Boucheix, J.-M., Lowe, R. K., Putri, D. K. and Groff, J. (2013). Cueing animations: dynamic signaling aids information extraction and comprehension. _Learning and Instruction_ 25, 71–84.
+- Butterfield, B. and Metcalfe, J. (2001). Errors committed with high confidence are hypercorrected. _Journal of Experimental Psychology: Learning, Memory, and Cognition_ 27(6), 1491–1494.
+- Chi, M. T. H., de Leeuw, N., Chiu, M.-H. and LaVancher, C. (1994). Eliciting self-explanations improves understanding. _Cognitive Science_ 18(3), 439–477.
+- Crouch, C. H., Fagen, A. P., Callan, J. P. and Mazur, E. (2004). Classroom demonstrations: learning tools or entertainment? _American Journal of Physics_ 72(6), 835–838.
+- Höffler, T. N. and Leutner, D. (2007). Instructional animation versus static pictures: a meta-analysis. _Learning and Instruction_ 17(6), 722–738.
+- Hundhausen, C. D., Douglas, S. A. and Stasko, J. T. (2002). A meta-study of algorithm visualization effectiveness. _Journal of Visual Languages & Computing_ 13(3), 259–290.
+- Kalyuga, S., Ayres, P., Chandler, P. and Sweller, J. (2003). The expertise reversal effect. _Educational Psychologist_ 38(1), 23–31.
+- Mayer, R. E. (2020). _Multimedia Learning_, 3rd ed. Cambridge University Press.
+- Naps, T. L. et al. (2002). Exploring the role of visualization and engagement in computer science education. _ITiCSE Working Group Reports_, 131–152.
+- Ploetzner, R., Berney, S. and Bétrancourt, M. (2021). When learning from animations is more successful than learning from static pictures: learning the specifics of change. _Instructional Science_ 49. [doi:10.1007/s11251-021-09541-w](https://doi.org/10.1007/s11251-021-09541-w)
+- Schwartz, D. L. and Bransford, J. D. (1998). A time for telling. _Cognition and Instruction_ 16(4), 475–522.
+- Sinha, T. and Kapur, M. (2021). When problem solving followed by instruction works: evidence for productive failure. _Review of Educational Research_ 91(5), 761–798.
+- Sorva, J., Karavirta, V. and Malmi, L. (2013). A review of generic program visualization systems for introductory programming education. _ACM Transactions on Computing Education_ 13(4), article 15.
+- Tversky, B., Morrison, J. B. and Bétrancourt, M. (2002). Animation: can it facilitate? _International Journal of Human-Computer Studies_ 57(4), 247–262.
+- Victor, B. (2011). _Up and Down the Ladder of Abstraction_ and _Explorable Explanations_. [worrydream.com](https://worrydream.com/LadderOfAbstraction/)
+
 ## Color
 
 All colors are CSS custom properties defined in `src/styles/tokens.css`. Components never use literal colors.

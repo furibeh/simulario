@@ -42,6 +42,8 @@ Only what the learner needs to reason about the prediction, 3–5 minutes of rea
 
 ## Predict
 
+Follow "What every lesson needs" in `docs/design.md`, section "Teaching method".
+
 - **Question**: <the exact question, language-neutral>
 - **Setup**: <preset and parameters>
 - **Correct answer**: <answer>
