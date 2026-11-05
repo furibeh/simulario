@@ -156,27 +156,37 @@ onMount(() => {
 
   {#if groups.length > 0}
     <div class="results">
-      {#each groups as group, g (group.pathId ?? "")}
-        <section class="group" aria-labelledby={`${uid}-g${g}`}>
-          <svelte:element this={`h${headingLevel}`} id={`${uid}-g${g}`} class="group-title">
+      {#each groups as group (group.pathId ?? "")}
+        <div class="group">
+          <svelte:element this={`h${headingLevel}`} class="group-title">
             {group.pathTitle ?? t("search.group.site")}
           </svelte:element>
           <ul>
-            {#each group.hits as hit (hit.href)}
+            {#each group.hits as hit, h (hit.href)}
+              {@const id = `${uid}-r${h}-${group.pathId ?? "site"}`}
               <li>
-                <a href={hit.href} data-result onclick={() => onnavigate?.()}>
-                  <span class="title">{hit.title}</span>
+                <!-- Named by its title; the module and excerpt are its description, read after a pause. -->
+                <a
+                  href={hit.href}
+                  data-result
+                  aria-labelledby={`${id}-t`}
+                  aria-describedby={`${id}-d`}
+                  onclick={() => onnavigate?.()}
+                >
+                  <span class="title" id={`${id}-t`}>{hit.title}</span>
+                  <span class="details" id={`${id}-d`}>
                   {#if hit.module}<span class="crumb">{hit.module}</span>{/if}
                   {#if hit.excerpt.length > 0}
                     <span class="excerpt">
                       {#each hit.excerpt as segment, s (s)}{#if segment.marked}<mark>{segment.text}</mark>{:else}{segment.text}{/if}{/each}
                     </span>
                   {/if}
+                  </span>
                 </a>
               </li>
             {/each}
           </ul>
-        </section>
+        </div>
       {/each}
     </div>
   {/if}
@@ -228,6 +238,7 @@ onMount(() => {
     gap: var(--space-5);
     min-height: 0;
     overflow-y: auto;
+    scrollbar-color: var(--color-ink-muted) transparent;
     /* Room for the focus ring of the links, which the scrolling box would clip. */
     padding: var(--space-1);
     margin: calc(-1 * var(--space-1));
@@ -242,8 +253,6 @@ onMount(() => {
   .group-title {
     font-size: var(--text-small);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
     color: var(--color-ink-muted);
   }
 
@@ -275,6 +284,12 @@ onMount(() => {
 
   .title {
     font-weight: 700;
+  }
+
+  .details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
   }
 
   .crumb {
