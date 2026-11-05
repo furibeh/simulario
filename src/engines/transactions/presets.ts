@@ -1,6 +1,6 @@
 import type { Operation, TxInput } from "./types";
 
-export const presetIds = ["balance", "dirtyRead", "transfer", "crossTransfers"] as const;
+export const presetIds = ["balance", "dirtyRead", "transfer", "crossTransfers", "onCall"] as const;
 export type PresetId = (typeof presetIds)[number];
 
 /** Workloads from docs/lessons/isolation-anomalies.md. */
@@ -62,6 +62,28 @@ export const presets: Record<PresetId, TxInput> = {
     ],
     isolation: "serializable-2pl",
     order: ["T1", "T2", "T1", "T2", "T1", "T2", "T1", "T1"],
+  },
+  /** "Guardia" / "On call": two doctors, at least one must stay (docs/lessons/mvcc-snapshots.md). */
+  onCall: {
+    items: [1, 1],
+    transactions: [
+      [
+        { op: "read", item: "x" },
+        { op: "read", item: "y" },
+        { op: "check", items: ["x", "y"], atLeast: 2 },
+        { op: "write", item: "x", value: 0 },
+        { op: "commit" },
+      ],
+      [
+        { op: "read", item: "x" },
+        { op: "read", item: "y" },
+        { op: "check", items: ["x", "y"], atLeast: 2 },
+        { op: "write", item: "y", value: 0 },
+        { op: "commit" },
+      ],
+    ],
+    isolation: "snapshot",
+    order: ["T1", "T1", "T2", "T2", "T1", "T2", "T1", "T2", "T1", "T2"],
   },
 };
 

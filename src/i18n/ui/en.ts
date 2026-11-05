@@ -626,21 +626,27 @@ export const en = {
   "tx.preset.dirtyRead": "Dirty read",
   "tx.preset.transfer": "Transfer",
   "tx.preset.crossTransfers": "Crossed transfers",
+  "tx.preset.onCall": "On call",
   "tx.preset.about.balance": "x is a balance of 100. T1 deposits 50 and T2 deposits 20.",
   "tx.preset.about.dirtyRead":
     "x is 100. T1 writes 150 and then rolls back; meanwhile, T2 reads x.",
   "tx.preset.about.transfer":
     "x and y are two accounts of 50. T2 moves 40 from x to y; T1 is a report that reads both.",
+  "tx.preset.about.onCall":
+    "x and y are Alice and Bob, both on call (1). At least one must stay: each checks that x + y ≥ 2 before leaving (writing 0 on their own row).",
   "tx.preset.about.crossTransfers":
     "x and y are two accounts of 100. T1 moves 10 from x to y and T2 moves 10 from y to x; each first reads the account it takes from.",
   "tx.isolation": "Isolation level",
   "tx.isolation.read-uncommitted": "Read Uncommitted",
   "tx.isolation.read-committed": "Read Committed",
   "tx.isolation.serializable-2pl": "Serializable (two-phase locking)",
+  "tx.isolation.snapshot": "Snapshot (PostgreSQL's Repeatable Read)",
   "tx.isolation.about.read-uncommitted":
     "Every read sees the newest value, even if nobody has committed it.",
   "tx.isolation.about.read-committed":
     "Every read sees only committed values, plus the transaction's own writes.",
+  "tx.isolation.about.snapshot":
+    "Each transaction reads from a snapshot taken when it starts. Reads never wait; if another one changed and committed an item since, writing it aborts the transaction.",
   "tx.isolation.about.serializable-2pl":
     "Reading takes a shared lock and writing an exclusive one; all of them last until commit or rollback.",
   "tx.mode": "How each deposit adds",
@@ -662,6 +668,7 @@ export const en = {
   "tx.predict.dirtyRead": "Which value of x will T2 read?",
   "tx.predict.transfer": "Which total, x + y, will the report T1 see?",
   "tx.predict.crossTransfers": "How many of the two transfers will commit?",
+  "tx.predict.onCall": "How many doctors will be on call at the end?",
   "tx.predict.outcome": "What will happen to the two deposits?",
   "tx.outcome.both": "Both commit and both deposits are kept",
   "tx.outcome.lost": "Both commit, but a deposit is lost",
@@ -684,6 +691,8 @@ export const en = {
     "Read Uncommitted: reads see the newest value, committed or not. Writing locks the item until commit or rollback.",
   "tx.rule.read-committed":
     "Read Committed: reads see only committed values. Writing locks the item until commit or rollback.",
+  "tx.rule.snapshot":
+    "Snapshot: each transaction reads the data as it was committed when it started. Writing locks the item; if another one changed and committed it after your snapshot, you are aborted.",
   "tx.rule.serializable-2pl":
     "Two-phase locking: reading locks the item in shared mode and writing in exclusive mode, until commit or rollback. If the waits form a cycle, one transaction is aborted.",
   "tx.board.at": "The board after turn {n}",
@@ -715,6 +724,7 @@ export const en = {
   "tx.op.write": "UPDATE {item} = {v}",
   "tx.op.writeFromRead": "UPDATE {item} = value read {sign} {d}",
   "tx.op.add": "UPDATE {item} = {item} {sign} {d}",
+  "tx.op.check": "if {items} < {n}: ROLLBACK",
   "tx.op.commit": "COMMIT",
   "tx.op.abort": "ROLLBACK",
   "tx.why.start":

@@ -66,12 +66,14 @@ const scenarioValue: Record<PresetId, (trace: TxTrace) => number | null> = {
     return reads.length === 2 ? reads.reduce((sum, r) => sum + r.value, 0) : null;
   },
   crossTransfers: (tr) => tr.result.committed.length,
+  onCall: (tr) => tr.result.final.reduce((sum, v) => sum + v, 0),
 };
 const valueOptions: Record<PresetId, number[]> = {
   balance: [100, 120, 150, 170],
   dirtyRead: [100, 150],
   transfer: [100, 140],
   crossTransfers: [0, 1, 2],
+  onCall: [0, 1, 2],
 };
 
 /** What happened to the transactions, for the "outcome" question. Deadlocks never last. */
@@ -222,6 +224,7 @@ function itemsAt(cursor: number): readonly ItemView[] {
       holder: null,
       readers: [],
       queue: [],
+      versions: [{ value, by: null, step: null }],
     }))
   );
 }
@@ -235,6 +238,7 @@ function txsAt(cursor: number): readonly TxView[] {
       status: "active" as const,
       pc: 0,
       waitsFor: null,
+      start: null,
       lastReads: [],
     }))
   );
@@ -273,6 +277,8 @@ function opText(op: Operation): string {
     case "writeFromRead":
     case "add":
       return t(`tx.op.${op.op}`, { item: op.item, sign: sign(op.delta), d: Math.abs(op.delta) });
+    case "check":
+      return t("tx.op.check", { items: op.items.join(" + "), n: op.atLeast });
     default:
       return t(`tx.op.${op.op}`);
   }

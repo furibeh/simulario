@@ -22,6 +22,14 @@ describe("transactions explanation templates", () => {
       ),
       { ...presets.balance, transactions: fixBalance("atomic"), order: ["T1", "T2", "T1", "T2"] },
       { ...presets.balance, transactions: fixBalance("forUpdate") },
+      // Snapshot isolation (docs/lessons/mvcc-snapshots.md).
+      presets.onCall,
+      {
+        ...presets.onCall,
+        order: ["T1", "T1", "T1", "T1", "T1", "T2", "T2", "T2"],
+      },
+      { ...presets.balance, isolation: "snapshot", order: ["T1", "T2", "T1", "T1", "T2"] },
+      { ...presets.transfer, isolation: "snapshot" },
       // Two-phase locking (docs/lessons/two-phase-locking.md).
       { ...presets.balance, isolation: "serializable-2pl", order: ["T1", "T2", "T1", "T2", "T1"] },
       presets.crossTransfers,
@@ -157,6 +165,21 @@ describe("transactions explanation templates", () => {
         { key: "lock.upgrade", params: { tx: "T1", item: "x" } },
         "T1 ya tenía un bloqueo compartido de x y lo convierte en exclusivo.",
         "T1 already had a shared lock on x and turns it into an exclusive one.",
+      ],
+      [
+        { key: "read.old", params: { tx: "T1", item: "y", value: 50, current: 90, by: "T2" } },
+        "T1 lee y = 50 en su instantánea, aunque T2 confirmó 90 después de que T1 empezara.",
+        "T1 reads y = 50 from its snapshot, although T2 committed 90 after T1 started.",
+      ],
+      [
+        { key: "serialization", params: { tx: "T2", item: "x", by: "T1" } },
+        "T2 no puede escribir x: T1 lo cambió y confirmó después de la instantánea de T2. La base de datos aborta a T2.",
+        "T2 cannot write x: T1 changed and committed it after T2's snapshot. The database aborts T2.",
+      ],
+      [
+        { key: "check.fail", params: { tx: "T2", sum: 1, atLeast: 2 } },
+        "T2 comprueba la regla: ve 1, y hace falta al menos 2. Se deshace sin escribir.",
+        "T2 checks the rule: it sees 1, and at least 2 are needed. It rolls back without writing.",
       ],
     ];
     for (const [explanation, es, en] of examples) {

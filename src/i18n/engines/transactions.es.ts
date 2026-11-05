@@ -33,6 +33,16 @@ export const transactionsEs: ExplainTemplates<TxExplainParams> = {
     `${tx} quiere escribir ${item}, pero ${list(holders)} ${holders.includes(",") ? "lo están leyendo con bloqueos compartidos" : "lo está leyendo con un bloqueo compartido"}: ${tx} espera.`,
   "lock.upgrade": ({ tx, item }) =>
     `${tx} ya tenía un bloqueo compartido de ${item} y lo convierte en exclusivo.`,
+  snapshot: ({ tx }) =>
+    `${tx} empieza y toma su instantánea: verá los datos tal como están confirmados ahora.`,
+  "read.old": ({ tx, item, value, current, by }) =>
+    `${tx} lee ${item} = ${value} en su instantánea, aunque ${by} confirmó ${current} después de que ${tx} empezara.`,
+  serialization: ({ tx, item, by }) =>
+    `${tx} no puede escribir ${item}: ${by} lo cambió y confirmó después de la instantánea de ${tx}. La base de datos aborta a ${tx}.`,
+  "check.pass": ({ tx, sum, atLeast }) =>
+    `${tx} comprueba la regla: ve ${sum}, y hace falta al menos ${atLeast}. Sigue adelante.`,
+  "check.fail": ({ tx, sum, atLeast }) =>
+    `${tx} comprueba la regla: ve ${sum}, y hace falta al menos ${atLeast}. Se deshace sin escribir.`,
   handoff: ({ tx, item, to }) =>
     `${tx} libera ${item} y ${to}, que esperaba, lo bloquea y continúa.`,
   commit: ({ tx }) => `${tx} confirma: sus escrituras ya son visibles para todos.`,

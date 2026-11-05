@@ -630,20 +630,26 @@ export const es = {
   "tx.preset.dirtyRead": "Lectura sucia",
   "tx.preset.transfer": "Transferencia",
   "tx.preset.crossTransfers": "Transferencias cruzadas",
+  "tx.preset.onCall": "Guardia",
   "tx.preset.about.balance": "x es un saldo de 100. T1 deposita 50 y T2 deposita 20.",
   "tx.preset.about.dirtyRead": "x vale 100. T1 escribe 150 y luego se deshace; mientras, T2 lee x.",
   "tx.preset.about.transfer":
     "x e y son dos cuentas de 50. T2 mueve 40 de x a y; T1 es un informe que lee las dos.",
+  "tx.preset.about.onCall":
+    "x e y son Alicia y Bruno, los dos de guardia (1). Debe quedar al menos uno: cada uno comprueba que x + y ≥ 2 antes de irse (escribir 0 en su fila).",
   "tx.preset.about.crossTransfers":
     "x e y son dos cuentas de 100. T1 mueve 10 de x a y y T2 mueve 10 de y a x; cada una lee primero la cuenta de la que saca.",
   "tx.isolation": "Nivel de aislamiento",
   "tx.isolation.read-uncommitted": "Read Uncommitted",
   "tx.isolation.read-committed": "Read Committed",
   "tx.isolation.serializable-2pl": "Serializable (bloqueo en dos fases)",
+  "tx.isolation.snapshot": "Instantánea (Repeatable Read de PostgreSQL)",
   "tx.isolation.about.read-uncommitted":
     "Cada lectura ve el valor más nuevo, aunque nadie lo haya confirmado.",
   "tx.isolation.about.read-committed":
     "Cada lectura ve solo valores confirmados, además de las propias escrituras.",
+  "tx.isolation.about.snapshot":
+    "Cada transacción lee de una instantánea tomada al empezar. Las lecturas nunca esperan; si otra cambió y confirmó un dato después, escribirlo aborta la transacción.",
   "tx.isolation.about.serializable-2pl":
     "Leer toma un bloqueo compartido y escribir uno exclusivo; todos duran hasta confirmar o deshacer.",
   "tx.mode": "Cómo suma cada depósito",
@@ -665,6 +671,7 @@ export const es = {
   "tx.predict.dirtyRead": "¿Qué valor de x leerá T2?",
   "tx.predict.transfer": "¿Qué total, x + y, verá el informe T1?",
   "tx.predict.crossTransfers": "¿Cuántas de las dos transferencias llegarán a confirmar?",
+  "tx.predict.onCall": "¿Cuántos médicos quedarán de guardia?",
   "tx.predict.outcome": "¿Qué pasará con los dos depósitos?",
   "tx.outcome.both": "Las dos confirman y se conservan los dos depósitos",
   "tx.outcome.lost": "Las dos confirman, pero se pierde un depósito",
@@ -687,6 +694,8 @@ export const es = {
     "Read Uncommitted: las lecturas ven lo más nuevo, confirmado o no. Escribir bloquea el dato hasta confirmar o deshacer.",
   "tx.rule.read-committed":
     "Read Committed: las lecturas ven solo lo confirmado. Escribir bloquea el dato hasta confirmar o deshacer.",
+  "tx.rule.snapshot":
+    "Instantánea: cada transacción lee los datos tal como estaban confirmados cuando empezó. Escribir bloquea el dato; si otra lo cambió y confirmó después de tu instantánea, se te aborta.",
   "tx.rule.serializable-2pl":
     "Bloqueo en dos fases: leer bloquea el dato en modo compartido y escribir en exclusivo, hasta confirmar o deshacer. Si las esperas forman un ciclo, se aborta una transacción.",
   "tx.board.at": "El tablero tras el turno {n}",
@@ -718,6 +727,7 @@ export const es = {
   "tx.op.write": "UPDATE {item} = {v}",
   "tx.op.writeFromRead": "UPDATE {item} = lo leído {sign} {d}",
   "tx.op.add": "UPDATE {item} = {item} {sign} {d}",
+  "tx.op.check": "si {items} < {n}: ROLLBACK",
   "tx.op.commit": "COMMIT",
   "tx.op.abort": "ROLLBACK",
   "tx.why.start":

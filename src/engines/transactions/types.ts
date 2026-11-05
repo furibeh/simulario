@@ -15,9 +15,14 @@ export type ItemId = (typeof itemIds)[number];
 
 /**
  * Levels: read-uncommitted and read-committed (docs/lessons/isolation-anomalies.md),
- * serializable-2pl (docs/lessons/two-phase-locking.md). Module 7 adds snapshot.
+ * serializable-2pl (docs/lessons/two-phase-locking.md), snapshot (docs/lessons/mvcc-snapshots.md).
  */
-export const isolationLevels = ["read-uncommitted", "read-committed", "serializable-2pl"] as const;
+export const isolationLevels = [
+  "read-uncommitted",
+  "read-committed",
+  "serializable-2pl",
+  "snapshot",
+] as const;
 export type Isolation = (typeof isolationLevels)[number];
 
 export type Operation =
@@ -31,6 +36,8 @@ export type Operation =
   | { op: "writeFromRead"; item: ItemId; delta: number }
   /** UPDATE … SET value = value + d, computed inside the database. */
   | { op: "add"; item: ItemId; delta: number }
+  /** The application checks that the values it last read of `items` add up to at least `atLeast`; if not, it rolls back. */
+  | { op: "check"; items: readonly ItemId[]; atLeast: number }
   | { op: "commit" }
   | { op: "abort" };
 
@@ -61,6 +68,8 @@ export interface ItemView {
   holder: string | null;
   /** Shared (read) lock holders in id order; only under serializable-2pl. */
   readers: readonly string[];
+  /** Committed versions, oldest first; `step` is the commit step (null for the initial value). */
+  versions: readonly { value: number; by: string | null; step: number | null }[];
   /** Transactions waiting for the lock, first served first. */
   queue: readonly string[];
 }
@@ -81,6 +90,8 @@ export interface TxView {
    */
   pc: number;
   waitsFor: ItemId | null;
+  /** Step of its first operation (its snapshot under `snapshot`); null before it runs. */
+  start: number | null;
   /** What it read last from each item, in item order. */
   lastReads: readonly LastRead[];
 }
@@ -171,6 +182,11 @@ export interface TxExplainParams {
   "read.shared": { tx: string; item: string; value: number };
   "lock.wait.shared": { tx: string; item: string; holders: string };
   "lock.upgrade": { tx: string; item: string };
+  snapshot: { tx: string };
+  "read.old": { tx: string; item: string; value: number; current: number; by: string };
+  serialization: { tx: string; item: string; by: string };
+  "check.pass": { tx: string; sum: number; atLeast: number };
+  "check.fail": { tx: string; sum: number; atLeast: number };
   handoff: { tx: string; item: string; to: string };
   commit: { tx: string };
   abort: { tx: string };

@@ -33,6 +33,16 @@ export const transactionsEn: ExplainTemplates<TxExplainParams> = {
     `${tx} wants to write ${item}, but ${list(holders)} ${holders.includes(",") ? "hold shared locks" : "holds a shared lock"} to read it: ${tx} waits.`,
   "lock.upgrade": ({ tx, item }) =>
     `${tx} already had a shared lock on ${item} and turns it into an exclusive one.`,
+  snapshot: ({ tx }) =>
+    `${tx} starts and takes its snapshot: it will see the data as it is committed now.`,
+  "read.old": ({ tx, item, value, current, by }) =>
+    `${tx} reads ${item} = ${value} from its snapshot, although ${by} committed ${current} after ${tx} started.`,
+  serialization: ({ tx, item, by }) =>
+    `${tx} cannot write ${item}: ${by} changed and committed it after ${tx}'s snapshot. The database aborts ${tx}.`,
+  "check.pass": ({ tx, sum, atLeast }) =>
+    `${tx} checks the rule: it sees ${sum}, and at least ${atLeast} are needed. It goes on.`,
+  "check.fail": ({ tx, sum, atLeast }) =>
+    `${tx} checks the rule: it sees ${sum}, and at least ${atLeast} are needed. It rolls back without writing.`,
   handoff: ({ tx, item, to }) =>
     `${tx} releases ${item}, and ${to}, which was waiting, locks it and goes on.`,
   commit: ({ tx }) => `${tx} commits: its writes are now visible to everyone.`,

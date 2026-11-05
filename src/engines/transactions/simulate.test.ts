@@ -39,6 +39,16 @@ function fmt(e: TxExplanation): string {
       return `WS ${e.params.tx} ${e.params.item} (${e.params.holders})`;
     case "lock.upgrade":
       return `up ${e.params.tx} ${e.params.item}`;
+    case "snapshot":
+      return `snap ${e.params.tx}`;
+    case "read.old":
+      return `ro ${e.params.tx} ${e.params.item} ${e.params.value} (current ${e.params.current} by ${e.params.by})`;
+    case "serialization":
+      return `ser ${e.params.tx} ${e.params.item} (${e.params.by})`;
+    case "check.pass":
+      return `check ${e.params.tx} ✓${e.params.sum}`;
+    case "check.fail":
+      return `check ${e.params.tx} ✗${e.params.sum}`;
     case "lock.wait":
       return `W ${e.params.tx} ${e.params.item} (${e.params.holder})`;
     case "handoff":
@@ -491,6 +501,197 @@ describe("serializable-2pl", () => {
         "c T1, → T1 x T2, rs T2 x 6",
         "c T2",
       ]);
+    });
+  });
+});
+
+/** docs/lessons/mvcc-snapshots.md, "Expected results". */
+describe("snapshot", () => {
+  const snap = (base: TxInput, o: string): TxInput => ({
+    ...base,
+    isolation: "snapshot",
+    order: order(o),
+  });
+
+  it("Guardia, Predict: both checks see 2, both go off call, nobody is left (write skew)", () => {
+    const trace = simulate(presets.onCall);
+    expect(rows(trace)).toEqual([
+      "snap T1, r T1 x 1",
+      "r T1 y 1",
+      "snap T2, r T2 x 1",
+      "r T2 y 1",
+      "check T1 ✓2",
+      "check T2 ✓2",
+      "w T1 x 0",
+      "w T2 y 0",
+      "c T1",
+      "c T2",
+    ]);
+    expect(trace.result.final).toEqual([0, 0]);
+    expect(trace.result.committed).toEqual(["T1", "T2"]);
+    expect(trace.result.blocks).toEqual([]);
+  });
+
+  it("Guardia under Read Committed: the same outcome, without snapshots", () => {
+    const trace = simulate({ ...presets.onCall, isolation: "read-committed" });
+    expect(rows(trace)).toEqual(
+      rows(simulate(presets.onCall)).map((r) => r.replace(/snap T\d, /, "")),
+    );
+    expect(trace.result.final).toEqual([0, 0]);
+  });
+
+  it("Guardia under two-phase locking: the writes deadlock and one doctor stays (E3)", () => {
+    const trace = simulate({
+      ...presets.onCall,
+      isolation: "serializable-2pl",
+      order: order("T1 T1 T2 T2 T1 T2 T1 T2 T1"),
+    });
+    expect(rows(trace)).toEqual([
+      "rs T1 x 1",
+      "rs T1 y 1",
+      "rs T2 x 1",
+      "rs T2 y 1",
+      "check T1 ✓2",
+      "check T2 ✓2",
+      "WS T1 x (T2)",
+      "WS T2 y (T1), deadlock T2 T2 → y → T1 → x → T2, → T2 x T1, up T1 x, w T1 x 0",
+      "c T1",
+    ]);
+    expect(trace.result.final).toEqual([0, 1]);
+    expect(trace.result.aborted).toEqual(["T2"]);
+  });
+
+  it("Guardia, serial under snapshot: the second check sees 1 and rolls back (E3)", () => {
+    const trace = simulate(snap(presets.onCall, "T1 T1 T1 T1 T1 T2 T2 T2"));
+    expect(rows(trace).slice(5)).toEqual(["snap T2, r T2 x 0", "r T2 y 1", "check T2 ✗1"]);
+    expect(trace.result.final).toEqual([0, 1]);
+    expect(trace.result.aborted).toEqual(["T2"]);
+    expect(trace.steps.at(-1)?.state.transactions[1]?.pc).toBe(3);
+    expect(trace.result.complete).toBe(true);
+  });
+
+  it("Saldo, module 5's order: the second updater is aborted", () => {
+    const trace = simulate(snap(presets.balance, "T1 T2 T1 T1 T2"));
+    expect(rows(trace)).toEqual([
+      "snap T1, r T1 x 100",
+      "snap T2, r T2 x 100",
+      "wc T1 x 150 (100+50)",
+      "c T1",
+      "ser T2 x (T1)",
+    ]);
+    expect(trace.result.final).toEqual([150]);
+    expect(trace.result.aborted).toEqual(["T2"]);
+    expect(trace.result.lostUpdates).toBe(0);
+    expect(trace.steps.at(-1)?.state.transactions[1]?.pc).toBe(1);
+  });
+
+  it("Saldo, T2 writes early: it waits, then is aborted when T1 commits", () => {
+    const trace = simulate(snap(presets.balance, "T1 T2 T1 T2 T1"));
+    expect(rows(trace)).toEqual([
+      "snap T1, r T1 x 100",
+      "snap T2, r T2 x 100",
+      "wc T1 x 150 (100+50)",
+      "W T2 x (T1)",
+      "c T1, → T1 x T2, ser T2 x (T1)",
+    ]);
+    expect(trace.result.final).toEqual([150]);
+  });
+
+  it("Saldo, serial: both deposits are kept (E2)", () => {
+    const trace = simulate(snap(presets.balance, "T1 T1 T1 T2 T2 T2"));
+    expect(rows(trace)).toEqual([
+      "snap T1, r T1 x 100",
+      "wc T1 x 150 (100+50)",
+      "c T1",
+      "snap T2, r T2 x 150",
+      "wc T2 x 170 (150+20)",
+      "c T2",
+    ]);
+  });
+
+  it("Saldo, atomic add: UPDATE x = x + 20 also fails after a concurrent commit", () => {
+    const trace = simulate(
+      snap({ ...presets.balance, transactions: fixBalance("atomic") }, "T1 T2 T1"),
+    );
+    expect(rows(trace)).toEqual([
+      "snap T1, add T1 x 100→150",
+      "snap T2, W T2 x (T1)",
+      "c T1, → T1 x T2, ser T2 x (T1)",
+    ]);
+    expect(trace.result.final).toEqual([150]);
+  });
+
+  it("Transferencia: the report reads its snapshot, 100 in total, and nobody waits (E1)", () => {
+    const trace = simulate({ ...presets.transfer, isolation: "snapshot" });
+    expect(rows(trace)).toEqual([
+      "snap T1, r T1 x 50",
+      "snap T2, r T2 x 50",
+      "wc T2 x 10 (50-40)",
+      "r T2 y 50",
+      "wc T2 y 90 (50+40)",
+      "c T2",
+      "ro T1 y 50 (current 90 by T2)",
+      "c T1",
+    ]);
+    expect(trace.result.reads.filter((r) => r.tx === "T1").map((r) => r.value)).toEqual([50, 50]);
+    expect(trace.result.blocks).toEqual([]);
+  });
+
+  describe("edge cases", () => {
+    const run = (items: number[], transactions: Operation[][], o: string) =>
+      simulate({ items, transactions, isolation: "snapshot", order: order(o) });
+
+    it("repeatable reads: the second read still sees the snapshot", () => {
+      const trace = run(
+        [50],
+        [
+          [{ op: "read", item: "x" }, { op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "write", item: "x", value: 10 }, { op: "commit" }],
+        ],
+        "T1 T2 T2 T1 T1",
+      );
+      expect(rows(trace)[3]).toBe("ro T1 x 50 (current 10 by T2)");
+      expect(trace.result.nonRepeatable).toBe(0);
+    });
+
+    it("a snapshot taken after a commit sees it", () => {
+      const trace = run(
+        [5],
+        [
+          [{ op: "write", item: "x", value: 6 }, { op: "commit" }],
+          [{ op: "read", item: "x" }, { op: "commit" }],
+        ],
+        "T1 T1 T2 T2",
+      );
+      expect(rows(trace)[2]).toBe("snap T2, r T2 x 6");
+    });
+
+    it("a writer whose lock holder aborts goes on", () => {
+      const trace = run(
+        [5],
+        [
+          [{ op: "write", item: "x", value: 6 }, { op: "abort" }],
+          [{ op: "write", item: "x", value: 7 }, { op: "commit" }],
+        ],
+        "T1 T2 T1 T2",
+      );
+      expect(rows(trace)).toEqual([
+        "snap T1, w T1 x 6",
+        "snap T2, W T2 x (T1)",
+        "a T1, → T1 x T2, w T2 x 7",
+        "c T2",
+      ]);
+      expect(trace.result.final).toEqual([7]);
+    });
+
+    it("check without an earlier read throws", () => {
+      expect(() =>
+        run(
+          [1],
+          [[{ op: "check", items: ["x"], atLeast: 1 }, { op: "commit" }], [{ op: "commit" }]],
+          "T1",
+        ),
+      ).toThrow(RangeError);
     });
   });
 });

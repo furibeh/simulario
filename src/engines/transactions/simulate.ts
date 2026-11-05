@@ -28,6 +28,8 @@ interface Item {
   /** Shared lock holders, kept in id order. */
   readers: string[];
   queue: string[];
+  /** Committed versions, oldest first; `step` is the commit step, null for the initial value. */
+  versions: { value: number; version: VersionId; by: string | null; step: number | null }[];
 }
 
 type Mode = "S" | "X";
@@ -38,6 +40,8 @@ interface Tx {
   status: "active" | "blocked" | "committed" | "aborted";
   pc: number;
   waitsFor: ItemId | null;
+  /** Step of its first operation: its snapshot under `snapshot`. */
+  start: number | null;
   lastReads: Map<ItemId, LastRead>;
 }
 
@@ -70,6 +74,14 @@ export function assertValidInput(input: TxInput): void {
         return;
       }
       if (last) throw new RangeError(`${id}: the script must end with commit or abort`);
+      if (op.op === "check") {
+        if (!inRange(op.items.length, limits.items)) throw new RangeError(`${id}: invalid check`);
+        if (!op.items.every((i) => known.includes(i) && read.has(i))) {
+          throw new RangeError(`${id}: check of an item it has not read`);
+        }
+        if (!inRange(op.atLeast, limits.delta)) throw new RangeError(`${id}: invalid check bound`);
+        return;
+      }
       if (!known.includes(op.item)) throw new RangeError(`${id}: unknown item ${op.item}`);
       if (op.op === "write" && !inRange(op.value, limits.value)) {
         throw new RangeError(`${id}: invalid value`);
@@ -89,6 +101,7 @@ export function assertValidInput(input: TxInput): void {
 export function simulate(input: TxInput): TxTrace {
   assertValidInput(input);
   const twoPhase = input.isolation === "serializable-2pl";
+  const snapshotLevel = input.isolation === "snapshot";
   const items: Item[] = input.items.map((value, i) => ({
     id: itemIds[i] as ItemId,
     committed: value,
@@ -98,6 +111,7 @@ export function simulate(input: TxInput): TxTrace {
     holder: null,
     readers: [],
     queue: [],
+    versions: [{ value, version: "init", by: null, step: null }],
   }));
   const txs: Tx[] = input.transactions.map((script, i) => ({
     id: `T${i + 1}`,
@@ -105,6 +119,7 @@ export function simulate(input: TxInput): TxTrace {
     status: "active",
     pc: 0,
     waitsFor: null,
+    start: null,
     lastReads: new Map(),
   }));
   const item = (id: ItemId) => items.find((it) => it.id === id) as Item;
@@ -114,7 +129,7 @@ export function simulate(input: TxInput): TxTrace {
 
   /** Lock an operation needs: reads lock only under two-phase locking. */
   const modeFor = (op: Operation): Mode | null =>
-    op.op === "commit" || op.op === "abort"
+    op.op === "commit" || op.op === "abort" || op.op === "check"
       ? null
       : op.op === "read"
         ? twoPhase
@@ -163,6 +178,31 @@ export function simulate(input: TxInput): TxTrace {
         ({ value, version } = p);
         kind = "dirty";
         explain.push({ key: "read.dirty", params: { tx: x.id, item: it.id, value, writer: p.tx } });
+      } else if (snapshotLevel && how === "plain") {
+        // The newest version committed before this transaction's snapshot.
+        const start = x.start ?? t;
+        const seen =
+          it.versions.filter((v) => v.step === null || v.step < start).at(-1) ?? it.versions[0];
+        value = seen?.value ?? it.committed;
+        version = seen?.version ?? it.version;
+        kind = "committed";
+        if (version !== it.version) {
+          explain.push({
+            key: "read.old",
+            params: {
+              tx: x.id,
+              item: it.id,
+              value,
+              current: it.committed,
+              by: it.committedBy ?? "",
+            },
+          });
+        } else if (p) {
+          explain.push({
+            key: "read.hidden",
+            params: { tx: x.id, item: it.id, value, writer: p.tx, pending: p.value },
+          });
+        } else explain.push({ key: "read", params: { tx: x.id, item: it.id, value } });
       } else {
         value = it.committed;
         version = it.version;
@@ -200,7 +240,7 @@ export function simulate(input: TxInput): TxTrace {
 
     /** Runs an operation whose lock (if any) is held; `took` is the lock it just acquired. */
     const perform = (x: Tx, op: Operation, took: Mode | null) => {
-      if (op.op === "commit" || op.op === "abort") return;
+      if (op.op === "commit" || op.op === "abort" || op.op === "check") return;
       const it = item(op.item);
       const own = it.pending?.tx === x.id ? it.pending : null;
       const version = `w${t}`;
@@ -254,8 +294,21 @@ export function simulate(input: TxInput): TxTrace {
       }
     };
 
-    /** Gives x the lock (upgrading S to X if needed) and runs its operation. */
-    const grant = (x: Tx, it: Item, op: Operation, mode: Mode) => {
+    /**
+     * Gives x the lock (upgrading S to X if needed) and runs its operation. Under `snapshot`, an
+     * item committed by someone else after x's snapshot aborts x instead (first updater wins).
+     * Returns whether the operation ran.
+     */
+    const grant = (x: Tx, it: Item, op: Operation, mode: Mode): boolean => {
+      const newest = it.versions.at(-1);
+      if (snapshotLevel && mode === "X" && newest?.step != null && newest.step > (x.start ?? t)) {
+        explain.push({
+          key: "serialization",
+          params: { tx: x.id, item: it.id, by: newest.by ?? "" },
+        });
+        end(x, "aborted");
+        return false;
+      }
       if (mode === "X") {
         if (it.readers.includes(x.id)) {
           it.readers = it.readers.filter((r) => r !== x.id);
@@ -264,6 +317,7 @@ export function simulate(input: TxInput): TxTrace {
         it.holder = x.id;
       } else it.readers = [...it.readers, x.id].sort(byId);
       perform(x, op, mode);
+      return true;
     };
 
     /** Releases every lock of x in item order; compatible waiters at the head get theirs. */
@@ -283,8 +337,7 @@ export function simulate(input: TxInput): TxTrace {
           waiter.status = "active";
           waiter.waitsFor = null;
           explain.push({ key: "handoff", params: { tx: x.id, item: it.id, to: waiter.id } });
-          grant(waiter, it, op, mode);
-          waiter.pc++;
+          if (grant(waiter, it, op, mode)) waiter.pc++;
         }
       }
     };
@@ -296,6 +349,7 @@ export function simulate(input: TxInput): TxTrace {
           it.committed = it.pending.value;
           it.version = it.pending.version;
           it.committedBy = x.id;
+          it.versions.push({ value: it.committed, version: it.version, by: x.id, step: t });
         }
         it.pending = null;
       }
@@ -326,9 +380,22 @@ export function simulate(input: TxInput): TxTrace {
       return visit(x, [x.id], new Set([x.id]));
     };
 
+    if (self.start === null) {
+      self.start = t;
+      if (snapshotLevel) explain.push({ key: "snapshot", params: { tx: self.id } });
+    }
     const op = self.script[self.pc] as Operation;
     const mode = modeFor(op);
-    if (op.op === "commit" || op.op === "abort") {
+    if (op.op === "check") {
+      const sum = op.items.reduce((acc, i) => acc + (self.lastReads.get(i)?.value ?? 0), 0);
+      const params = { tx: self.id, sum, atLeast: op.atLeast };
+      self.pc++;
+      if (sum >= op.atLeast) explain.push({ key: "check.pass", params });
+      else {
+        explain.push({ key: "check.fail", params });
+        end(self, "aborted");
+      }
+    } else if (op.op === "commit" || op.op === "abort") {
       self.pc++;
       explain.push({ key: op.op, params: { tx: self.id } });
       end(self, op.op === "commit" ? "committed" : "aborted");
@@ -339,8 +406,7 @@ export function simulate(input: TxInput): TxTrace {
       const it = item(op.item);
       const others = conflicts(self, it, mode);
       if (others.length === 0) {
-        grant(self, it, op, mode);
-        self.pc++;
+        if (grant(self, it, op, mode)) self.pc++;
       } else {
         if (it.holder !== null && it.holder !== self.id) {
           explain.push({
@@ -380,12 +446,14 @@ export function simulate(input: TxInput): TxTrace {
           holder: it.holder,
           readers: [...it.readers],
           queue: [...it.queue],
+          versions: it.versions.map((v) => ({ value: v.value, by: v.by, step: v.step })),
         })),
         transactions: txs.map((x) => ({
           id: x.id,
           status: x.status,
           pc: x.pc,
           waitsFor: x.waitsFor,
+          start: x.start,
           lastReads: itemIds.flatMap((i) => {
             const r = x.lastReads.get(i);
             return r ? [{ ...r }] : [];

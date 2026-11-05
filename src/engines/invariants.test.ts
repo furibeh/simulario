@@ -475,18 +475,33 @@ describe("transactions (isolation-anomalies)", () => {
 
   /** Runs scripts one after another from the initial values: an oracle independent of the engine. */
   function serially(initial: readonly number[], scripts: readonly (readonly TxOperation[])[]) {
-    const values = [...initial];
+    let values = [...initial];
     for (const script of scripts) {
       const read = new Map<ItemId, number>();
+      // Each script works on a copy, kept only if it reaches COMMIT (a failed check rolls back).
+      const draft = [...values];
+      let keep = true;
       for (const op of script) {
-        if (op.op === "commit" || op.op === "abort") continue;
+        if (op.op === "commit" || op.op === "abort") {
+          keep = keep && op.op === "commit";
+          break;
+        }
+        if (op.op === "check") {
+          const sum = op.items.reduce((acc, i) => acc + (read.get(i) ?? 0), 0);
+          if (sum < op.atLeast) {
+            keep = false;
+            break;
+          }
+          continue;
+        }
         const k = itemIds.indexOf(op.item);
-        const now = values[k] ?? 0;
+        const now = draft[k] ?? 0;
         if (op.op === "read" || op.op === "readForUpdate") read.set(op.item, now);
-        else if (op.op === "write") values[k] = op.value;
-        else if (op.op === "add") values[k] = now + op.delta;
-        else values[k] = (read.get(op.item) ?? 0) + op.delta;
+        else if (op.op === "write") draft[k] = op.value;
+        else if (op.op === "add") draft[k] = now + op.delta;
+        else draft[k] = (read.get(op.item) ?? 0) + op.delta;
       }
+      if (keep) values = draft;
     }
     return values;
   }
@@ -513,5 +528,44 @@ describe("transactions (isolation-anomalies)", () => {
       }
     }
     expect(aborts).toBeGreaterThan(0);
+  });
+
+  it("snapshot: reads see the state before the reader started, and concurrent writers never both commit the same item", () => {
+    const r = rng(12);
+    for (let run = 0; run < RUNS; run++) {
+      const input = { ...randomInput(r), isolation: "snapshot" as const };
+      const trace = runToEnd(r, input);
+      const { result } = trace;
+      expect(result.complete).toBe(true);
+      expect(result.lostUpdates + result.dirtyReads + result.nonRepeatable).toBe(0);
+      const startOf = (tx: string) =>
+        trace.steps.at(-1)?.state.transactions.find((x) => x.id === tx)?.start ?? 0;
+      const committedAt = (step: number, item: ItemId) => {
+        const k = itemIds.indexOf(item);
+        return step < 0 ? (input.items[k] ?? 0) : trace.steps[step]?.state.items[k]?.committed;
+      };
+      for (const read of result.reads) {
+        if (read.kind === "committed") {
+          expect(read.value).toBe(committedAt(startOf(read.tx) - 1, read.item));
+        }
+      }
+      // First updater wins: committed transactions with overlapping lives wrote different items.
+      const commitStep = new Map<string, number>();
+      trace.steps.forEach((s, k) => {
+        for (const e of s.explain) if (e.key === "commit") commitStep.set(e.params.tx, k);
+      });
+      const wrote = (tx: string) =>
+        new Set(result.writes.filter((w) => w.tx === tx).map((w) => w.item));
+      for (const a of result.committed) {
+        for (const b of result.committed) {
+          if (a >= b) continue;
+          const overlap =
+            startOf(a) < (commitStep.get(b) ?? 0) && startOf(b) < (commitStep.get(a) ?? 0);
+          if (!overlap) continue;
+          const shared = [...wrote(a)].filter((i) => wrote(b).has(i));
+          expect(shared).toEqual([]);
+        }
+      }
+    }
   });
 });
