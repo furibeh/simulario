@@ -4,7 +4,6 @@ import { simulate } from "../../engines/transactions/simulate";
 import {
   type Isolation,
   type ItemView,
-  isolationLevels,
   itemIds,
   type Operation,
   type TxExplanation,
@@ -30,9 +29,11 @@ type Confidence = "low" | "mid" | "high";
 interface Props {
   lang: Locale;
   preset?: PresetId;
+  /** Isolation levels the lesson offers, in button order. */
+  levels?: readonly Isolation[];
 }
 
-let { lang, preset = "balance" }: Props = $props();
+let { lang, preset = "balance", levels = ["read-uncommitted", "read-committed"] }: Props = $props();
 
 const t = $derived(useTranslations(lang));
 const templates = $derived(lang === "es" ? transactionsEs : transactionsEn);
@@ -246,7 +247,7 @@ const labels = $derived({
       <div class="option" role="group" aria-labelledby="tx-isolation">
         <span id="tx-isolation" class="field-name">{t("tx.isolation")}</span>
         <div class="row">
-          {#each isolationLevels as level (level)}
+          {#each levels as level (level)}
             <button type="button" class="pill small" aria-pressed={isolation === level} onclick={() => (isolation = level)}>{t(`tx.isolation.${level}`)}</button>
           {/each}
         </div>
