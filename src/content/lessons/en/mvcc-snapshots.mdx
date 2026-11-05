@@ -1,0 +1,170 @@
+---
+title: MVCC and snapshots
+summary: With snapshots, nobody waits to read and no update is lost. Even so, two doctors who check the rule before leaving can leave the hospital with nobody on call.
+module: mvcc
+order: 1
+minutes: 30
+prerequisites:
+  - isolation-anomalies
+  - two-phase-locking
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Isolation anomalies (lesson [*Transactions and isolation anomalies*](/en/databases/isolation-anomalies)).
+- Two-phase locking and its deadlocks (lesson [*Two-phase locking and deadlocks*](/en/databases/two-phase-locking)).
+
+</Stage>
+
+<Stage stage="theory">
+
+Two-phase locking makes readers and writers wait for each other. Almost every database today uses a different idea: **multiversion concurrency control** (MVCC).
+
+- **Versions.** Writing an item does not erase the previous value: it adds a new **version**. Committed versions are kept as long as someone might need them.
+- **Snapshot.** When a transaction starts (with its first operation), it takes a snapshot. All its reads see the versions **committed before that moment**, plus its own writes. Whatever others commit later is invisible to it.
+- **Reading never waits**: a read just picks the version it is entitled to.
+- **Writing still locks**: writing an item takes its exclusive lock, as in Read Committed. If another transaction changed that item and committed **after** your snapshot, your write would be based on a version you never saw: the database aborts you with a serialization error. This rule is called **first updater wins**.
+
+This is what PostgreSQL runs when you ask for `REPEATABLE READ`.
+
+> Example: `x = 100`. T1 starts and reads 100. T2 writes 150 and commits. If T1 reads `x` again, it still sees 100: the version in its snapshot.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board starts with the **On call** scenario. Alice (`x`) and Bob (`y`) are doctors, and both are on call: `x = 1`, `y = 1`. The rule is that at least one must stay. Each one, in their own transaction, reads `x` and `y`, checks that `x + y ≥ 2`, and only then leaves: writes 0 on their own row.
+
+They run with **snapshots**, in this order: Alice reads both rows, Bob reads both, both check the rule, both write and both commit.
+
+**How many doctors will be on call at the end?** Choose a value in *Your prediction* and say how sure you are before you run it.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="en" preset="onCall" scenarios={["onCall", "balance", "transfer"]} levels={["read-committed", "snapshot", "serializable-2pl"]} level="snapshot" />
+
+As it runs, watch three moments:
+
+- On turns 1 and 3, each transaction takes its snapshot. Which data does each one see?
+- On turns 5 and 6, each checks the rule. What does `x + y` add up to for each one?
+- On turns 7 and 8 they write. Do they write the same item? Does anybody wait?
+
+</Stage>
+
+<Stage stage="explain">
+
+The answer was **0**: no doctor on call, and no error at any point.
+
+**Snapshots are not serializable.** If you said one would stay, you thought one of them would see the other's change. In any serial order, the second doctor would see only one on call and stay. But both snapshots were taken before anyone wrote, so both checks see two on call. The snapshot rule only stops two transactions from writing **the same** item; here each wrote a different one, after reading the other's. This anomaly is called **write skew**.
+
+**Checking the rule is not enough.** Each transaction, on its own, is correct: it checked the rule with the data it saw. Together they break it, because each decided with data the other was about to change.
+
+**What snapshots do prevent:**
+
+- **Dirty reads**: only committed versions are visible.
+- **Non-repeatable reads and read skew**: every read uses the same snapshot. The report in *Transfer* sees 100 even though the transfer commits in the meantime (experiment 1).
+- **Lost updates**: the first updater wins, and the second one is aborted (experiment 2).
+
+**And they do it without making readers wait.** With two-phase locking, the transfer had to wait for the report. Here nobody waits: each one reads its own version.
+
+**But it is not free.** Two writers of the same item still wait for each other, and when the first commits, the second is aborted. The application has to retry, just as with two-phase locking.
+
+**How to prevent write skew:**
+
+- **Two-phase locking**: the shared locks taken by the reads make the writes deadlock, and one transaction is aborted (experiment 3).
+- **Make the conflict visible**: read the rows with `SELECT … FOR UPDATE`, so the second transaction waits and then fails, or have both write a common row.
+- **Serializable Snapshot Isolation**, PostgreSQL's `SERIALIZABLE`: it keeps snapshot reads, but tracks the dependencies between what each transaction reads and what others write, and aborts one of a dangerous pair.
+
+**In real systems.** PostgreSQL's `REPEATABLE READ` and Oracle's `SERIALIZABLE` are snapshot isolation. Old versions are cleaned up later (PostgreSQL's `VACUUM`), which is why a very long transaction keeps them alive and makes tables grow.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Make the report in <em>Transfer</em> see the real total without anybody waiting.</summary>
+
+Choose *Transfer* with *Snapshot* and keep the scenario's order. The report reads `x = 50` and, on turn 7, reads `y = 50` from its snapshot, even though the transfer has already committed `y = 90`. Total: 100, with no wait at all.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Keep both deposits of <em>Balance</em> with snapshots.</summary>
+
+Only serially: T1, T1, T1, T2, T2, T2. That way T2 takes its snapshot after T1 commits and reads 150. `x` ends at 170. With any overlap, whoever writes second finds a version committed after its snapshot and is aborted.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Keep at least one doctor on call without changing the scripts.</summary>
+
+Switch to *Serializable (two-phase locking)*: the writes deadlock, Bob is aborted and Alice leaves; one stays. Another way: with snapshots, a serial order (Alice five turns, then Bob): Bob sees `x + y = 1`, the rule fails and he rolls back without writing.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="mvcc-snapshots"
+  questions={[
+    {
+      question: "Does PostgreSQL's REPEATABLE READ (snapshot isolation) always give the same result as some serial order?",
+      options: ["Yes, it is serializable", "No: it allows write skew"],
+      answer: 1,
+      explanation: "Snapshots only stop two transactions from writing the same item. If they write different items after reading each other's, they can break a rule.",
+    },
+    {
+      question: "Two transactions check a rule over two rows and then each updates a different row. Can they break the rule with snapshots?",
+      options: ["No, both checked it", "Yes: both checks see the old snapshot and the writes do not clash"],
+      answer: 1,
+      explanation: "It is the On call case: each decides with data the other is about to change.",
+    },
+    {
+      question: "A report with snapshots reads two accounts while a transfer between them commits. Can it see money appear or vanish?",
+      options: ["Yes, as in Read Committed", "No: both reads come from the same snapshot"],
+      answer: 1,
+      explanation: "The snapshot fixes which versions the report sees, even if others commit changes in the meantime.",
+    },
+    {
+      question: "Two transactions with snapshots read x and then both update x. What happens?",
+      options: ["One update is lost", "The second waits for the first and, when the first commits, is aborted", "Both commit without trouble"],
+      answer: 1,
+      explanation: "The first updater wins: the second finds that x changed after its snapshot.",
+    },
+    {
+      question: "T1 starts. Then T2 commits x = 90. Later, T1 reads x. Which value does it see?",
+      options: ["90", "The value from before T2 committed"],
+      answer: 1,
+      explanation: "T1 always reads from the snapshot it took when it started; what T2 committed afterwards is invisible to it.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Where PostgreSQL keeps versions.** Every row carries `xmin` and `xmax`, the ids of the transaction that created it and of the one that deleted or replaced it. `VACUUM` reclaims versions nobody can see any more.
+- **Serializable Snapshot Isolation.** It looks for the "dangerous structure": two consecutive read-to-write dependencies between concurrent transactions (Cahill et al., 2008; Ports and Grittner, 2012).
+- **Per-statement snapshots.** PostgreSQL's and Oracle's Read Committed use versions too, but take a new snapshot for each statement.
+- **Time travel.** Some databases let you read the data as it was in an old snapshot.
+
+Further reading:
+
+- Berenson et al., *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995, section 4.2. [Free at Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- PostgreSQL documentation, *Repeatable Read Isolation Level* and *Serializable Isolation Level*. [postgresql.org](https://www.postgresql.org/docs/current/transaction-iso.html).
+- Ports and Grittner, *Serializable Snapshot Isolation in PostgreSQL*, VLDB 2012.
+
+</Stage>

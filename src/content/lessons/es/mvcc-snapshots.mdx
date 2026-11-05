@@ -1,0 +1,170 @@
+---
+title: MVCC e instantáneas
+summary: Con instantáneas, nadie espera para leer y no se pierden actualizaciones. Aun así, dos médicos que comprueban la regla antes de irse pueden dejar el hospital sin nadie de guardia.
+module: mvcc
+order: 1
+minutes: 30
+prerequisites:
+  - isolation-anomalies
+  - two-phase-locking
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Las anomalías de aislamiento (lección [*Transacciones y anomalías de aislamiento*](/es/databases/isolation-anomalies)).
+- El bloqueo en dos fases y sus deadlocks (lección [*Bloqueo en dos fases y deadlocks*](/es/databases/two-phase-locking)).
+
+</Stage>
+
+<Stage stage="theory">
+
+El bloqueo en dos fases hace que los lectores y los escritores se esperen. Casi todas las bases de datos actuales usan otra idea: **control de concurrencia multiversión** (MVCC).
+
+- **Versiones.** Escribir un dato no borra el valor anterior: añade una **versión** nueva. Las versiones confirmadas se guardan mientras alguien pueda necesitarlas.
+- **Instantánea.** Cuando una transacción empieza (con su primera operación), toma una instantánea. Todas sus lecturas ven las versiones **confirmadas antes de ese momento**, más sus propias escrituras. Lo que otras confirmen después le resulta invisible.
+- **Leer nunca espera**: la lectura solo elige la versión que le toca.
+- **Escribir sigue bloqueando**: escribir un dato toma su bloqueo exclusivo, como en Read Committed. Si otra transacción cambió ese dato y confirmó **después** de tu instantánea, tu escritura se basaría en una versión que nunca viste: la base de datos te aborta con un error de serialización. Esta regla se llama **gana el primero que actualiza**.
+
+Esto es lo que PostgreSQL ejecuta cuando pides `REPEATABLE READ`.
+
+> Ejemplo: `x = 100`. T1 empieza y lee 100. T2 escribe 150 y confirma. Si T1 vuelve a leer `x`, sigue viendo 100: la versión de su instantánea.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero empieza con el escenario **Guardia**. Alicia (`x`) y Bruno (`y`) son médicos y los dos están de guardia: `x = 1`, `y = 1`. La regla es que al menos uno debe quedarse. Cada uno, en su propia transacción, lee `x` e `y`, comprueba que `x + y ≥ 2` y solo entonces se va: escribe 0 en su fila.
+
+Corren con **instantáneas**, en este orden: Alicia lee las dos filas, Bruno lee las dos, los dos comprueban la regla, los dos escriben y los dos confirman.
+
+**¿Cuántos médicos quedarán de guardia?** Elige un valor en *Tu predicción* y di qué tan seguro estás antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="es" preset="onCall" scenarios={["onCall", "balance", "transfer"]} levels={["read-committed", "snapshot", "serializable-2pl"]} level="snapshot" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- En los turnos 1 y 3, cada transacción toma su instantánea. ¿Qué datos ve cada una?
+- En los turnos 5 y 6, cada una comprueba la regla. ¿Cuánto suma `x + y` para cada una?
+- En los turnos 7 y 8 escriben. ¿Escriben el mismo dato? ¿Espera alguien?
+
+</Stage>
+
+<Stage stage="explain">
+
+La respuesta era **0**: ningún médico de guardia, y ningún error en ningún momento.
+
+**Las instantáneas no son serializables.** Si dijiste que quedaría uno, pensaste que alguna de las dos vería el cambio de la otra. En cualquier orden en serie, el segundo médico vería solo uno de guardia y se quedaría. Pero las dos instantáneas se tomaron antes de que nadie escribiera, así que las dos comprobaciones ven dos de guardia. La regla de las instantáneas solo impide que dos transacciones escriban **el mismo** dato; aquí cada una escribió uno distinto, después de leer el de la otra. Esta anomalía se llama **sesgo de escritura** (*write skew*).
+
+**Comprobar la regla no basta.** Cada transacción, por separado, es correcta: comprobó la regla con los datos que veía. Juntas la rompen, porque cada una decidió con datos que la otra estaba a punto de cambiar.
+
+**Lo que sí evitan las instantáneas:**
+
+- **Lecturas sucias**: solo se ven versiones confirmadas.
+- **Lecturas no repetibles y sesgo de lectura**: todas las lecturas usan la misma instantánea. El informe de *Transferencia* ve 100 aunque la transferencia confirme mientras tanto (experimento 1).
+- **Actualizaciones perdidas**: gana el primero que actualiza, y el segundo se aborta (experimento 2).
+
+**Y lo hacen sin que los lectores esperen.** Con bloqueo en dos fases, la transferencia tenía que esperar al informe. Aquí nadie espera: cada uno lee su versión.
+
+**Pero no es gratis.** Dos escritores del mismo dato siguen esperándose, y cuando el primero confirma, el segundo se aborta. La aplicación tiene que reintentar, igual que con bloqueo en dos fases.
+
+**Cómo evitar el sesgo de escritura:**
+
+- **Bloqueo en dos fases**: los bloqueos compartidos de las lecturas hacen que las escrituras se bloqueen mutuamente, y una transacción se aborta (experimento 3).
+- **Hacer visible el conflicto**: leer las filas con `SELECT … FOR UPDATE`, para que la segunda transacción espere y luego falle, o hacer que las dos escriban una fila común.
+- **Serializable Snapshot Isolation**, el `SERIALIZABLE` de PostgreSQL: mantiene las lecturas de instantánea, pero sigue las dependencias entre lo que cada transacción lee y lo que otras escriben, y aborta una de un par peligroso.
+
+**En sistemas reales.** El `REPEATABLE READ` de PostgreSQL y el `SERIALIZABLE` de Oracle son aislamiento de instantánea. Las versiones viejas se limpian después (el `VACUUM` de PostgreSQL), y por eso una transacción muy larga las mantiene vivas y hace crecer las tablas.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Haz que el informe de <em>Transferencia</em> vea el total real sin que nadie espere.</summary>
+
+Elige *Transferencia* con *Instantánea* y deja el orden del escenario. El informe lee `x = 50` y, en el turno 7, lee `y = 50` de su instantánea, aunque la transferencia ya confirmó `y = 90`. Total: 100, sin ninguna espera.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Conserva los dos depósitos de <em>Saldo</em> con instantáneas.</summary>
+
+Solo en serie: T1, T1, T1, T2, T2, T2. Así T2 toma su instantánea después de que T1 confirme y lee 150. `x` termina en 170. Con cualquier solapamiento, el segundo en escribir encuentra una versión confirmada después de su instantánea y se aborta.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Consigue que quede al menos un médico de guardia sin cambiar los scripts.</summary>
+
+Cambia a *Serializable (bloqueo en dos fases)*: las escrituras se bloquean mutuamente, Bruno se aborta y Alicia se va; queda uno. Otra forma: con instantáneas, un orden en serie (Alicia cinco turnos, luego Bruno): Bruno ve `x + y = 1`, la regla falla y se deshace sin escribir.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="mvcc-snapshots"
+  questions={[
+    {
+      question: "¿El REPEATABLE READ de PostgreSQL (aislamiento de instantánea) da siempre el mismo resultado que algún orden en serie?",
+      options: ["Sí, es serializable", "No: permite el sesgo de escritura"],
+      answer: 1,
+      explanation: "Las instantáneas solo impiden que dos transacciones escriban el mismo dato. Si escriben datos distintos después de leer los de la otra, pueden romper una regla.",
+    },
+    {
+      question: "Dos transacciones comprueban una regla sobre dos filas y luego cada una actualiza una fila distinta. ¿Pueden romper la regla con instantáneas?",
+      options: ["No, las dos la comprobaron", "Sí: las dos comprobaciones ven la instantánea vieja y las escrituras no chocan"],
+      answer: 1,
+      explanation: "Es el caso de Guardia: cada una decide con datos que la otra está a punto de cambiar.",
+    },
+    {
+      question: "Un informe con instantáneas lee dos cuentas mientras se confirma una transferencia entre ellas. ¿Puede ver dinero que aparece o desaparece?",
+      options: ["Sí, como en Read Committed", "No: las dos lecturas salen de la misma instantánea"],
+      answer: 1,
+      explanation: "La instantánea fija qué versiones ve el informe, aunque otros confirmen cambios mientras tanto.",
+    },
+    {
+      question: "Dos transacciones con instantáneas leen x y luego las dos actualizan x. ¿Qué pasa?",
+      options: ["Se pierde una actualización", "La segunda espera a la primera y, cuando la primera confirma, se aborta", "Las dos confirman sin problemas"],
+      answer: 1,
+      explanation: "Gana el primero que actualiza: la segunda descubre que x cambió después de su instantánea.",
+    },
+    {
+      question: "T1 empieza. Después, T2 confirma x = 90. Más tarde, T1 lee x. ¿Qué valor ve?",
+      options: ["90", "El valor de antes de que T2 confirmara"],
+      answer: 1,
+      explanation: "T1 lee siempre de la instantánea que tomó al empezar; lo que T2 confirmó después le resulta invisible.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Dónde guarda PostgreSQL las versiones.** Cada fila lleva `xmin` y `xmax`, los identificadores de la transacción que la creó y de la que la borró o sustituyó. `VACUUM` recupera las versiones que ya nadie puede ver.
+- **Serializable Snapshot Isolation.** Busca la "estructura peligrosa": dos dependencias seguidas de lectura a escritura entre transacciones concurrentes (Cahill y otros, 2008; Ports y Grittner, 2012).
+- **Instantáneas por sentencia.** El Read Committed de PostgreSQL y de Oracle también usa versiones, pero toma una instantánea nueva en cada sentencia.
+- **Viajar en el tiempo.** Algunas bases de datos permiten leer los datos tal como estaban en una instantánea antigua.
+
+Para leer más:
+
+- Berenson y otros, *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995, sección 4.2. [Gratis en Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- Documentación de PostgreSQL, *Repeatable Read Isolation Level* y *Serializable Isolation Level*. [postgresql.org](https://www.postgresql.org/docs/current/transaction-iso.html).
+- Ports y Grittner, *Serializable Snapshot Isolation in PostgreSQL*, VLDB 2012.
+
+</Stage>
