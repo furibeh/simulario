@@ -75,7 +75,10 @@ export interface LastRead {
 export interface TxView {
   id: string;
   status: "active" | "blocked" | "committed" | "aborted";
-  /** Index of the next operation; script.length once finished. */
+  /**
+   * Index of the next operation; script.length once committed or rolled back. A deadlock victim
+   * keeps the index of the operation it was waiting for: it and the ones after it never ran.
+   */
   pc: number;
   waitsFor: ItemId | null;
   /** What it read last from each item, in item order. */

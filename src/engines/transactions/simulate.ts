@@ -363,7 +363,6 @@ export function simulate(input: TxInput): TxTrace {
           self.waitsFor = null;
           explain.push({ key: "deadlock", params: { tx: self.id, path } });
           deadlocks.push({ step: t, victim: self.id, path });
-          self.pc = self.script.length;
           end(self, "aborted");
         }
       }
