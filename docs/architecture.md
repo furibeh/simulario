@@ -46,6 +46,8 @@ src/
     address-translation/ AddressTranslation: address split in binary, TLB, page table, frames, disk, access log
     page-replacement/ PageReplacement: frame grid, FIFO queue / LRU list / OPT next uses / Clock dial, comparison table
     file-system/      FileSystem: script editor, bitmaps, directory, inode cards, data blocks, descriptors, output
+    transactions/     Transactions: scenario, isolation and write mode, order of turns, items (committed,
+                      uncommitted, lock and queue), transaction scripts, read and write logs
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     site/             Nav (with the language switch), ThemeToggle, PathMap
   i18n/
