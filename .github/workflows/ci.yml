@@ -31,3 +31,5 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      - name: Search index
+        run: node scripts/check-search-index.mjs
