@@ -1,0 +1,195 @@
+---
+title: Transacciones y anomalías de aislamiento
+summary: Dos depósitos, cada uno en su transacción, y uno desaparece. Intercala sus lecturas y escrituras y descubre qué protege una transacción y qué no.
+module: isolation
+order: 1
+minutes: 30
+prerequisites:
+  - race-conditions
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- Ayuda haber visto la actualización perdida entre hilos (lección [*Hilos y condiciones de carrera*](/es/operating-systems/race-conditions)), aunque no es imprescindible.
+- Saber que una tabla tiene filas con valores. De SQL solo aparecen `SELECT`, `UPDATE`, `COMMIT` y `ROLLBACK`, y la teoría los presenta.
+
+</Stage>
+
+<Stage stage="theory">
+
+Una **transacción** agrupa lecturas y escrituras. Termina de una de dos formas:
+
+- **`COMMIT`** (confirmar): todas sus escrituras pasan a ser permanentes y visibles a la vez.
+- **`ROLLBACK`** (deshacer): todas sus escrituras se descartan, como si no hubieran existido.
+
+Mientras no confirma, sus escrituras están **sin confirmar**.
+
+Una base de datos atiende muchas transacciones a la vez e intercala sus operaciones, igual que un sistema operativo intercala hilos. Dos reglas deciden qué pasa cuando se cruzan:
+
+**Bloqueos de escritura.** En todos los niveles, una transacción que escribe un dato lo **bloquea** hasta que confirma o deshace. Si otra quiere escribir el mismo dato, **espera**. Las lecturas, en cambio, nunca esperan.
+
+**Nivel de aislamiento.** Decide qué ve una lectura mientras otros escriben:
+
+| Nivel | Qué ve una lectura |
+| --- | --- |
+| Read Uncommitted | El valor más nuevo, aunque nadie lo haya confirmado. |
+| Read Committed | Solo valores confirmados, más las escrituras de la propia transacción. Es el nivel por defecto de PostgreSQL. |
+
+Muchos programas **leen un valor, calculan en la aplicación y escriben el resultado**: `SELECT saldo` y luego `UPDATE … SET saldo = 150`. La base de datos solo ve la lectura y la escritura; el cálculo de en medio ocurre fuera de ella.
+
+> Ejemplo: una sola transacción y `x = 100`. Lee 100 y escribe 150. Mientras no confirma, cualquier otra transacción en Read Committed sigue leyendo 100. Al confirmar, todas leen 150.
+
+</Stage>
+
+<Stage stage="predict">
+
+El tablero de abajo empieza con el escenario **Saldo**: `x` es un saldo de 100. T1 lee `x` y escribe `x + 50`; T2 lee `x` y escribe `x + 20`. Cada una corre en su propia transacción, en **Read Committed**, con este orden de turnos: T1 lee, T2 lee, T1 escribe, T1 confirma, T2 escribe, T2 confirma.
+
+**¿Cuánto valdrá `x` cuando las dos terminen?** Elige un valor en *Tu predicción* y di qué tan seguro estás antes de ejecutar.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="es" />
+
+Mientras avanza, fíjate en tres momentos:
+
+- En el turno 3, T1 escribe 150. ¿Lo ve alguien más? ¿Quién tiene el bloqueo de `x`?
+- En el turno 4, T1 confirma. ¿Qué pasa con el bloqueo?
+- En el turno 5, T2 escribe. ¿A partir de qué valor calculó lo que escribe? ¿Cuánto vale `x` confirmado en ese momento?
+
+Debajo del tablero, las lecturas muestran qué vio cada transacción y qué estaba confirmado en ese momento, y las escrituras marcan las que llegaron tarde.
+
+</Stage>
+
+<Stage stage="explain">
+
+Lo correcto era **120**. Se confirmaron dos depósitos y solo sobrevive uno: los 50 de T1 desaparecen.
+
+**Una transacción no impide que otra pise tus cambios.** En el turno 2, las dos ya han leído 100. T1 escribe 150 y confirma. En el turno 5, T2 escribe el 120 que calculó a partir de aquel 100, sin saber que `x` ya vale 150. Al confirmar, borra el depósito de T1. Esto se llama **actualización perdida**. Si dijiste 170, imaginaste que cada transacción trabaja sola; si dijiste 150, que gana la primera en confirmar.
+
+**Es la misma carrera de los hilos, un nivel más arriba.** Leer, calcular y escribir son el `load`, el `add` y el `store` de `counter++`. La diferencia es que aquí lo que se cuela en medio no es un cambio de hilo, sino la confirmación de otra transacción.
+
+**El bloqueo de escritura no lo evita.** El bloqueo solo impide que dos escrituras **sin confirmar** se pisen (una *escritura sucia*, que ningún nivel permite). T1 suelta el bloqueo al confirmar, antes de que T2 escriba. Y si T2 intenta escribir antes, espera… pero cuando le llega el bloqueo escribe igualmente su 120 calculado con datos viejos. Lo verás en el experimento 1.
+
+**Qué prohíbe cada nivel.** El estándar SQL define los niveles por las anomalías que no permiten. Read Uncommitted permite **lecturas sucias**: leer un valor que su autor todavía puede deshacer. Read Committed las prohíbe, pero permite la actualización perdida, las **lecturas no repetibles** (leer dos veces el mismo dato y obtener valores distintos) y el **sesgo de lectura**: ver una parte de los datos antes de un cambio y otra parte después. Los niveles más altos los prohíben, y los dos módulos siguientes muestran dos formas de conseguirlo.
+
+**Una lectura sucia puede ver algo que nunca existió.** Si T1 escribe 150 y luego se deshace, una transacción en Read Uncommitted que leyó ese 150 trabajó con un valor que la base de datos nunca contuvo. PostgreSQL acepta `READ UNCOMMITTED` pero lo ejecuta como Read Committed; MySQL y SQL Server sí permiten lecturas sucias.
+
+**Read Committed decide lectura a lectura.** Un informe que suma dos cuentas mientras alguien transfiere dinero entre ellas puede leer una antes de la transferencia y la otra después, y sumar dinero que nunca estuvo junto.
+
+**Se arregla sin cambiar de nivel:**
+
+- **Que sume la base de datos**: `UPDATE cuentas SET saldo = saldo + 20`. La segunda transacción espera el bloqueo y, cuando lo obtiene, PostgreSQL vuelve a leer el último valor confirmado antes de sumar: 150 + 20 = 170. Es el `inc` atómico de los hilos.
+- **Bloquear al leer**: `SELECT … FOR UPDATE` toma el bloqueo de escritura en la lectura, así que la lectura de T2 espera a que T1 confirme y devuelve 150.
+- **Subir de nivel**: en Repeatable Read de PostgreSQL, la segunda transacción aborta con un error de serialización y hay que reintentarla (módulo 7). Con bloqueo en dos fases, las lecturas también bloquean (módulo 6).
+
+**En sistemas reales.** PostgreSQL y Oracle usan Read Committed por defecto; MySQL con InnoDB, Repeatable Read. Muchas aplicaciones que usan un ORM leen un objeto, cambian un campo y lo guardan: exactamente el patrón de *Saldo*.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Usa el tablero para resolver estos retos. Cada uno tiene una solución posible al desplegarlo.
+
+<details>
+<summary><strong>1.</strong> Haz que la escritura de T2 tenga que esperar el bloqueo de T1, y que aun así se pierda el depósito de T1.</summary>
+
+En *Saldo*, borra el orden y elige T1, T2, T1, T2, T1, T2. En el turno 4, T2 intenta escribir y espera porque T1 tiene el bloqueo. Cuando T1 confirma, T2 obtiene el bloqueo y escribe el 120 que calculó a partir de 100. El resultado sigue siendo 120.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Haz que T2 lea un saldo que nunca existió.</summary>
+
+Elige *Lectura sucia* con Read Uncommitted. T2 lee el 150 que T1 escribió sin confirmar, y luego T1 se deshace: `x` nunca valió 150. Cambia a Read Committed y repite: T2 lee 100.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Haz que el informe vea más dinero del que hay.</summary>
+
+Elige *Transferencia* con Read Committed. El informe T1 lee `x = 50` antes de la transferencia e `y = 90` después de que T2 confirme: suma 140, aunque entre las dos cuentas siempre hay 100.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Conserva los dos depósitos de <em>Saldo</em> sin cambiar el nivel de aislamiento ni el orden de los turnos.</summary>
+
+En *Cómo suma cada depósito*, elige *La base de datos suma* (`UPDATE x = x + 50`): T2 espera el bloqueo y suma 20 al 150 ya confirmado. O elige *Lee con FOR UPDATE*: la lectura de T2 espera a que T1 confirme y devuelve 150. En los dos casos, `x` termina en 170.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="es"
+  lessonId="isolation-anomalies"
+  questions={[
+    {
+      question: "Dos compras en Read Committed leen stock = 5, calculan 4 en la aplicación y lo escriben, cada una en su transacción. ¿Cuál es el stock final?",
+      options: ["3", "4", "5"],
+      answer: 1,
+      explanation: "4: la segunda escritura se calculó a partir del 5 original y borra la primera. Se pierde una venta.",
+    },
+    {
+      question: "En Read Uncommitted, T2 lee un saldo que escribió T1, y luego T1 hace ROLLBACK. ¿Qué leyó T2?",
+      options: ["El saldo correcto, solo un poco antes", "Un valor que nunca existió en la base de datos", "El saldo anterior"],
+      answer: 1,
+      explanation: "T1 se deshizo, así que ese valor nunca llegó a confirmarse: T2 trabajó con algo que no existió.",
+    },
+    {
+      question: "En Read Committed, ¿puede una transacción leer la misma fila dos veces y obtener valores distintos?",
+      options: ["No, una transacción ve siempre lo mismo", "Sí, si otra transacción confirma un cambio entre las dos lecturas"],
+      answer: 1,
+      explanation: "Read Committed elige el último valor confirmado en cada lectura. Es una lectura no repetible.",
+    },
+    {
+      question: "La base de datos bloquea x cuando T1 lo escribe. ¿Por qué T2 sigue pisando el depósito de T1?",
+      options: [
+        "Porque el bloqueo solo impide otras escrituras hasta que T1 confirma; después T2 escribe un valor que calculó antes",
+        "Porque los bloqueos no funcionan en Read Committed",
+        "Porque T2 ignora los bloqueos",
+      ],
+      answer: 0,
+      explanation: "El bloqueo protege las escrituras sin confirmar, no la lectura que T2 hizo antes de calcular.",
+    },
+    {
+      question: "¿Qué cambio conserva los dos depósitos sin salir de Read Committed?",
+      options: ["Confirmar más rápido", "UPDATE … SET saldo = saldo + 20", "Leer el saldo dos veces"],
+      answer: 1,
+      explanation: "La base de datos suma sobre el último valor confirmado cuando obtiene el bloqueo. Leer con FOR UPDATE también funciona.",
+    },
+    {
+      question: "En Read Uncommitted, ¿pueden dos transacciones tener a la vez una escritura sin confirmar sobre la misma fila?",
+      options: ["Sí, es lo que permite ese nivel", "No: en todos los niveles la segunda escritura espera el bloqueo"],
+      answer: 1,
+      explanation: "Las escrituras sucias no se permiten en ningún nivel: el bloqueo de escritura dura hasta confirmar o deshacer.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Fantasmas.** Un `WHERE` que, repetido, encuentra una fila que otra transacción insertó entre medias. Los bloqueos de fila no lo impiden; los bloqueos de predicado o de rango sí. Este tablero trabaja con datos sueltos y no los simula.
+- **Concurrencia optimista en la aplicación.** Una columna `version` que el `UPDATE` comprueba en su `WHERE`: si alguien la cambió desde que leíste, la escritura no afecta a ninguna fila y sabes que tienes que reintentar.
+- **Niveles intermedios.** *Cursor Stability* y la *Read Consistency* de Oracle quedan entre Read Committed y Repeatable Read.
+- **Definiciones más precisas.** Adya propuso definir el aislamiento con ciclos en un grafo de dependencias (G0, G1, G2). De ahí vienen los nombres de las pruebas de Hermitage.
+
+Para leer más:
+
+- Berenson, Bernstein, Gray, Melton, O'Neil y O'Neil, *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995. [Gratis en Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- Kleppmann, *Hermitage: testing transaction isolation levels*. [github.com/ept/hermitage](https://github.com/ept/hermitage).
+- Documentación de PostgreSQL, *Transaction Isolation* y *Explicit Locking*. [postgresql.org](https://www.postgresql.org/docs/current/transaction-iso.html).
+
+</Stage>

@@ -6,7 +6,7 @@
 | Path / module  | Databases (`databases`) / 5, Transactions and isolation |
 | Engine         | `src/engines/transactions/`                             |
 | Estimated time | 30 minutes                                              |
-| Status         | Draft                                                   |
+| Status         | Written                                                 |
 
 The simulation is a **transaction board**: two or three transactions run short scripts of reads and writes against one to three data items, one operation per turn, in an order the lesson (or the learner) chooses. Each transaction shows its script, its program counter and the values it has read. Each item shows its committed value, the uncommitted value someone is writing (if any), who holds its write lock and who waits for it. A read log records what every read returned and what was committed at that moment, and a write computed from an out-of-date read is marked as stale.
 
@@ -284,7 +284,7 @@ On seeded random inputs (2–3 transactions, 1–3 items, random valid orders ru
 
 ## Translations
 
-| Language | File                                             | Status      |
-| -------- | ------------------------------------------------ | ----------- |
-| es       | `src/content/lessons/es/isolation-anomalies.mdx` | Not started |
-| en       | `src/content/lessons/en/isolation-anomalies.mdx` | Not started |
+| Language | File                                             | Status             |
+| -------- | ------------------------------------------------ | ------------------ |
+| es       | `src/content/lessons/es/isolation-anomalies.mdx` | Written, in review |
+| en       | `src/content/lessons/en/isolation-anomalies.mdx` | Written, in review |

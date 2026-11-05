@@ -1,0 +1,195 @@
+---
+title: Transactions and isolation anomalies
+summary: Two deposits, each in its own transaction, and one of them vanishes. Interleave their reads and writes and find out what a transaction protects and what it does not.
+module: isolation
+order: 1
+minutes: 30
+prerequisites:
+  - race-conditions
+---
+
+import Transactions from "../../../components/transactions/Transactions.svelte";
+import Quiz from "../../../components/lesson/Quiz.svelte";
+import Stage from "../../../components/lesson/Stage.astro";
+
+<Stage stage="prerequisites">
+
+- It helps to have seen the lost update between threads (lesson [*Threads and race conditions*](/en/operating-systems/race-conditions)), but it is not required.
+- Knowing that a table has rows with values. The only SQL used is `SELECT`, `UPDATE`, `COMMIT` and `ROLLBACK`, and the theory introduces them.
+
+</Stage>
+
+<Stage stage="theory">
+
+A **transaction** groups reads and writes. It ends in one of two ways:
+
+- **`COMMIT`**: all its writes become permanent and visible at once.
+- **`ROLLBACK`**: all its writes are discarded, as if they had never happened.
+
+Until it commits, its writes are **uncommitted**.
+
+A database serves many transactions at the same time and interleaves their operations, just as an operating system interleaves threads. Two rules decide what happens when they cross:
+
+**Write locks.** At every level, a transaction that writes an item **locks** it until it commits or rolls back. If another one wants to write the same item, it **waits**. Reads, on the other hand, never wait.
+
+**Isolation level.** It decides what a read sees while others are writing:
+
+| Level | What a read sees |
+| --- | --- |
+| Read Uncommitted | The newest value, even if nobody has committed it. |
+| Read Committed | Only committed values, plus the transaction's own writes. It is PostgreSQL's default. |
+
+Many programs **read a value, compute in the application and write the result**: `SELECT balance`, then `UPDATE … SET balance = 150`. The database only sees the read and the write; the computation in between happens outside it.
+
+> Example: a single transaction and `x = 100`. It reads 100 and writes 150. Until it commits, any other transaction in Read Committed still reads 100. Once it commits, they all read 150.
+
+</Stage>
+
+<Stage stage="predict">
+
+The board below starts with the **Balance** scenario: `x` is a balance of 100. T1 reads `x` and writes `x + 50`; T2 reads `x` and writes `x + 20`. Each runs in its own transaction, under **Read Committed**, with this order of turns: T1 reads, T2 reads, T1 writes, T1 commits, T2 writes, T2 commits.
+
+**What will `x` be when both finish?** Choose a value in *Your prediction* and say how sure you are before you run it.
+
+</Stage>
+
+<Stage stage="run">
+
+<Transactions client:visible lang="en" />
+
+As it runs, watch three moments:
+
+- On turn 3, T1 writes 150. Can anyone else see it? Who holds the lock on `x`?
+- On turn 4, T1 commits. What happens to the lock?
+- On turn 5, T2 writes. Which value did it compute its write from? What is the committed `x` at that moment?
+
+Below the board, the reads show what each transaction saw and what was committed at the time, and the writes flag the ones that came too late.
+
+</Stage>
+
+<Stage stage="explain">
+
+The right answer was **120**. Two deposits were committed and only one survives: T1's 50 disappears.
+
+**A transaction does not stop another one from overwriting your changes.** By turn 2, both have read 100. T1 writes 150 and commits. On turn 5, T2 writes the 120 it computed from that 100, unaware that `x` is already 150. When it commits, it erases T1's deposit. This is a **lost update**. If you said 170, you pictured each transaction working alone; if you said 150, you thought the first to commit wins.
+
+**It is the same race as with threads, one level up.** Read, compute and write are the `load`, `add` and `store` of `counter++`. The difference is that what slips in between is not a thread switch but another transaction's commit.
+
+**The write lock does not prevent it.** The lock only stops two **uncommitted** writes from overwriting each other (a *dirty write*, which no level allows). T1 releases the lock when it commits, before T2 writes. And if T2 tries to write earlier, it waits… but once it gets the lock it still writes its 120, computed from old data. You will see it in experiment 1.
+
+**What each level forbids.** The SQL standard defines the levels by the anomalies they rule out. Read Uncommitted allows **dirty reads**: reading a value its writer can still roll back. Read Committed forbids them, but allows the lost update, **non-repeatable reads** (reading the same item twice and getting different values) and **read skew**: seeing one part of the data before a change and another part after it. Higher levels forbid these, and the next two modules show two ways to get there.
+
+**A dirty read can see something that never existed.** If T1 writes 150 and then rolls back, a transaction in Read Uncommitted that read that 150 worked with a value the database never held. PostgreSQL accepts `READ UNCOMMITTED` but runs it as Read Committed; MySQL and SQL Server do allow dirty reads.
+
+**Read Committed decides read by read.** A report that adds up two accounts while someone transfers money between them can read one before the transfer and the other after it, and add up money that was never there at the same time.
+
+**You can fix it without changing the level:**
+
+- **Let the database add**: `UPDATE accounts SET balance = balance + 20`. The second transaction waits for the lock and, once it has it, PostgreSQL re-reads the newest committed value before adding: 150 + 20 = 170. It is the atomic `inc` from the threads lesson.
+- **Lock when reading**: `SELECT … FOR UPDATE` takes the write lock at the read, so T2's read waits until T1 commits and returns 150.
+- **Raise the level**: under PostgreSQL's Repeatable Read, the second transaction aborts with a serialization error and has to be retried (module 7). With two-phase locking, reads take locks too (module 6).
+
+**In real systems.** PostgreSQL and Oracle default to Read Committed; MySQL with InnoDB, to Repeatable Read. Many applications that use an ORM load an object, change a field and save it: exactly the *Balance* pattern.
+
+</Stage>
+
+<Stage stage="experiment">
+
+Use the board to solve these challenges. Each one has a possible solution when you expand it.
+
+<details>
+<summary><strong>1.</strong> Make T2's write wait for T1's lock, and still lose T1's deposit.</summary>
+
+In *Balance*, clear the order and choose T1, T2, T1, T2, T1, T2. On turn 4, T2 tries to write and waits because T1 holds the lock. When T1 commits, T2 gets the lock and writes the 120 it computed from 100. The result is still 120.
+
+</details>
+
+<details>
+<summary><strong>2.</strong> Make T2 read a balance that never existed.</summary>
+
+Choose *Dirty read* with Read Uncommitted. T2 reads the 150 that T1 wrote without committing, and then T1 rolls back: `x` was never 150. Switch to Read Committed and run it again: T2 reads 100.
+
+</details>
+
+<details>
+<summary><strong>3.</strong> Make the report see more money than there is.</summary>
+
+Choose *Transfer* with Read Committed. The report T1 reads `x = 50` before the transfer and `y = 90` after T2 commits: it adds up to 140, although the two accounts always hold 100 between them.
+
+</details>
+
+<details>
+<summary><strong>4.</strong> Keep both deposits in <em>Balance</em> without changing the isolation level or the order of turns.</summary>
+
+Under *How each deposit adds*, choose *The database adds* (`UPDATE x = x + 50`): T2 waits for the lock and adds 20 to the already committed 150. Or choose *Read with FOR UPDATE*: T2's read waits until T1 commits and returns 150. Either way, `x` ends at 170.
+
+</details>
+
+</Stage>
+
+<Stage stage="check">
+
+<Quiz
+  client:visible
+  lang="en"
+  lessonId="isolation-anomalies"
+  questions={[
+    {
+      question: "Two checkouts under Read Committed read stock = 5, compute 4 in the application and write it, each in its own transaction. What is the final stock?",
+      options: ["3", "4", "5"],
+      answer: 1,
+      explanation: "4: the second write was computed from the original 5 and erases the first. One sale is lost.",
+    },
+    {
+      question: "Under Read Uncommitted, T2 reads a balance written by T1, and then T1 rolls back. What did T2 read?",
+      options: ["The right balance, just a little early", "A value that never existed in the database", "The previous balance"],
+      answer: 1,
+      explanation: "T1 rolled back, so that value was never committed: T2 worked with something that did not exist.",
+    },
+    {
+      question: "Under Read Committed, can a transaction read the same row twice and get different values?",
+      options: ["No, a transaction always sees the same data", "Yes, if another transaction commits a change between the two reads"],
+      answer: 1,
+      explanation: "Read Committed picks the newest committed value at each read. It is a non-repeatable read.",
+    },
+    {
+      question: "The database locks x when T1 writes it. Why does T2 still overwrite T1's deposit?",
+      options: [
+        "Because the lock only blocks other writes until T1 commits; then T2 writes a value it computed earlier",
+        "Because locks do not work under Read Committed",
+        "Because T2 ignores locks",
+      ],
+      answer: 0,
+      explanation: "The lock protects uncommitted writes, not the read T2 made before computing.",
+    },
+    {
+      question: "Which change keeps both deposits without leaving Read Committed?",
+      options: ["Committing faster", "UPDATE … SET balance = balance + 20", "Reading the balance twice"],
+      answer: 1,
+      explanation: "The database adds to the newest committed value once it gets the lock. Reading with FOR UPDATE works too.",
+    },
+    {
+      question: "Under Read Uncommitted, can two transactions both have an uncommitted write on the same row at the same time?",
+      options: ["Yes, that is what the level allows", "No: at every level the second write waits for the lock"],
+      answer: 1,
+      explanation: "No level allows dirty writes: the write lock lasts until commit or rollback.",
+    },
+  ]}
+/>
+
+</Stage>
+
+<Stage stage="deeper">
+
+- **Phantoms.** A `WHERE` that, when repeated, finds a row another transaction inserted in between. Row locks do not prevent it; predicate or range locks do. This board works with individual items and does not simulate them.
+- **Optimistic concurrency in the application.** A `version` column that the `UPDATE` checks in its `WHERE`: if someone changed it since you read it, the write matches no row and you know you have to retry.
+- **Levels in between.** *Cursor Stability* and Oracle's *Read Consistency* sit between Read Committed and Repeatable Read.
+- **More precise definitions.** Adya proposed defining isolation by cycles in a dependency graph (G0, G1, G2). Hermitage's test names come from there.
+
+Further reading:
+
+- Berenson, Bernstein, Gray, Melton, O'Neil and O'Neil, *A Critique of ANSI SQL Isolation Levels*, SIGMOD 1995. [Free at Microsoft Research](https://www.microsoft.com/en-us/research/publication/a-critique-of-ansi-sql-isolation-levels/).
+- Kleppmann, *Hermitage: testing transaction isolation levels*. [github.com/ept/hermitage](https://github.com/ept/hermitage).
+- PostgreSQL documentation, *Transaction Isolation* and *Explicit Locking*. [postgresql.org](https://www.postgresql.org/docs/current/transaction-iso.html).
+
+</Stage>
