@@ -10,15 +10,17 @@ interface Props {
   description?: string | undefined;
   ogType?: "website" | "article" | undefined;
   indexable?: boolean | undefined;
+  /** False keeps the page out of the site search index. Defaults to `indexable`. */
+  searchable?: boolean | undefined;
 }
 
-const { lang, title, description, ogType, indexable } = Astro.props;
+const { lang, title, description, ogType, indexable = true, searchable = indexable } = Astro.props;
 const t = useTranslations(lang);
 ---
 
 <Base lang={lang} title={title} description={description} ogType={ogType} indexable={indexable}>
   <Nav lang={lang} />
-  <main class="page main">
+  <main class="page main" data-pagefind-body={searchable ? "" : undefined}>
     <slot />
   </main>
   <footer class="page footer">

@@ -1,0 +1,9 @@
+# Pagefind builds one search index per language (from <html lang>) after `astro build`.
+# See docs/architecture.md, "Search". Only pages with data-pagefind-body are indexed.
+site: dist
+exclude_selectors:
+  # Islands render their HTML on the server: boards, the home demo, Quiz questions and options.
+  - "astro-island"
+  - ".sim"
+  # Experiment challenges are indexed; their solutions (the rest of each <details>) are not.
+  - ".experiment details > *:not(summary)"

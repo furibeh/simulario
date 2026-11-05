@@ -49,7 +49,12 @@ const lessonsByModule = pathModules.map((m) => {
 ---
 
 <Page lang={lang} title={`${path.data.title[lang]} | ${t("site.name")}`} description={path.data.summary[lang]}>
-  <header class="head">
+  <header
+    class="head"
+    data-pagefind-meta="path_id[data-path-id], path[data-path-title]"
+    data-path-id={pathId}
+    data-path-title={path.data.title[lang]}
+  >
     <h1>{path.data.title[lang]}</h1>
     <p class="summary">{path.data.summary[lang]}</p>
   </header>

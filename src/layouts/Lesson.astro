@@ -15,6 +15,7 @@ interface Props {
   summary: string;
   minutes: number;
   pathId: string;
+  pathTitle: string;
   moduleTitle: string;
   moduleOrder: number;
 }
@@ -28,14 +29,28 @@ const {
   summary,
   minutes,
   pathId,
+  pathTitle,
   moduleTitle,
   moduleOrder,
 } = Astro.props;
 const t = useTranslations(lang);
 ---
 
-<Page lang={lang} title={`${title} | ${t("site.name")}`} description={summary} ogType="article">
-  <header class="lesson-head" lang={contentLang}>
+<Page
+  lang={lang}
+  title={`${title} | ${t("site.name")}`}
+  description={summary}
+  ogType="article"
+  searchable={!isFallback}
+>
+  <header
+    class="lesson-head"
+    lang={contentLang}
+    data-pagefind-meta="path_id[data-path-id], path[data-path-title], module[data-module-title]"
+    data-path-id={pathId}
+    data-path-title={pathTitle}
+    data-module-title={`${t("path.module", { n: moduleOrder })}: ${moduleTitle}`}
+  >
     <a class="module" href={localizedPath(lang, pathId)}>
       {t("path.module", { n: moduleOrder })}: {moduleTitle}
     </a>
@@ -53,7 +68,7 @@ const t = useTranslations(lang);
   }
 
   <div class="lesson" data-lesson={lessonId}>
-    <nav class="track" aria-label={t("lesson.stages")}>
+    <nav class="track" data-pagefind-ignore aria-label={t("lesson.stages")}>
       <ol>
         {
           stepperStages.map((stage, i) => (
@@ -82,7 +97,7 @@ const t = useTranslations(lang);
       </div>
     </nav>
 
-    <p class="visually-hidden" aria-live="polite" data-unlock-status data-message={t("lesson.unlocked")}></p>
+    <p class="visually-hidden" aria-live="polite" data-pagefind-ignore data-unlock-status data-message={t("lesson.unlocked")}></p>
 
     <article class="lesson-body" lang={contentLang}>
       <slot />

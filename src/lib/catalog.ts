@@ -30,7 +30,7 @@ export async function getCatalog() {
 
 /** Every lesson slug with the entry to show in each locale (falling back to another language). */
 export async function getLessonPages() {
-  const { modules, lessons } = await getCatalog();
+  const { paths, modules, lessons } = await getCatalog();
   const slugs = [...new Set(lessons.map((l) => splitLessonId(l.id).slug))];
   return slugs.flatMap((slug) =>
     locales.map((lang) => {
@@ -39,12 +39,15 @@ export async function getLessonPages() {
       if (!entry) throw new Error(`Lesson ${slug} has no content`);
       const module = modules.find((m) => m.id === entry.data.module.id);
       if (!module) throw new Error(`Lesson ${slug} points to a missing module`);
+      const path = paths.find((p) => p.id === module.data.path.id);
+      if (!path) throw new Error(`Module ${module.id} points to a missing path`);
       return {
         lang,
         slug,
         entry,
         module,
-        pathId: module.data.path.id,
+        path,
+        pathId: path.id,
         contentLang: splitLessonId(entry.id).lang as Locale,
         isFallback: !own,
       };

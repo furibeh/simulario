@@ -23,7 +23,7 @@ const { lang, modules, label } = Astro.props;
 const t = useTranslations(lang);
 ---
 
-<ol class="map" aria-label={label}>
+<ol class="map" aria-label={label} data-pagefind-ignore>
   {
     modules.map((m, i) => {
       const slot = slotForIndex(i);
