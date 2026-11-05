@@ -15,9 +15,19 @@ The first path is **Operating systems**, with one lesson per module, each built 
 | 7. Page replacement            | `page-replacement` | FIFO, LRU, OPT and Clock, with Belady's anomaly                               |
 | 8. File systems                | `inodes-links`     | Directory, inodes and blocks under `link`, `symlink`, `unlink` and open files |
 
+The second path, **Databases**, explains how a database works on the inside. Three of its eight modules are available, all on one transactions simulation:
+
+| Module                 | Lesson id             | Simulation                                                                          |
+| ---------------------- | --------------------- | ----------------------------------------------------------------------------------- |
+| 5. Isolation anomalies | `isolation-anomalies` | Two or three transactions on shared rows under Read Uncommitted and Read Committed  |
+| 6. Two-phase locking   | `two-phase-locking`   | Shared and exclusive locks, wait queues and a deadlock detector that picks a victim |
+| 7. MVCC and snapshots  | `mvcc-snapshots`      | Version chains, snapshots, first updater wins and write skew                        |
+
+Buffer pool, B+ trees, access paths, joins and recovery are planned.
+
 Each lesson has a spec in [`docs/lessons/`](docs/lessons/) with its objectives, misconceptions and hand-computed expected results.
 
-> Status: Phase 1 content complete (all 8 modules of Operating systems). Live at **[simulario.pages.dev](https://simulario.pages.dev)**.
+> Status: Phase 3 under way. Operating systems is complete (8 modules); Databases has 3 of 8 modules. Live at **[simulario.pages.dev](https://simulario.pages.dev)**.
 
 ## Stack
 
@@ -70,6 +80,8 @@ Code: [MIT](LICENSE). Lesson content: [CC BY-SA 4.0](LICENSE-CONTENT).
 Simulario es un sitio gratuito de rutas de aprendizaje interactivas de ingeniería de sistemas y software, en español e inglés. Está publicado en **[simulario.pages.dev](https://simulario.pages.dev)**. Cada lección sigue el método **Predecir → Ejecutar → Explicar**: anticipas qué hará el sistema, lo ves ocurrir paso a paso y luego entiendes por qué.
 
 La primera ruta es **Sistemas operativos**: ocho módulos, cada uno con una lección y su propia simulación (estados de procesos, planificación de CPU, condiciones de carrera, semáforos, interbloqueo, paginación, reemplazo de páginas e inodos y enlaces).
+
+La segunda ruta es **Bases de datos** y explica cómo funciona una base de datos por dentro. Tiene tres de sus ocho módulos: anomalías de aislamiento, bloqueo en dos fases y MVCC con instantáneas. Faltan el gestor de búferes, los árboles B+, los índices, los joins y la recuperación.
 
 Para correrlo localmente necesitas Node (versión en `.nvmrc`) y pnpm:
 

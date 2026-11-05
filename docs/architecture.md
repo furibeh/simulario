@@ -199,7 +199,7 @@ pages:   { id: "<lang>/<slug>", title, description }   // standalone MDX pages
 
 A path's modules are the modules whose `path` points to it, sorted by `order`. Lesson `prerequisites` are lesson slugs kept as plain strings, not references, so a lesson can name a prerequisite that is still planned (`cpu-scheduling` lists `process-states`). Pages must not assume every prerequisite exists.
 
-A path with `draft: true` is built by `pnpm dev` but left out of production builds, together with its modules and lessons (`withoutDrafts` in `src/lib/drafts.ts`, applied by `getCatalog()`). Its pages, home card and sitemap entries appear only when the flag is removed. The Databases path (`databases`) is a draft while its first modules are written.
+A path with `draft: true` is built by `pnpm dev` but left out of production builds, together with its modules and lessons (`withoutDrafts` in `src/lib/drafts.ts`, applied by `getCatalog()`). Its pages, home card and sitemap entries appear only when the flag is removed. No path is a draft today; the Databases path (`databases`) used the flag until its first three modules were available.
 
 A lesson's MDX body wraps each PEE stage in `<Stage stage="…">`: `prerequisites`, `theory`, `predict`, `run`, `explain`, `experiment`, `check` and `deeper` (`src/components/lesson/stages.ts`). `Lesson.astro` builds the stepper from them. "I already know the theory" is an in-page link to the Predict stage.
 
