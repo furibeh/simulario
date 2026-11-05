@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   groupResults,
   isSearchShortcut,
+  matchesQuery,
   parseExcerpt,
   resultCountKey,
   resultHref,
@@ -130,6 +131,42 @@ describe("groupResults", () => {
 
   it("returns no groups for no hits", () => {
     expect(groupResults([], "en")).toEqual([]);
+  });
+});
+
+describe("matchesQuery", () => {
+  const withExcerpt = (excerpt: string): SearchHit => ({
+    href: "/en/x",
+    title: "x",
+    excerpt: parseExcerpt(excerpt),
+  });
+
+  it("keeps hits whose marks start like a query word", () => {
+    expect(matchesQuery(withExcerpt("two <mark>snapshots.</mark> here"), "snapshot")).toBe(true);
+    expect(matchesQuery(withExcerpt("the <mark>lockdep</mark> tool"), "lock")).toBe(true);
+    expect(matchesQuery(withExcerpt("varios <mark>procesos</mark>"), "proceso")).toBe(true);
+  });
+
+  it("ignores case, accents and punctuation", () => {
+    expect(matchesQuery(withExcerpt("una <mark>(Instantánea).</mark>"), "instantanea")).toBe(true);
+    expect(matchesQuery(withExcerpt("<mark>MVCC</mark> keeps versions"), "mvcc")).toBe(true);
+  });
+
+  it("drops Pagefind's prefix fallbacks", () => {
+    expect(matchesQuery(withExcerpt("Process <mark>Z</mark> waits"), "zzqqxx")).toBe(false);
+    expect(matchesQuery(withExcerpt("locking <mark>(2PL),</mark> every"), "planificador")).toBe(
+      false,
+    );
+    expect(matchesQuery(withExcerpt("<mark>s</mark> and <mark>s</mark>"), "snapshto")).toBe(false);
+  });
+
+  it("needs only one query word to match", () => {
+    expect(matchesQuery(withExcerpt("a <mark>deadlock</mark>"), "zzz deadlock")).toBe(true);
+  });
+
+  it("keeps hits with no marks, or for a blank query", () => {
+    expect(matchesQuery(withExcerpt("nothing marked"), "deadlock")).toBe(true);
+    expect(matchesQuery(withExcerpt("<mark>Z</mark>"), "  ")).toBe(true);
   });
 });
 

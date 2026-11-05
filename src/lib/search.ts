@@ -121,6 +121,37 @@ export function groupResults(hits: readonly SearchHit[], lang: Locale): SearchGr
   return [...groups.values()];
 }
 
+/** Lowercase, without diacritics or surrounding punctuation: "(Instantánea)." → "instantanea". */
+function normalizeWord(word: string): string {
+  return word
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+}
+
+const PREFIX = 3;
+
+/**
+ * Whether a hit really matched the query. When no indexed word matches a query word, Pagefind
+ * falls back to the longest prefix it does know, down to one letter, so "zzqqxx" finds a page
+ * for its "Z". A hit is kept when one of its marked words starts like a query word (the first
+ * three letters, ignoring case and accents), which still allows stems ("procesos" → "proceso").
+ * Hits whose excerpt marks nothing are kept: there is nothing to judge.
+ */
+export function matchesQuery(hit: SearchHit, query: string): boolean {
+  const marked = hit.excerpt.filter((s) => s.marked).flatMap((s) => s.text.split(/\s+/));
+  const prefixes = query
+    .split(/\s+/)
+    .map(normalizeWord)
+    .filter(Boolean)
+    .map((word) => word.slice(0, PREFIX));
+  if (marked.length === 0 || prefixes.length === 0) return true;
+  return marked
+    .map(normalizeWord)
+    .some((word) => prefixes.some((prefix) => word.startsWith(prefix)));
+}
+
 /** Interface key for the number of results, by the locale's plural rules. */
 export function resultCountKey(count: number, lang: Locale): SearchCountKey {
   if (count === 0) return "search.count.none";
