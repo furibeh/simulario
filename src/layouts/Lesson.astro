@@ -51,7 +51,7 @@ const t = useTranslations(lang);
     data-path-title={pathTitle}
     data-module-title={`${t("path.module", { n: moduleOrder })}: ${moduleTitle}`}
   >
-    <a class="module" href={localizedPath(lang, pathId)}>
+    <a class="module" href={localizedPath(lang, pathId)} data-pagefind-ignore>
       {t("path.module", { n: moduleOrder })}: {moduleTitle}
     </a>
     <h1>{title}</h1>
