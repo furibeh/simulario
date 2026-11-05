@@ -10,9 +10,12 @@ import { simulate as replace } from "./page-replacement/simulate";
 import { simulate as race } from "./race-conditions/simulate";
 import { philosophers } from "./resource-graph/presets";
 import { simulate as resourceGraph } from "./resource-graph/simulate";
+import { presets as txPresets } from "./transactions/presets";
+import { simulate as transact } from "./transactions/simulate";
+import type { Isolation, Operation as TxOperation } from "./transactions/types";
 
 /**
- * External cross-check: traces published in Arpaci-Dusseau and Arpaci-Dusseau, "Operating Systems:
+ * External cross-check, operating systems: traces published in Arpaci-Dusseau and Arpaci-Dusseau, "Operating Systems:
  * Three Easy Pieces" (v1.10), transcribed from the book's figures, not from any engine output.
  * https://pages.cs.wisc.edu/~remzi/OSTEP/
  */
@@ -209,5 +212,184 @@ describe("OSTEP ch. 39, §39.14 and §39.15 (hard and symbolic links)", () => {
       { step: 3, kind: "content", content: "hello" },
       { step: 5, kind: "error", content: "" },
     ]);
+  });
+});
+
+/**
+ * External cross-check, databases: histories published in Berenson et al., "A Critique of ANSI SQL
+ * Isolation Levels" (SIGMOD 1995, MSR-TR-95-51), and Kleppmann's Hermitage tests for PostgreSQL
+ * (https://github.com/ept/hermitage, postgres.md), transcribed from the sources, not from any
+ * engine output. Mapping rules: docs/lessons/isolation-anomalies.md, "External cross-check".
+ */
+
+const r = (item: "x" | "y"): TxOperation => ({ op: "read", item });
+const w = (item: "x" | "y", value: number): TxOperation => ({ op: "write", item, value });
+const wr = (item: "x" | "y", delta: number): TxOperation => ({ op: "writeFromRead", item, delta });
+const commit: TxOperation = { op: "commit" };
+const abort: TxOperation = { op: "abort" };
+
+function history(
+  items: number[],
+  transactions: TxOperation[][],
+  order: string,
+  isolation: Isolation = "read-committed",
+) {
+  return transact({ items, transactions, isolation, order: order.split(" ") }).result;
+}
+const readsOf = (result: ReturnType<typeof history>, tx: string) =>
+  result.reads.filter((x) => x.tx === tx).map((x) => `${x.item}=${x.value}`);
+
+describe("Berenson et al. 1995, histories H1, H2, H4 and P0", () => {
+  const h1 = (isolation: Isolation) =>
+    history(
+      [50, 50],
+      [
+        [r("x"), wr("x", -40), r("y"), wr("y", 40), commit],
+        [r("x"), r("y"), commit],
+      ],
+      "T1 T1 T2 T2 T2 T1 T1 T1",
+      isolation,
+    );
+
+  it("H1 (§3): r1[x=50] w1[x=10] r2[x=10] r2[y=50] c2 r1[y=50] w1[y=90] c1 needs a dirty read", () => {
+    expect(readsOf(h1("read-uncommitted"), "T2")).toEqual(["x=10", "y=50"]);
+    expect(h1("read-uncommitted").dirtyReads).toBe(1);
+    // Read Committed forbids P1: T2 sees the consistent 50 + 50.
+    expect(readsOf(h1("read-committed"), "T2")).toEqual(["x=50", "y=50"]);
+  });
+
+  it("H2 (§3): r1[x=50] r2[x=50] w2[x=10] r2[y=50] w2[y=90] c2 r1[y=90] c1, allowed by Read Committed", () => {
+    const result = transact(txPresets.transfer).result;
+    expect(readsOf(result, "T1")).toEqual(["x=50", "y=90"]);
+    expect(readsOf(result, "T2")).toEqual(["x=50", "y=50"]);
+    expect(result.final).toEqual([10, 90]);
+  });
+
+  it("H4 (§4.1): r1[x=100] r2[x=100] w2[x=120] c2 w1[x=130] c1 keeps only T1's +30", () => {
+    const result = history(
+      [100],
+      [
+        [r("x"), wr("x", 30), commit],
+        [r("x"), wr("x", 20), commit],
+      ],
+      "T1 T2 T2 T2 T1 T1",
+    );
+    expect(result.writes.map((x) => [x.tx, x.value])).toEqual([
+      ["T2", 120],
+      ["T1", 130],
+    ]);
+    expect(result.final).toEqual([130]);
+    expect(result.lostUpdates).toBe(1);
+  });
+
+  it("P0 (§3, Table 3): a dirty write is not possible at any level; the second writer waits", () => {
+    for (const isolation of ["read-uncommitted", "read-committed"] as const) {
+      const result = history(
+        [0],
+        [
+          [w("x", 1), commit],
+          [w("x", 2), commit],
+        ],
+        "T1 T2 T1 T2",
+        isolation,
+      );
+      expect(result.blocks).toEqual([{ step: 1, tx: "T2", item: "x", holder: "T1" }]);
+      expect(result.final).toEqual([2]);
+    }
+  });
+});
+
+describe("Hermitage, PostgreSQL, Read Committed (row 1 is x = 10, row 2 is y = 20)", () => {
+  it("G0, write cycles: T2 waits for T1; final 1 => 12, 2 => 22", () => {
+    const result = history(
+      [10, 20],
+      [
+        [w("x", 11), w("y", 21), commit],
+        [w("x", 12), w("y", 22), commit],
+      ],
+      "T1 T2 T1 T1 T2 T2",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item, b.holder])).toEqual([["T2", "x", "T1"]]);
+    expect(result.final).toEqual([12, 22]);
+  });
+
+  it("G1a, aborted reads: T2 sees 1 => 10 before and after T1 aborts", () => {
+    const result = history(
+      [10, 20],
+      [
+        [w("x", 101), abort],
+        [r("x"), r("y"), r("x"), r("y"), commit],
+      ],
+      "T1 T2 T2 T1 T2 T2 T2",
+    );
+    expect(readsOf(result, "T2")).toEqual(["x=10", "y=20", "x=10", "y=20"]);
+    expect(result.final).toEqual([10, 20]);
+  });
+
+  it("G1b, intermediate reads: T2 sees 10, then 11, never 101", () => {
+    const result = history(
+      [10, 20],
+      [
+        [w("x", 101), w("x", 11), commit],
+        [r("x"), r("y"), r("x"), r("y"), commit],
+      ],
+      "T1 T2 T2 T1 T1 T2 T2 T2",
+    );
+    expect(readsOf(result, "T2")).toEqual(["x=10", "y=20", "x=11", "y=20"]);
+  });
+
+  it("G1c, circular information flow: each reads the other's row as it was", () => {
+    const result = history(
+      [10, 20],
+      [
+        [w("x", 11), r("y"), commit],
+        [w("y", 22), r("x"), commit],
+      ],
+      "T1 T2 T1 T2 T1 T2",
+    );
+    expect(readsOf(result, "T1")).toEqual(["y=20"]);
+    expect(readsOf(result, "T2")).toEqual(["x=10"]);
+    expect(result.final).toEqual([11, 22]);
+  });
+
+  it("OTV, observed transaction vanishes: T3 sees 11, 19, then 18, 12", () => {
+    const result = history(
+      [10, 20],
+      [
+        [w("x", 11), w("y", 19), commit],
+        [w("x", 12), w("y", 18), commit],
+        [r("x"), r("y"), r("y"), r("x"), commit],
+      ],
+      "T1 T1 T2 T1 T3 T2 T3 T2 T3 T3 T3",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item, b.holder])).toEqual([["T2", "x", "T1"]]);
+    expect(readsOf(result, "T3")).toEqual(["x=11", "y=19", "y=18", "x=12"]);
+    expect(result.final).toEqual([12, 18]);
+  });
+
+  it("P4, lost update: T2 waits, then overwrites T1's 11 with its own 11", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), wr("x", 1), commit],
+        [r("x"), wr("x", 1), commit],
+      ],
+      "T1 T2 T1 T2 T1 T2",
+    );
+    expect(result.blocks.map((b) => [b.tx, b.item])).toEqual([["T2", "x"]]);
+    expect(result.final).toEqual([11, 20]);
+    expect(result.lostUpdates).toBe(1);
+  });
+
+  it("G-single, read skew: T1 sees 1 => 10 and 2 => 18", () => {
+    const result = history(
+      [10, 20],
+      [
+        [r("x"), r("y"), commit],
+        [r("x"), r("y"), w("x", 12), w("y", 18), commit],
+      ],
+      "T1 T2 T2 T2 T2 T2 T1 T1",
+    );
+    expect(readsOf(result, "T1")).toEqual(["x=10", "y=18"]);
   });
 });
