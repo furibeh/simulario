@@ -15,7 +15,7 @@ Simulario is a static, bilingual (Spanish/English) site built with Astro. Lesson
 | Tests               | Vitest                                                                                    |
 | Hosting             | Cloudflare Pages, deployed from `main` at https://simulario.pages.dev                     |
 | Analytics           | Cloudflare Web Analytics, enabled only when `PUBLIC_CF_BEACON_TOKEN` is set               |
-| Search              | Pagefind, one index per language (Phase 3, with the second path)                          |
+| Search              | Pagefind, one static index per language, with our own interface (see "Search")            |
 | CI                  | GitHub Actions                                                                            |
 
 ## Directory layout
@@ -52,7 +52,8 @@ src/
                       snapshots), transaction scripts with their snapshot turn (lines a rolled-back one
                       never ran are struck through), read and write logs
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
-    site/             Nav (with the language switch), ThemeToggle, PathMap
+    search/           Search (nav link, dialog and shortcuts), SearchPanel (field, count, grouped results)
+    site/             Nav (with the language switch and search), ThemeToggle, PathMap
   i18n/
     config.ts         Locales, default locale, helpers for localized paths
     ui/es.ts, ui/en.ts               Interface strings
@@ -68,14 +69,18 @@ src/
     index.astro                      Language redirect
     [lang]/index.astro               Home
     [lang]/about.astro              About
+    [lang]/search.astro             Search page (no-JS fallback and ?q= links)
     [lang]/[path]/index.astro        Path page
     [lang]/[path]/[lesson].astro     Lesson page
   lib/                progress.ts, theme.ts, language.ts (browser storage),
                       catalog.ts (content queries), events.ts (island → page events),
-                      legacy-ids.ts (renamed ids, for redirects and stored progress)
+                      legacy-ids.ts (renamed ids, for redirects and stored progress),
+                      search.ts (pure result helpers), pagefind.ts (loads the index on demand)
   styles/             tokens.css, base.css
 docs/                 design.md, architecture.md
   lessons/            One spec per lesson (_template.md, then one file per lesson id)
+scripts/              check-search-index.mjs (CI check of the Pagefind index)
+pagefind.yml          What Pagefind indexes and leaves out
 .github/workflows/    ci.yml
 ```
 
@@ -179,10 +184,22 @@ A Svelte component, `Player.svelte`, driven by a pure reducer in `state.ts` (`pl
 - **Sharing**: every indexable page gets Open Graph tags (`og:title`, `og:description`, `og:url`, `og:locale` from `ogLocales` in `src/i18n/config.ts` plus the other locale as `og:locale:alternate`, `og:type` `article` for lessons and `website` otherwise) and `twitter:card` `summary_large_image`. They all share `public/og.png` (1200×630), a language-neutral card with no text to translate besides the brand name; its source is `docs/assets/og.svg`, and its alt text is the `share.imageAlt` key.
 - **Not found**: `src/pages/[lang]/404.astro` emits `es/404.html` and `en/404.html`, and `src/pages/404.astro` emits a bilingual `404.html` for paths without a language prefix. Cloudflare Pages serves the nearest `404.html` up the requested path, so a missing `/en/…` page gets the English one. Without any `404.html`, Pages would treat the site as a single-page app and answer unknown URLs with the root page. The 404 pages pass `indexable={false}` to `Base`: `noindex`, no canonical, `hreflang` or share tags, and they are filtered out of the sitemap.
 - **URLs**: no trailing slash anywhere (`trailingSlash: "never"`). The build emits files (`build.format: "file"`, e.g. `es/about.html`), which Cloudflare Pages serves at `/es/about` without redirecting; a directory build would make Pages answer every slashless URL with a 308. Canonical, `hreflang` and language-switch links use `pagePathname()` (`src/i18n/config.ts`) to drop the `.html` that `Astro.url.pathname` carries at build time.
-- **Caching**: `public/_headers` gives everything under `/_astro/` (scripts, styles and fonts whose file names carry a content hash) `Cache-Control: public, max-age=31536000, immutable`. HTML and the unhashed files in `public/` (`og.png`, `favicon.svg`) keep the Pages default, `max-age=0, must-revalidate`, so a deploy shows up at once.
+- **Caching**: `public/_headers` gives everything under `/_astro/` (scripts, styles and fonts whose file names carry a content hash) and the hashed Pagefind chunks (`/pagefind/fragment/*`, `/pagefind/index/*`) `Cache-Control: public, max-age=31536000, immutable`. HTML, the unhashed files in `public/` (`og.png`, `favicon.svg`) and the unhashed Pagefind files (`pagefind.js`, `pagefind-entry.json`, the `.pf_meta` and wasm files) keep the Pages default, `max-age=0, must-revalidate`, so a deploy shows up at once. Rules for Pagefind are only the specific ones: Cloudflare combines every matching rule, so a broad `/pagefind/*` would add a second `Cache-Control`.
 - **Formatting**: numbers and dates through `Intl` with the active locale.
 - **Language switch**: it keeps the current page (`/es/operating-systems/cpu-scheduling` ↔ `/en/operating-systems/cpu-scheduling`). Slugs are shared ids, not translated, and written in English.
 - **Renamed slugs**: until 2026-11-04 slugs were Spanish (`/es/sistemas-operativos/planificador-cpu`). `src/lib/legacy-ids.ts` lists every old id, and `public/_redirects` sends each old URL to the new one with a 301 in both languages, so shared links and search results keep working; `legacy-ids.test.ts` checks that the two agree. A future rename adds to both.
+
+## Search
+
+[Pagefind](https://pagefind.app) builds a static index after the site: `pnpm build` runs `astro build && pagefind`, configured by `pagefind.yml`. The index is plain files under `dist/pagefind/` served from our own origin and fetched only when a visitor searches: no server, no cookies and no third-party script, so it fits hard rule 8.
+
+- **One index per language**: Pagefind splits pages by `<html lang>`, and the JS API loads the index of the current page's language, so Spanish and English results never mix. `groupResults` also drops a result from another locale, as a guard.
+- **What is indexed**: only pages with a `data-pagefind-body` element. `Page.astro` puts it on `<main>` when `searchable` (default: `indexable`) is true, so the 404 pages, the search page and the root `/` are left out. Lessons shown in a fallback language are left out too, so the English index holds no Spanish text. Inside a page, `data-pagefind-ignore` covers the lesson track, the unlock announcement, the module link, the locked-stage notes and `PathMap`. `pagefind.yml` excludes every island (`astro-island`, `.sim`: boards, the home demo, Quiz questions and options) and the solutions of Experiment challenges (`.experiment details > *:not(summary)`; the challenge in `<summary>` stays). Explain is indexed: its depth is what people search for.
+- **Metadata**: lessons and path pages carry `path_id`, `path` and (lessons) `module` through `data-pagefind-meta`, used to group results by path and show a breadcrumb. There are no Pagefind filters yet; with two paths they would add little.
+- **Interface**: our own Svelte components, not Pagefind's UI, which brings its own colors (hard rule 6). `Search.svelte` in the nav is a link to `/<lang>/search` that, with scripts, opens a native `<dialog>`; `/` (outside editable fields) and Ctrl+K / ⌘K open it from any page. `SearchPanel.svelte` imports `/pagefind/pagefind.js` on first use (`src/lib/pagefind.ts`), searches with a 250 ms debounce and announces the count in a `role="status"` region. On the search page it reads and updates `?q=`; without scripts that page lists every lesson instead.
+- **Results** (`src/lib/search.ts`, unit-tested): `resultHref` drops the `.html` that the file build gives Pagefind's URLs (through `pagePathname()`), keeping the hash. Pagefind does not escape the page text in excerpts (only `<` and `>`), so `parseExcerpt` turns an excerpt into text runs and `<mark>` runs and the panel never uses `{@html}`. When no word matches, Pagefind falls back to the longest known prefix, down to one letter; `matchesQuery` drops those hits.
+- **Development**: `pnpm dev` has no index; the panel shows "search is not available right now". Try search with `pnpm build && pnpm preview`.
+- **CI**: `scripts/check-search-index.mjs` requires one index per locale holding every page of that locale except 404 and search.
 
 ## Content model
 
@@ -247,7 +264,8 @@ A lesson is a single page so the simulation keeps its state across stages. To av
 | Lint and format | `pnpm lint` (`biome ci`)                      | yes        |
 | Types           | `pnpm check` (`astro check` + `svelte-check`) | yes        |
 | Unit tests      | `pnpm test` (`vitest run`)                    | yes        |
-| Build           | `pnpm build`                                  | yes        |
+| Build           | `pnpm build` (Astro, then the Pagefind index) | yes        |
+| Search index    | `node scripts/check-search-index.mjs`         | yes        |
 
 Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs each engine must keep the guarantees of its topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode, transactions never leave a dirty write or an unbroken wait cycle, a serial order shows no anomaly, under two-phase locking the result equals running the committed transactions one after another in commit order, and under snapshot isolation reads match the state before the reader started and overlapping committed transactions never wrote the same item). They found two engine bugs that the hand-computed presets did not reach. `src/engines/published-traces.test.ts` replays published examples as an external reference, at least one per lesson: for operating systems, OSTEP §19.2, Figures 22.1, 22.2, 22.5, 26.7, 31.12 and 32.6, and §39.14–39.15; for databases, the histories H1, H2, H4 and P0 of Berenson et al. (1995) and Hermitage's PostgreSQL Read Committed tests G0, G1a, G1b, G1c, OTV, P4 and G-single; for two-phase locking, H4 under Berenson's Locking SERIALIZABLE and Hermitage's MySQL InnoDB Serializable tests P4 and G2-item; for snapshot isolation, Berenson's H1.SI, H5 and H4 and Hermitage's PostgreSQL Repeatable Read tests P4, G-single and G2-item.
 
@@ -263,3 +281,4 @@ Engine tests cover every preset × algorithm against the hand-computed metrics a
 | 6   | Tokens (shape + color) for entities       | Accessible identity without relying on color (see `design.md`)                 |
 | 7   | Biome instead of ESLint + Prettier        | One fast tool; type checkers cover `.astro`/`.svelte`                          |
 | 8   | One page per lesson with gated stages     | The board keeps its state across stages; gating avoids spoiling the prediction |
+| 9   | Pagefind with our own search interface    | Static, same-origin index; Pagefind's UI brings its own colors (hard rule 6)   |

@@ -15,7 +15,7 @@ pnpm lint         # Biome lint + format check
 pnpm format       # Biome format + safe fixes (writes)
 pnpm check        # astro check + svelte-check
 pnpm test         # Vitest, single run
-pnpm build        # static build into dist/
+pnpm build        # static build into dist/, then the Pagefind search index
 ```
 
 Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pnpm build` and report the results.
@@ -54,6 +54,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 1. Add `src/content/lessons/es/<id>.mdx` and `src/content/lessons/en/<id>.mdx` with the frontmatter required by `src/content.config.ts`.
 2. Wrap each PEE section in `<Stage stage="…">`, in this order: `prerequisites`, `theory` (3–5 minutes), `predict`, `run`, `explain`, `experiment`, `check`, `deeper` (optional). The ids live in `src/components/lesson/stages.ts`.
 3. Keep theory before Predict minimal, just enough to reason. Put depth in Explain.
+4. Mind the search index. Islands (boards, Quiz) and the solutions inside Experiment `<details>` stay out of it on their own (`pagefind.yml`). Any other answer written in prose that would spoil a question needs `data-pagefind-ignore`.
 
 ## Definition of done
 

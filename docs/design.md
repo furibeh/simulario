@@ -177,11 +177,12 @@ These are design roles, not necessarily separate files. Some live inside a large
 | `DataTable`      | Metrics and inputs. Row header holds the entity token. Numbers are tabular and right-aligned.                                                                                                                                                                                                                                                                                                                                                                                    |
 | `PathMap`        | On a path page, modules are spaces along a winding board path. Each space shows module number, title and status (locked text, in progress, done).                                                                                                                                                                                                                                                                                                                                |
 | `LanguageSwitch` | Pill group "es / en" that keeps the current page.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `Search`         | Pill link "Buscar" / "Search" with a magnifier in the nav (icon only, 44×44, under 600px). It opens a dialog drawn like a board: surface, ink outline, board radius and offset shadow over a dimmed backdrop. Inside: the field, the count, results grouped by path under small uppercase muted headings, each result an outlined card with title, module breadcrumb and excerpt. Matches are `<mark>`: a `--color-slot` band plus bold, so they never depend on color alone.    |
 | `ThemeToggle`    | Round button. It cycles system → light → dark; its label states the next mode.                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Page layouts
 
-All pages share the nav (logo token cluster, Rutas, Acerca, language switch, theme toggle) and a 1180px max-width column with 24px gutters (16px on phones).
+All pages share the nav (logo token cluster, Rutas, Acerca, search, language switch, theme toggle) and a 1180px max-width column with 24px gutters (16px on phones).
 
 The 404 pages reuse the logo cluster with its fourth token missing: the diamond is drawn as an empty, dashed slot (`--color-ink-muted`), the same "waiting" outline used on the boards. The share card (`docs/assets/og.svg`, rendered to `public/og.png`) is a board on the ground color: the logo cluster, the wordmark in Lexend 600 and the six entity shapes, all in the light theme's entity colors with ink outlines and the offset board shadow.
 
@@ -213,7 +214,8 @@ Home                         Path page                     Lesson page
 - Touch targets ≥ 44×44px.
 - Every simulation is fully operable by keyboard. Each turn's explanation is announced through an `aria-live="polite"` region.
 - Tokens have accessible names; decorative SVGs are `aria-hidden`.
-- `prefers-reduced-motion` disables token travel and playhead easing.
+- `prefers-reduced-motion` disables token travel, playhead easing and the search dialog's rise.
+- Search opens with `/` (outside editable fields, so it never steals a prediction input) or Ctrl+K / ⌘K; the boards only use Space, arrows, Home and End with focus inside them. The dialog is a native modal `<dialog>`: the page behind is inert, focus starts in the field and returns to whatever opened it, Escape or the close button closes it. ↓ moves from the field into the results, ↑/↓ between them and Tab works as usual; the number of results is announced in a status region.
 - `lang` is set per page (`es` / `en`).
 
 ## Dark mode
