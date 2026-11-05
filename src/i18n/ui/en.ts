@@ -625,18 +625,24 @@ export const en = {
   "tx.preset.balance": "Balance",
   "tx.preset.dirtyRead": "Dirty read",
   "tx.preset.transfer": "Transfer",
+  "tx.preset.crossTransfers": "Crossed transfers",
   "tx.preset.about.balance": "x is a balance of 100. T1 deposits 50 and T2 deposits 20.",
   "tx.preset.about.dirtyRead":
     "x is 100. T1 writes 150 and then rolls back; meanwhile, T2 reads x.",
   "tx.preset.about.transfer":
     "x and y are two accounts of 50. T2 moves 40 from x to y; T1 is a report that reads both.",
+  "tx.preset.about.crossTransfers":
+    "x and y are two accounts of 100. T1 moves 10 from x to y and T2 moves 10 from y to x; each first reads the account it takes from.",
   "tx.isolation": "Isolation level",
   "tx.isolation.read-uncommitted": "Read Uncommitted",
   "tx.isolation.read-committed": "Read Committed",
+  "tx.isolation.serializable-2pl": "Serializable (two-phase locking)",
   "tx.isolation.about.read-uncommitted":
     "Every read sees the newest value, even if nobody has committed it.",
   "tx.isolation.about.read-committed":
     "Every read sees only committed values, plus the transaction's own writes.",
+  "tx.isolation.about.serializable-2pl":
+    "Reading takes a shared lock and writing an exclusive one; all of them last until commit or rollback.",
   "tx.mode": "How each deposit adds",
   "tx.mode.app": "Read, then compute in the app",
   "tx.mode.atomic": "The database adds",
@@ -655,6 +661,7 @@ export const en = {
   "tx.predict.balance": "What will x be when both transactions finish?",
   "tx.predict.dirtyRead": "Which value of x will T2 read?",
   "tx.predict.transfer": "Which total, x + y, will the report T1 see?",
+  "tx.predict.crossTransfers": "How many of the two transfers will commit?",
   "tx.predict.pick": "Choose {n}",
   "tx.predict.confidence": "How sure are you?",
   "tx.confidence.low": "Guessing",
@@ -672,6 +679,8 @@ export const en = {
     "Read Uncommitted: reads see the newest value, committed or not. Writing locks the item until commit or rollback.",
   "tx.rule.read-committed":
     "Read Committed: reads see only committed values. Writing locks the item until commit or rollback.",
+  "tx.rule.serializable-2pl":
+    "Two-phase locking: reading locks the item in shared mode and writing in exclusive mode, until commit or rollback. If the waits form a cycle, one transaction is aborted.",
   "tx.board.at": "The board after turn {n}",
   "tx.data": "Data",
   "tx.item.committed": "Committed",

@@ -25,8 +25,12 @@ interface Item {
   committedBy: string | null;
   pending: { tx: string; value: number; version: VersionId } | null;
   holder: string | null;
+  /** Shared lock holders, kept in id order. */
+  readers: string[];
   queue: string[];
 }
+
+type Mode = "S" | "X";
 
 interface Tx {
   id: string;
@@ -84,6 +88,7 @@ export function assertValidInput(input: TxInput): void {
 /** Simulates transactions on a few data items, one operation per step. Pure. */
 export function simulate(input: TxInput): TxTrace {
   assertValidInput(input);
+  const twoPhase = input.isolation === "serializable-2pl";
   const items: Item[] = input.items.map((value, i) => ({
     id: itemIds[i] as ItemId,
     committed: value,
@@ -91,6 +96,7 @@ export function simulate(input: TxInput): TxTrace {
     committedBy: null,
     pending: null,
     holder: null,
+    readers: [],
     queue: [],
   }));
   const txs: Tx[] = input.transactions.map((script, i) => ({
@@ -104,6 +110,25 @@ export function simulate(input: TxInput): TxTrace {
   const item = (id: ItemId) => items.find((it) => it.id === id) as Item;
   const tx = (id: string) => txs.find((x) => x.id === id) as Tx;
   const finished = (x: Tx) => x.status === "committed" || x.status === "aborted";
+  const byId = (a: string, b: string) => a.localeCompare(b, "en", { numeric: true });
+
+  /** Lock an operation needs: reads lock only under two-phase locking. */
+  const modeFor = (op: Operation): Mode | null =>
+    op.op === "commit" || op.op === "abort"
+      ? null
+      : op.op === "read"
+        ? twoPhase
+          ? "S"
+          : null
+        : "X";
+  /** Other transactions whose locks on the item conflict with x asking for mode, in id order. */
+  const conflicts = (x: Tx, it: Item, mode: Mode): string[] => {
+    const others = it.holder !== null && it.holder !== x.id ? [it.holder] : [];
+    if (mode === "X") others.push(...it.readers.filter((r) => r !== x.id));
+    return others.sort(byId);
+  };
+  const holds = (x: Tx, it: Item, mode: Mode) =>
+    it.holder === x.id || (mode === "S" && it.readers.includes(x.id));
 
   const steps: TxStep[] = [];
   const reads: ReadRecord[] = [];
@@ -121,7 +146,8 @@ export function simulate(input: TxInput): TxTrace {
     if (self.status === "blocked") throw new RangeError(`Step ${t}: ${id} is waiting for a lock`);
     const explain: TxExplanation[] = [];
 
-    const readItem = (x: Tx, it: Item, locked: boolean) => {
+    /** how: "plain" a read with no new lock, "shared" one that just took S, "lock" FOR UPDATE. */
+    const readItem = (x: Tx, it: Item, how: "plain" | "shared" | "lock") => {
       const p = it.pending;
       let value: number;
       let version: VersionId;
@@ -130,7 +156,7 @@ export function simulate(input: TxInput): TxTrace {
         ({ value, version } = p);
         kind = "own";
         explain.push({
-          key: locked ? "read.lock" : "read.own",
+          key: how === "lock" ? "read.lock" : "read.own",
           params: { tx: x.id, item: it.id, value },
         });
       } else if (p && input.isolation === "read-uncommitted") {
@@ -141,8 +167,11 @@ export function simulate(input: TxInput): TxTrace {
         value = it.committed;
         version = it.version;
         kind = "committed";
-        if (locked) explain.push({ key: "read.lock", params: { tx: x.id, item: it.id, value } });
-        else if (p) {
+        if (how === "lock") {
+          explain.push({ key: "read.lock", params: { tx: x.id, item: it.id, value } });
+        } else if (how === "shared") {
+          explain.push({ key: "read.shared", params: { tx: x.id, item: it.id, value } });
+        } else if (p) {
           explain.push({
             key: "read.hidden",
             params: { tx: x.id, item: it.id, value, writer: p.tx, pending: p.value },
@@ -169,15 +198,18 @@ export function simulate(input: TxInput): TxTrace {
       });
     };
 
-    /** Runs a locking operation once its transaction holds the item's lock. */
-    const perform = (x: Tx, op: Operation) => {
-      if (op.op === "commit" || op.op === "abort" || op.op === "read") return;
+    /** Runs an operation whose lock (if any) is held; `took` is the lock it just acquired. */
+    const perform = (x: Tx, op: Operation, took: Mode | null) => {
+      if (op.op === "commit" || op.op === "abort") return;
       const it = item(op.item);
       const own = it.pending?.tx === x.id ? it.pending : null;
       const version = `w${t}`;
       switch (op.op) {
+        case "read":
+          readItem(x, it, took === "S" ? "shared" : "plain");
+          return;
         case "readForUpdate":
-          readItem(x, it, true);
+          readItem(x, it, "lock");
           return;
         case "write":
           explain.push({ key: "write", params: { tx: x.id, item: it.id, value: op.value } });
@@ -222,22 +254,38 @@ export function simulate(input: TxInput): TxTrace {
       }
     };
 
-    /** Releases every lock of x in item order; each first waiter gets it and runs its operation. */
+    /** Gives x the lock (upgrading S to X if needed) and runs its operation. */
+    const grant = (x: Tx, it: Item, op: Operation, mode: Mode) => {
+      if (mode === "X") {
+        if (it.readers.includes(x.id)) {
+          it.readers = it.readers.filter((r) => r !== x.id);
+          explain.push({ key: "lock.upgrade", params: { tx: x.id, item: it.id } });
+        }
+        it.holder = x.id;
+      } else it.readers = [...it.readers, x.id].sort(byId);
+      perform(x, op, mode);
+    };
+
+    /** Releases every lock of x in item order; compatible waiters at the head get theirs. */
     const release = (x: Tx) => {
       for (const it of items) {
-        if (it.holder !== x.id) continue;
-        const next = it.queue.shift();
-        if (next === undefined) {
-          it.holder = null;
-          continue;
+        if (it.holder !== x.id && !it.readers.includes(x.id)) continue;
+        if (it.holder === x.id) it.holder = null;
+        it.readers = it.readers.filter((r) => r !== x.id);
+        for (;;) {
+          const next = it.queue[0];
+          if (next === undefined) break;
+          const waiter = tx(next);
+          const op = waiter.script[waiter.pc] as Operation;
+          const mode = modeFor(op) as Mode;
+          if (conflicts(waiter, it, mode).length > 0) break;
+          it.queue.shift();
+          waiter.status = "active";
+          waiter.waitsFor = null;
+          explain.push({ key: "handoff", params: { tx: x.id, item: it.id, to: waiter.id } });
+          grant(waiter, it, op, mode);
+          waiter.pc++;
         }
-        const waiter = tx(next);
-        it.holder = waiter.id;
-        waiter.status = "active";
-        waiter.waitsFor = null;
-        explain.push({ key: "handoff", params: { tx: x.id, item: it.id, to: waiter.id } });
-        perform(waiter, waiter.script[waiter.pc] as Operation);
-        waiter.pc++;
       }
     };
 
@@ -256,61 +304,67 @@ export function simulate(input: TxInput): TxTrace {
       release(x);
     };
 
-    /** Follows "waits for item, held by U" from x; returns the path if it comes back to x. */
+    /**
+     * Depth-first search of the wait-for graph from x: each blocked transaction waits for every
+     * conflicting holder of the item it asked for, visited in id order. Returns the first path
+     * that comes back to x, written "x → item → U → … → x".
+     */
     const cycleFrom = (x: Tx): string | null => {
-      const parts = [x.id];
-      let current = x;
-      for (let hops = 0; hops < txs.length; hops++) {
-        if (current.waitsFor === null) return null;
-        const it = item(current.waitsFor);
-        if (it.holder === null) return null;
-        parts.push(it.id, it.holder);
-        if (it.holder === x.id) return parts.join(" → ");
-        current = tx(it.holder);
-      }
-      return null;
+      const visit = (u: Tx, path: string[], seen: Set<string>): string | null => {
+        if (u.waitsFor === null) return null;
+        const it = item(u.waitsFor);
+        const op = u.script[u.pc] as Operation;
+        for (const b of conflicts(u, it, modeFor(op) as Mode)) {
+          if (b === x.id) return [...path, it.id, b].join(" → ");
+          if (seen.has(b)) continue;
+          seen.add(b);
+          const found = visit(tx(b), [...path, it.id, b], seen);
+          if (found) return found;
+        }
+        return null;
+      };
+      return visit(x, [x.id], new Set([x.id]));
     };
 
     const op = self.script[self.pc] as Operation;
-    switch (op.op) {
-      case "read":
-        readItem(self, item(op.item), false);
+    const mode = modeFor(op);
+    if (op.op === "commit" || op.op === "abort") {
+      self.pc++;
+      explain.push({ key: op.op, params: { tx: self.id } });
+      end(self, op.op === "commit" ? "committed" : "aborted");
+    } else if (mode === null || holds(self, item(op.item), mode)) {
+      perform(self, op, null);
+      self.pc++;
+    } else {
+      const it = item(op.item);
+      const others = conflicts(self, it, mode);
+      if (others.length === 0) {
+        grant(self, it, op, mode);
         self.pc++;
-        break;
-      case "commit":
-        self.pc++;
-        explain.push({ key: "commit", params: { tx: self.id } });
-        end(self, "committed");
-        break;
-      case "abort":
-        self.pc++;
-        explain.push({ key: "abort", params: { tx: self.id } });
-        end(self, "aborted");
-        break;
-      default: {
-        const it = item(op.item);
+      } else {
         if (it.holder !== null && it.holder !== self.id) {
           explain.push({
             key: "lock.wait",
             params: { tx: self.id, item: it.id, holder: it.holder },
           });
-          blocks.push({ step: t, tx: self.id, item: it.id, holder: it.holder });
-          self.status = "blocked";
-          self.waitsFor = it.id;
-          it.queue.push(self.id);
-          const path = cycleFrom(self);
-          if (path !== null) {
-            it.queue = it.queue.filter((q) => q !== self.id);
-            self.waitsFor = null;
-            explain.push({ key: "deadlock", params: { tx: self.id, path } });
-            deadlocks.push({ step: t, victim: self.id, path });
-            self.pc = self.script.length;
-            end(self, "aborted");
-          }
         } else {
-          it.holder = self.id;
-          perform(self, op);
-          self.pc++;
+          explain.push({
+            key: "lock.wait.shared",
+            params: { tx: self.id, item: it.id, holders: others.join(", ") },
+          });
+        }
+        blocks.push({ step: t, tx: self.id, item: it.id, holder: others.join(", ") });
+        self.status = "blocked";
+        self.waitsFor = it.id;
+        it.queue.push(self.id);
+        const path = cycleFrom(self);
+        if (path !== null) {
+          it.queue = it.queue.filter((q) => q !== self.id);
+          self.waitsFor = null;
+          explain.push({ key: "deadlock", params: { tx: self.id, path } });
+          deadlocks.push({ step: t, victim: self.id, path });
+          self.pc = self.script.length;
+          end(self, "aborted");
         }
       }
     }
@@ -325,6 +379,7 @@ export function simulate(input: TxInput): TxTrace {
           committedBy: it.committedBy,
           pending: it.pending ? { tx: it.pending.tx, value: it.pending.value } : null,
           holder: it.holder,
+          readers: [...it.readers],
           queue: [...it.queue],
         })),
         transactions: txs.map((x) => ({

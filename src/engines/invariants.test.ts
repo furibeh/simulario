@@ -472,4 +472,46 @@ describe("transactions (isolation-anomalies)", () => {
       expect(result.lostUpdates + result.dirtyReads + result.nonRepeatable).toBe(0);
     }
   });
+
+  /** Runs scripts one after another from the initial values: an oracle independent of the engine. */
+  function serially(initial: readonly number[], scripts: readonly (readonly TxOperation[])[]) {
+    const values = [...initial];
+    for (const script of scripts) {
+      const read = new Map<ItemId, number>();
+      for (const op of script) {
+        if (op.op === "commit" || op.op === "abort") continue;
+        const k = itemIds.indexOf(op.item);
+        const now = values[k] ?? 0;
+        if (op.op === "read" || op.op === "readForUpdate") read.set(op.item, now);
+        else if (op.op === "write") values[k] = op.value;
+        else if (op.op === "add") values[k] = now + op.delta;
+        else values[k] = (read.get(op.item) ?? 0) + op.delta;
+      }
+    }
+    return values;
+  }
+
+  it("two-phase locking: no anomaly, and the result equals running the committed ones serially in commit order", () => {
+    const r = rng(11);
+    let aborts = 0;
+    for (let run = 0; run < RUNS; run++) {
+      const input = { ...randomInput(r), isolation: "serializable-2pl" as const };
+      const trace = runToEnd(r, input);
+      const { result } = trace;
+      expect(result.complete).toBe(true);
+      expect(result.lostUpdates + result.dirtyReads + result.nonRepeatable).toBe(0);
+      const scripts = result.committed.map(
+        (id) => input.transactions[Number(id.slice(1)) - 1] as readonly TxOperation[],
+      );
+      expect(result.final).toEqual(serially(input.items, scripts));
+      aborts += result.aborted.length;
+      for (const { state } of trace.steps) {
+        for (const it of state.items) {
+          // An exclusive holder never shares the item with another reader.
+          if (it.holder) expect(it.readers.filter((x) => x !== it.holder)).toEqual([]);
+        }
+      }
+    }
+    expect(aborts).toBeGreaterThan(0);
+  });
 });

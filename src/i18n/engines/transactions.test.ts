@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fixBalance, presetIds, presets } from "../../engines/transactions/presets";
+import { fixBalance, presets } from "../../engines/transactions/presets";
 import { simulate } from "../../engines/transactions/simulate";
 import type { TxExplainParams, TxExplanation, TxInput } from "../../engines/transactions/types";
 import { transactionsEn } from "./transactions.en";
@@ -14,7 +14,7 @@ const locales: Record<string, ExplainTemplates<TxExplainParams>> = {
 describe("transactions explanation templates", () => {
   it("render every explanation without placeholders", () => {
     const inputs: TxInput[] = [
-      ...presetIds.flatMap((id) =>
+      ...(["balance", "dirtyRead", "transfer"] as const).flatMap((id) =>
         (["read-uncommitted", "read-committed"] as const).map((isolation) => ({
           ...presets[id],
           isolation,
@@ -22,6 +22,19 @@ describe("transactions explanation templates", () => {
       ),
       { ...presets.balance, transactions: fixBalance("atomic"), order: ["T1", "T2", "T1", "T2"] },
       { ...presets.balance, transactions: fixBalance("forUpdate") },
+      // Two-phase locking (docs/lessons/two-phase-locking.md).
+      { ...presets.balance, isolation: "serializable-2pl", order: ["T1", "T2", "T1", "T2", "T1"] },
+      presets.crossTransfers,
+      {
+        items: [1],
+        transactions: [
+          [{ op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "write", item: "x", value: 9 }, { op: "commit" }],
+        ],
+        isolation: "serializable-2pl",
+        order: ["T1", "T2", "T3", "T1", "T2", "T3"],
+      },
       // Deadlock and reading your own write (spec, "Edge cases").
       {
         items: [0, 0],
@@ -124,6 +137,26 @@ describe("transactions explanation templates", () => {
         { key: "deadlock", params: { tx: "T2", path: "T2 → x → T1 → y → T2" } },
         "Ciclo de espera: T2 → x → T1 → y → T2. La base de datos aborta a T2 para romperlo.",
         "Waiting cycle: T2 → x → T1 → y → T2. The database aborts T2 to break it.",
+      ],
+      [
+        { key: "read.shared", params: { tx: "T1", item: "x", value: 100 } },
+        "T1 lee x = 100 y toma un bloqueo compartido: nadie podrá escribir x hasta que T1 termine.",
+        "T1 reads x = 100 and takes a shared lock: nobody can write x until T1 finishes.",
+      ],
+      [
+        { key: "lock.wait.shared", params: { tx: "T1", item: "x", holders: "T2" } },
+        "T1 quiere escribir x, pero T2 lo está leyendo con un bloqueo compartido: T1 espera.",
+        "T1 wants to write x, but T2 holds a shared lock to read it: T1 waits.",
+      ],
+      [
+        { key: "lock.wait.shared", params: { tx: "T3", item: "x", holders: "T1, T2" } },
+        "T3 quiere escribir x, pero T1 y T2 lo están leyendo con bloqueos compartidos: T3 espera.",
+        "T3 wants to write x, but T1 and T2 hold shared locks to read it: T3 waits.",
+      ],
+      [
+        { key: "lock.upgrade", params: { tx: "T1", item: "x" } },
+        "T1 ya tenía un bloqueo compartido de x y lo convierte en exclusivo.",
+        "T1 already had a shared lock on x and turns it into an exclusive one.",
       ],
     ];
     for (const [explanation, es, en] of examples) {

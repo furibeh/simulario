@@ -3,6 +3,9 @@ import type { ExplainTemplates } from "./types";
 
 const plusOrMinus = (delta: number) => (delta < 0 ? `minus ${-delta}` : `plus ${delta}`);
 
+/** "T1, T2, T3" → "T1, T2 and T3". */
+const list = (ids: string) => ids.replace(/, ([^,]*)$/, " and $1");
+
 export const transactionsEn: ExplainTemplates<TxExplainParams> = {
   read: ({ tx, item, value }) => `${tx} reads ${item} = ${value}.`,
   "read.hidden": ({ tx, item, value, writer, pending }) =>
@@ -24,6 +27,12 @@ export const transactionsEn: ExplainTemplates<TxExplainParams> = {
     `${tx} ${delta < 0 ? `subtracts ${-delta} from` : `adds ${delta} to`} ${item} inside the database: ${before} → ${value}, not committed yet.`,
   "lock.wait": ({ tx, item, holder }) =>
     `${tx} wants to write ${item}, but ${holder} holds its lock: ${tx} waits for ${holder} to finish.`,
+  "read.shared": ({ tx, item, value }) =>
+    `${tx} reads ${item} = ${value} and takes a shared lock: nobody can write ${item} until ${tx} finishes.`,
+  "lock.wait.shared": ({ tx, item, holders }) =>
+    `${tx} wants to write ${item}, but ${list(holders)} ${holders.includes(",") ? "hold shared locks" : "holds a shared lock"} to read it: ${tx} waits.`,
+  "lock.upgrade": ({ tx, item }) =>
+    `${tx} already had a shared lock on ${item} and turns it into an exclusive one.`,
   handoff: ({ tx, item, to }) =>
     `${tx} releases ${item}, and ${to}, which was waiting, locks it and goes on.`,
   commit: ({ tx }) => `${tx} commits: its writes are now visible to everyone.`,

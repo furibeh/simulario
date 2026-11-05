@@ -1,6 +1,6 @@
 import type { Operation, TxInput } from "./types";
 
-export const presetIds = ["balance", "dirtyRead", "transfer"] as const;
+export const presetIds = ["balance", "dirtyRead", "transfer", "crossTransfers"] as const;
 export type PresetId = (typeof presetIds)[number];
 
 /** Workloads from docs/lessons/isolation-anomalies.md. */
@@ -40,6 +40,28 @@ export const presets: Record<PresetId, TxInput> = {
     ],
     isolation: "read-committed",
     order: ["T1", "T2", "T2", "T2", "T2", "T2", "T1", "T1"],
+  },
+  /** "Transferencias cruzadas" / "Crossed transfers" (docs/lessons/two-phase-locking.md). */
+  crossTransfers: {
+    items: [100, 100],
+    transactions: [
+      [
+        { op: "read", item: "x" },
+        { op: "writeFromRead", item: "x", delta: -10 },
+        { op: "read", item: "y" },
+        { op: "writeFromRead", item: "y", delta: 10 },
+        { op: "commit" },
+      ],
+      [
+        { op: "read", item: "y" },
+        { op: "writeFromRead", item: "y", delta: -10 },
+        { op: "read", item: "x" },
+        { op: "writeFromRead", item: "x", delta: 10 },
+        { op: "commit" },
+      ],
+    ],
+    isolation: "serializable-2pl",
+    order: ["T1", "T2", "T1", "T2", "T1", "T2", "T1", "T1"],
   },
 };
 

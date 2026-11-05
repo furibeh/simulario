@@ -13,8 +13,11 @@ export const limits = {
 export const itemIds = ["x", "y", "z"] as const;
 export type ItemId = (typeof itemIds)[number];
 
-/** Levels defined in docs/lessons/isolation-anomalies.md; modules 6 and 7 add more. */
-export const isolationLevels = ["read-uncommitted", "read-committed"] as const;
+/**
+ * Levels: read-uncommitted and read-committed (docs/lessons/isolation-anomalies.md),
+ * serializable-2pl (docs/lessons/two-phase-locking.md). Module 7 adds snapshot.
+ */
+export const isolationLevels = ["read-uncommitted", "read-committed", "serializable-2pl"] as const;
 export type Isolation = (typeof isolationLevels)[number];
 
 export type Operation =
@@ -54,8 +57,10 @@ export interface ItemView {
   committedBy: string | null;
   /** Uncommitted value, at most one (write locks forbid a second writer). */
   pending: { tx: string; value: number } | null;
-  /** Write lock holder. */
+  /** Exclusive (write) lock holder. */
   holder: string | null;
+  /** Shared (read) lock holders in id order; only under serializable-2pl. */
+  readers: readonly string[];
   /** Transactions waiting for the lock, first served first. */
   queue: readonly string[];
 }
@@ -109,6 +114,7 @@ export interface BlockRecord {
   step: number;
   tx: string;
   item: ItemId;
+  /** The exclusive holder, or the shared holders joined by ", " for a wait on readers. */
   holder: string;
 }
 
@@ -159,6 +165,9 @@ export interface TxExplainParams {
   "write.stale": { tx: string; item: string; read: number; current: number; by: string };
   add: { tx: string; item: string; before: number; delta: number; value: number };
   "lock.wait": { tx: string; item: string; holder: string };
+  "read.shared": { tx: string; item: string; value: number };
+  "lock.wait.shared": { tx: string; item: string; holders: string };
+  "lock.upgrade": { tx: string; item: string };
   handoff: { tx: string; item: string; to: string };
   commit: { tx: string };
   abort: { tx: string };

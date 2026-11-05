@@ -33,6 +33,12 @@ function fmt(e: TxExplanation): string {
       return `stale ${e.params.tx} ${e.params.item} ${e.params.read}→${e.params.current} by ${e.params.by}`;
     case "add":
       return `add ${e.params.tx} ${e.params.item} ${e.params.before}→${e.params.value}`;
+    case "read.shared":
+      return `rs ${e.params.tx} ${e.params.item} ${e.params.value}`;
+    case "lock.wait.shared":
+      return `WS ${e.params.tx} ${e.params.item} (${e.params.holders})`;
+    case "lock.upgrade":
+      return `up ${e.params.tx} ${e.params.item}`;
     case "lock.wait":
       return `W ${e.params.tx} ${e.params.item} (${e.params.holder})`;
     case "handoff":
@@ -296,5 +302,195 @@ describe("edge cases", () => {
     expect(() =>
       simulate(base([1], [[{ op: "read", item: "x" }], [{ op: "commit" }]], "T1")),
     ).toThrow(RangeError);
+  });
+});
+
+/** docs/lessons/two-phase-locking.md, "Expected results". */
+describe("serializable-2pl", () => {
+  const twoPl = (base: TxInput, o: string): TxInput => ({
+    ...base,
+    isolation: "serializable-2pl",
+    order: order(o),
+  });
+
+  it("Saldo, Predict: both read, both want to upgrade, T2 closes the cycle and is aborted", () => {
+    const trace = simulate(twoPl(presets.balance, "T1 T2 T1 T2 T1"));
+    expect(rows(trace)).toEqual([
+      "rs T1 x 100",
+      "rs T2 x 100",
+      "WS T1 x (T2)",
+      "WS T2 x (T1), deadlock T2 T2 → x → T1 → x → T2, → T2 x T1, up T1 x, wc T1 x 150 (100+50)",
+      "c T1",
+    ]);
+    const { result } = trace;
+    expect(result.final).toEqual([150]);
+    expect(result.committed).toEqual(["T1"]);
+    expect(result.aborted).toEqual(["T2"]);
+    expect(result.lostUpdates).toBe(0);
+    expect(result.complete).toBe(true);
+  });
+
+  it("Saldo, T2 reads after T1 writes: T2 waits and both commit (E2)", () => {
+    const trace = simulate(twoPl(presets.balance, "T1 T1 T2 T1 T2 T2"));
+    expect(rows(trace)).toEqual([
+      "rs T1 x 100",
+      "up T1 x, wc T1 x 150 (100+50)",
+      "W T2 x (T1)",
+      "c T1, → T1 x T2, rs T2 x 150",
+      "up T2 x, wc T2 x 170 (150+20)",
+      "c T2",
+    ]);
+    expect(trace.result.final).toEqual([170]);
+  });
+
+  it("Saldo with FOR UPDATE gives module 5's trace (E2)", () => {
+    const forUpdate = { ...presets.balance, transactions: fixBalance("forUpdate") };
+    expect(rows(simulate(twoPl(forUpdate, "T1 T2 T1 T1 T2 T2")))).toEqual(
+      rows(simulate({ ...forUpdate, order: order("T1 T2 T1 T1 T2 T2") })),
+    );
+    expect(simulate(twoPl(forUpdate, "T1 T2 T1 T1 T2 T2")).result.final).toEqual([170]);
+  });
+
+  it("Saldo, serial order: no waits", () => {
+    const trace = simulate(twoPl(presets.balance, "T1 T1 T1 T2 T2 T2"));
+    expect(rows(trace)).toEqual([
+      "rs T1 x 100",
+      "up T1 x, wc T1 x 150 (100+50)",
+      "c T1",
+      "rs T2 x 150",
+      "up T2 x, wc T2 x 170 (150+20)",
+      "c T2",
+    ]);
+    expect(trace.result.blocks).toEqual([]);
+  });
+
+  it("module 5's order cannot run: T1 is waiting at step 3", () => {
+    expect(() => simulate(twoPl(presets.balance, "T1 T2 T1 T1 T2 T2"))).toThrow(
+      /Step 3: T1 is waiting/,
+    );
+  });
+
+  it("Transferencia: the transfer waits for the report, which sees 100 (E1)", () => {
+    const trace = simulate(twoPl(presets.transfer, "T1 T2 T2 T1 T1 T2 T2 T2"));
+    expect(rows(trace)).toEqual([
+      "rs T1 x 50",
+      "rs T2 x 50",
+      "WS T2 x (T1)",
+      "rs T1 y 50",
+      "c T1, → T1 x T2, up T2 x, wc T2 x 10 (50-40)",
+      "rs T2 y 50",
+      "up T2 y, wc T2 y 90 (50+40)",
+      "c T2",
+    ]);
+    expect(trace.result.final).toEqual([10, 90]);
+    expect(trace.result.reads.filter((r) => r.tx === "T1").map((r) => r.value)).toEqual([50, 50]);
+    expect(trace.result.deadlocks).toEqual([]);
+  });
+
+  it("Transferencias cruzadas: deadlock at step 5 under 2PL", () => {
+    const trace = simulate(presets.crossTransfers);
+    expect(rows(trace)).toEqual([
+      "rs T1 x 100",
+      "rs T2 y 100",
+      "up T1 x, wc T1 x 90 (100-10)",
+      "up T2 y, wc T2 y 90 (100-10)",
+      "W T1 y (T2)",
+      "W T2 x (T1), deadlock T2 T2 → x → T1 → y → T2, → T2 y T1, rs T1 y 100",
+      "up T1 y, wc T1 y 110 (100+10)",
+      "c T1",
+    ]);
+    expect(trace.result.final).toEqual([90, 110]);
+    expect(trace.result.committed).toEqual(["T1"]);
+    expect(trace.result.aborted).toEqual(["T2"]);
+  });
+
+  it("Transferencias cruzadas: deadlock at step 7 under Read Committed", () => {
+    const trace = simulate({
+      ...presets.crossTransfers,
+      isolation: "read-committed",
+      order: order("T1 T2 T1 T2 T1 T2 T1 T2 T1"),
+    });
+    expect(rows(trace)).toEqual([
+      "r T1 x 100",
+      "r T2 y 100",
+      "wc T1 x 90 (100-10)",
+      "wc T2 y 90 (100-10)",
+      "rh T1 y 100 (pending 90 by T2)",
+      "rh T2 x 100 (pending 90 by T1)",
+      "W T1 y (T2)",
+      "W T2 x (T1), deadlock T2 T2 → x → T1 → y → T2, → T2 y T1, wc T1 y 110 (100+10)",
+      "c T1",
+    ]);
+    expect(trace.result.final).toEqual([90, 110]);
+    expect(trace.result.lostUpdates).toBe(0);
+  });
+
+  it("Transferencias cruzadas, serial: both commit at either level (E4)", () => {
+    for (const isolation of ["read-committed", "serializable-2pl"] as const) {
+      const { result } = simulate({
+        ...presets.crossTransfers,
+        isolation,
+        order: order("T1 T1 T1 T1 T1 T2 T2 T2 T2 T2"),
+      });
+      expect(result.final).toEqual([100, 100]);
+      expect(result.committed).toEqual(["T1", "T2"]);
+      expect(result.blocks).toEqual([]);
+    }
+  });
+
+  describe("edge cases", () => {
+    const run = (items: number[], transactions: Operation[][], o: string) =>
+      simulate({ items, transactions, isolation: "serializable-2pl", order: order(o) });
+
+    it("a writer waits for two readers and gets the lock when the last one commits", () => {
+      const trace = run(
+        [1],
+        [
+          [{ op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "write", item: "x", value: 9 }, { op: "commit" }],
+        ],
+        "T1 T2 T3 T1 T2",
+      );
+      expect(rows(trace)).toEqual([
+        "rs T1 x 1",
+        "rs T2 x 1",
+        "WS T3 x (T1, T2)",
+        "c T1",
+        "c T2, → T2 x T3, w T3 x 9",
+      ]);
+      expect(trace.steps[3]?.state.items[0]?.queue).toEqual(["T3"]);
+      expect(trace.result.complete).toBe(false);
+    });
+
+    it("re-reading under a held lock takes no new lock and is not a change", () => {
+      const trace = run(
+        [5],
+        [
+          [{ op: "read", item: "x" }, { op: "read", item: "x" }, { op: "commit" }],
+          [{ op: "commit" }],
+        ],
+        "T1 T1 T1 T2",
+      );
+      expect(rows(trace).slice(0, 2)).toEqual(["rs T1 x 5", "r T1 x 5"]);
+      expect(trace.result.nonRepeatable).toBe(0);
+    });
+
+    it("a writer blocks a reader", () => {
+      const trace = run(
+        [5],
+        [
+          [{ op: "write", item: "x", value: 6 }, { op: "commit" }],
+          [{ op: "read", item: "x" }, { op: "commit" }],
+        ],
+        "T1 T2 T1 T2",
+      );
+      expect(rows(trace)).toEqual([
+        "w T1 x 6",
+        "W T2 x (T1)",
+        "c T1, → T1 x T2, rs T2 x 6",
+        "c T2",
+      ]);
+    });
   });
 });

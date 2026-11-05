@@ -57,6 +57,7 @@ const questions: Record<
       return reads.length === 2 ? reads.reduce((sum, r) => sum + r.value, 0) : null;
     },
   },
+  crossTransfers: { options: [0, 1, 2], answer: (tr) => tr.result.committed.length },
 };
 
 function defaultOrder(id: PresetId, m: Mode): string[] {
@@ -152,6 +153,7 @@ function itemsAt(cursor: number): readonly ItemView[] {
       committedBy: null,
       pending: null,
       holder: null,
+      readers: [],
       queue: [],
     }))
   );

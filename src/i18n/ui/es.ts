@@ -629,17 +629,23 @@ export const es = {
   "tx.preset.balance": "Saldo",
   "tx.preset.dirtyRead": "Lectura sucia",
   "tx.preset.transfer": "Transferencia",
+  "tx.preset.crossTransfers": "Transferencias cruzadas",
   "tx.preset.about.balance": "x es un saldo de 100. T1 deposita 50 y T2 deposita 20.",
   "tx.preset.about.dirtyRead": "x vale 100. T1 escribe 150 y luego se deshace; mientras, T2 lee x.",
   "tx.preset.about.transfer":
     "x e y son dos cuentas de 50. T2 mueve 40 de x a y; T1 es un informe que lee las dos.",
+  "tx.preset.about.crossTransfers":
+    "x e y son dos cuentas de 100. T1 mueve 10 de x a y y T2 mueve 10 de y a x; cada una lee primero la cuenta de la que saca.",
   "tx.isolation": "Nivel de aislamiento",
   "tx.isolation.read-uncommitted": "Read Uncommitted",
   "tx.isolation.read-committed": "Read Committed",
+  "tx.isolation.serializable-2pl": "Serializable (bloqueo en dos fases)",
   "tx.isolation.about.read-uncommitted":
     "Cada lectura ve el valor más nuevo, aunque nadie lo haya confirmado.",
   "tx.isolation.about.read-committed":
     "Cada lectura ve solo valores confirmados, además de las propias escrituras.",
+  "tx.isolation.about.serializable-2pl":
+    "Leer toma un bloqueo compartido y escribir uno exclusivo; todos duran hasta confirmar o deshacer.",
   "tx.mode": "Cómo suma cada depósito",
   "tx.mode.app": "Lee y calcula en la aplicación",
   "tx.mode.atomic": "La base de datos suma",
@@ -658,6 +664,7 @@ export const es = {
   "tx.predict.balance": "¿Cuánto valdrá x cuando las dos transacciones terminen?",
   "tx.predict.dirtyRead": "¿Qué valor de x leerá T2?",
   "tx.predict.transfer": "¿Qué total, x + y, verá el informe T1?",
+  "tx.predict.crossTransfers": "¿Cuántas de las dos transferencias llegarán a confirmar?",
   "tx.predict.pick": "Elegir {n}",
   "tx.predict.confidence": "¿Qué tan seguro estás?",
   "tx.confidence.low": "Lo adivino",
@@ -675,6 +682,8 @@ export const es = {
     "Read Uncommitted: las lecturas ven lo más nuevo, confirmado o no. Escribir bloquea el dato hasta confirmar o deshacer.",
   "tx.rule.read-committed":
     "Read Committed: las lecturas ven solo lo confirmado. Escribir bloquea el dato hasta confirmar o deshacer.",
+  "tx.rule.serializable-2pl":
+    "Bloqueo en dos fases: leer bloquea el dato en modo compartido y escribir en exclusivo, hasta confirmar o deshacer. Si las esperas forman un ciclo, se aborta una transacción.",
   "tx.board.at": "El tablero tras el turno {n}",
   "tx.data": "Datos",
   "tx.item.committed": "Confirmado",
