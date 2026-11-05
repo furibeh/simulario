@@ -696,6 +696,11 @@ const labels = $derived({
     color: var(--on);
   }
 
+  /* The number sits outside the filled line, on the board's ground: keep it in ink. */
+  .listing li.ran::marker {
+    color: var(--color-ink);
+  }
+
   .outcome {
     display: flex;
     align-items: center;
