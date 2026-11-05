@@ -265,8 +265,8 @@ On seeded random inputs (2–3 transactions, 1–3 items, random valid orders ru
 - No item ever has two uncommitted values (no dirty write), at any level.
 - Under `read-committed`, every read of another transaction's data returns a committed value (`dirtyReads` is 0).
 - Final values equal replaying, in commit order, each committed transaction's last value per item (aborted transactions leave no trace).
-- A stale write is reported if and only if the write's base read returned a committed version older than the committed version at write time.
-- Every `lock.wait` that closes a cycle aborts exactly one transaction, and no step ends with a cycle in the wait-for graph.
+- A serial order (each transaction runs all its operations before the next starts) never blocks and shows no lost update, dirty read or non-repeatable read, at any level.
+- No step ends with a cycle in the wait-for graph, and every random order can be run to the end (deadlocks are always broken, so nobody waits forever).
 
 ## Go deeper (optional section)
 

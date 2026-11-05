@@ -9,6 +9,15 @@ import { algorithms } from "./page-replacement/types";
 import { programFor, simulate as race } from "./race-conditions/simulate";
 import { simulate as resourceGraph } from "./resource-graph/simulate";
 import type { Operation as GraphOperation } from "./resource-graph/types";
+import { simulate as transact } from "./transactions/simulate";
+import {
+  type ItemId,
+  isolationLevels,
+  itemIds,
+  type TxInput,
+  type Operation as TxOperation,
+  type TxTrace,
+} from "./transactions/types";
 
 /**
  * Properties each topic guarantees in theory, checked on many seeded random inputs.
@@ -349,6 +358,118 @@ describe("file system (inodes-links)", () => {
           }
         }
       });
+    }
+  });
+});
+
+describe("transactions (isolation-anomalies)", () => {
+  function randomScript(r: ReturnType<typeof rng>, items: number): TxOperation[] {
+    const ops: TxOperation[] = [];
+    const read = new Set<ItemId>();
+    const length = r.int(0, 4);
+    for (let k = 0; k < length; k++) {
+      const item = itemIds[r.int(0, items - 1)] as ItemId;
+      const kind = r.int(0, read.has(item) ? 4 : 3);
+      if (kind === 0 || kind === 1) {
+        ops.push({ op: kind === 0 ? "read" : "readForUpdate", item });
+        read.add(item);
+      } else if (kind === 2) ops.push({ op: "write", item, value: r.int(0, 999) });
+      else if (kind === 3) ops.push({ op: "add", item, delta: r.int(-9, 9) });
+      else ops.push({ op: "writeFromRead", item, delta: r.int(-9, 9) });
+    }
+    ops.push({ op: r.int(0, 4) === 0 ? "abort" : "commit" });
+    return ops;
+  }
+
+  /** Grows the order one turn at a time, choosing among transactions neither ended nor blocked. */
+  function runToEnd(r: ReturnType<typeof rng>, base: Omit<TxInput, "order">): TxTrace {
+    const order: string[] = [];
+    for (;;) {
+      const trace = transact({ ...base, order });
+      const last = trace.steps.at(-1)?.state.transactions;
+      const ready = last
+        ? last.filter((x) => x.status === "active").map((x) => x.id)
+        : base.transactions.map((_, i) => `T${i + 1}`);
+      if (ready.length === 0) return trace;
+      order.push(r.pick(ready));
+    }
+  }
+
+  function randomInput(r: ReturnType<typeof rng>): Omit<TxInput, "order"> {
+    const items = r.int(1, 3);
+    return {
+      items: Array.from({ length: items }, () => r.int(0, 999)),
+      transactions: Array.from({ length: r.int(2, 3) }, () => randomScript(r, items)),
+      isolation: r.pick(isolationLevels),
+    };
+  }
+
+  it("always runs to the end: no dirty write, no leftover cycle, no stall", () => {
+    const r = rng(7);
+    let deadlocks = 0;
+    for (let run = 0; run < RUNS; run++) {
+      const trace = runToEnd(r, randomInput(r));
+      // Every transaction ended: deadlocks are always broken, so the generator never got stuck.
+      expect(trace.result.complete).toBe(true);
+      deadlocks += trace.result.deadlocks.length;
+      for (const { state } of trace.steps) {
+        for (const it of state.items) {
+          // An uncommitted value belongs to the lock holder: no second writer (P0).
+          if (it.pending) expect(it.pending.tx).toBe(it.holder);
+        }
+        // No cycle in the wait-for graph survives a step.
+        for (const start of state.transactions) {
+          let current = start;
+          for (let hops = 0; hops <= state.transactions.length; hops++) {
+            const holder = state.items.find((it) => it.id === current.waitsFor)?.holder;
+            const next = state.transactions.find((x) => x.id === holder);
+            if (!next) break;
+            expect(next.id).not.toBe(start.id);
+            current = next;
+          }
+        }
+      }
+    }
+    expect(deadlocks).toBeGreaterThan(0);
+  });
+
+  it("Read Committed never returns another transaction's uncommitted value", () => {
+    const r = rng(8);
+    for (let run = 0; run < RUNS; run++) {
+      const trace = runToEnd(r, { ...randomInput(r), isolation: "read-committed" });
+      expect(trace.result.dirtyReads).toBe(0);
+      for (const read of trace.result.reads) {
+        if (read.kind === "committed") expect(read.value).toBe(read.committed);
+      }
+    }
+  });
+
+  it("final values come only from committed transactions, the last committer of each item winning", () => {
+    const r = rng(9);
+    for (let run = 0; run < RUNS; run++) {
+      const input = randomInput(r);
+      const { result } = runToEnd(r, input);
+      const expected = [...input.items];
+      for (const tx of result.committed) {
+        for (const write of result.writes.filter((x) => x.tx === tx)) {
+          expected[itemIds.indexOf(write.item)] = write.value;
+        }
+      }
+      expect(result.final).toEqual(expected);
+    }
+  });
+
+  it("a serial order (one transaction at a time) shows no anomaly at any level", () => {
+    const r = rng(10);
+    for (let run = 0; run < RUNS; run++) {
+      const input = randomInput(r);
+      const order = r
+        .shuffle(input.transactions.map((_, i) => i))
+        .flatMap((i) => Array<string>(input.transactions[i]?.length ?? 0).fill(`T${i + 1}`));
+      const { result } = transact({ ...input, order });
+      expect(result.complete).toBe(true);
+      expect(result.blocks).toEqual([]);
+      expect(result.lostUpdates + result.dirtyReads + result.nonRepeatable).toBe(0);
     }
   });
 });
