@@ -133,7 +133,7 @@ Six entity slots. Simulations assign slots by entity index (P1 → slot 1). A se
 | 5    | Hexagon  | `#b2327a` | `#ffffff`  | `#ff8fc8` | `#1b1730` |
 | 6    | Pentagon | `#3f7d20` | `#ffffff`  | `#9ad66b` | `#1b1730` |
 
-Every pair passes WCAG AA (4.5:1) for its label text. Adjacent slots also differ in lightness, not only in hue. Shapes are defined once in `src/components/token/shapes.ts` as 24×24 SVG paths.
+Every pair passes WCAG AA (4.5:1) for its label text. Lightness does not separate every adjacent pair (slots 1–2 and 5–6 are nearly equal), so shape is what keeps them apart. Hollow shapes (outline tokens, planned spaces on the PathMap) draw their line with `--entity-<slot>-line`, the entity color mixed 65% with ink, which keeps at least 3:1 on ground, surface and slot in both themes. Shapes are defined once in `src/components/token/shapes.ts` as 24×24 SVG paths.
 
 ## Typography
 

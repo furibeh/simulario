@@ -33,7 +33,7 @@ let { slot, label, size = 34, variant = "filled" }: Props = $props();
     <path
       d={shapePaths[slot]}
       fill="none"
-      stroke="var(--entity-{slot})"
+      stroke="var(--entity-{slot}-line)"
       stroke-width="2.4"
       stroke-linejoin="round"
     />

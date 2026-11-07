@@ -33,7 +33,7 @@ const t = useTranslations(lang);
             <path
               d={shapePaths[slot]}
               fill={m.status === "available" ? `var(--entity-${slot})` : "none"}
-              stroke={m.status === "available" ? "var(--color-ink)" : `var(--entity-${slot})`}
+              stroke={m.status === "available" ? "var(--color-ink)" : `var(--entity-${slot}-line)`}
               stroke-width={m.status === "available" ? 1.2 : 2}
               stroke-linejoin="round"
             />

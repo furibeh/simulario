@@ -28,6 +28,14 @@
   --entity-6: #3f7d20;
   --entity-6-on: #ffffff;
 
+  /* Entities: line of hollow shapes, at least 3:1 on ground, surface and slot in both themes */
+  --entity-1-line: color-mix(in srgb, var(--entity-1) 65%, var(--color-ink));
+  --entity-2-line: color-mix(in srgb, var(--entity-2) 65%, var(--color-ink));
+  --entity-3-line: color-mix(in srgb, var(--entity-3) 65%, var(--color-ink));
+  --entity-4-line: color-mix(in srgb, var(--entity-4) 65%, var(--color-ink));
+  --entity-5-line: color-mix(in srgb, var(--entity-5) 65%, var(--color-ink));
+  --entity-6-line: color-mix(in srgb, var(--entity-6) 65%, var(--color-ink));
+
   /* Typography */
   --font-sans: "Lexend Variable", "Lexend", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
