@@ -576,7 +576,7 @@ const labels = $derived({
     align-items: center;
     justify-content: center;
     border: 1.5px dashed var(--color-ink-muted);
-    border-radius: 6px;
+    border-radius: var(--radius-bar);
     font-family: var(--font-mono);
     font-size: var(--text-data);
     color: var(--color-ink-muted);
