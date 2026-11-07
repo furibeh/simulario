@@ -137,7 +137,7 @@ Every pair passes WCAG AA (4.5:1) for its label text. Lightness does not separat
 
 ## Typography
 
-One family, **Lexend**, designed to improve reading fluency, at four weights. A monospace face is used only for code blocks.
+One family, **Lexend**, designed to improve reading fluency, at four weights. The system monospace stack (`--font-mono`) sets code blocks and code-like data on boards: instructions, variable names, block numbers.
 
 | Role                       | Face                                         | Size / line height                   | Weight  |
 | -------------------------- | -------------------------------------------- | ------------------------------------ | ------- |
@@ -147,7 +147,7 @@ One family, **Lexend**, designed to improve reading fluency, at four weights. A 
 | Body                       | Lexend                                       | 17 / 1.55                            | 400     |
 | Small (meta, hints)        | Lexend                                       | 15 / 1.5                             | 500     |
 | Data (tables, axis)        | Lexend, `font-variant-numeric: tabular-nums` | 14–17                                | 400–700 |
-| Code                       | JetBrains Mono                               | 15 / 1.5                             | 400     |
+| Code                       | System monospace                             | 15 / 1.5                             | 400     |
 
 - Prose is set left-aligned, ragged right, at most 65 characters per line.
 - Sentence case everywhere. No all-caps labels, no eyebrow labels above headings.
