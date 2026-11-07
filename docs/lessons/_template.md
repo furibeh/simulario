@@ -86,6 +86,14 @@ Follow "What every lesson needs" in `docs/design.md`, section "Teaching method".
 | ------- | ---------- | ------------ | ------------ |
 | `<key>` | `<params>` | <text>       | <text>       |
 
+### State
+
+<what each step holds, when it is not obvious from the board>
+
+### Result
+
+<final metrics and logs the lesson uses>
+
 ## Expected results (hand-computed)
 
 Tests in `src/engines/<engine>/` assert these values. Compute them by hand from the rules above, never from the engine's output.
@@ -97,10 +105,18 @@ Tests in `src/engines/<engine>/` assert these values. Compute them by hand from 
 | Variant | Schedule / trace summary | Metrics | Order |
 | ------- | ------------------------ | ------- | ----- |
 
+### External cross-check
+
+<published example replayed in `src/engines/published-traces.test.ts`, transcribed from the source, never from the engine; omit if none exists>
+
 ### Edge cases
 
 | Case | Input | Expected |
 | ---- | ----- | -------- |
+
+### Properties for `src/engines/invariants.test.ts`
+
+<guarantees that hold on seeded random inputs; omit if the topic has none>
 
 ## Go deeper (optional section)
 

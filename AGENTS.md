@@ -18,7 +18,7 @@ pnpm test         # Vitest, single run
 pnpm build        # static build into dist/, then the Pagefind search index
 ```
 
-Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pnpm build` and report the results.
+Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pnpm build && node scripts/check-search-index.mjs` and report the results.
 
 ## Hard rules
 
@@ -43,10 +43,11 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 
 ## Adding a simulation
 
-1. Create `src/engines/<name>/` with `types.ts` (input, state, result, explanation key union), `simulate.ts` returning a `Trace` and `simulate.test.ts`.
-2. Add `src/i18n/engines/<name>.es.ts` and `.en.ts` covering every key.
+1. Create `src/engines/<name>/` with `types.ts` (input, state, result, explanation key union), `presets.ts` (the workloads named in the spec), `simulate.ts` returning a `Trace` and `simulate.test.ts`.
+2. Add `src/i18n/engines/<name>.es.ts` and `.en.ts` covering every key, and `src/i18n/engines/<name>.test.ts`, which renders every key in both languages.
 3. Build the views in `src/components/<name>/` using `Token`, `Timeline` and the generic `Player` (`src/player/`). Shared board styles (cards, controls, zones, tables, the "why" panel) live in `src/components/board/board.css`: import it and put `class="sim"` on the view's root. Keep only view-specific layout in the view's own `<style>`.
 4. Embed it in a lesson MDX file inside `<Stage stage="run">`.
+5. Add the engine's guarantees to `src/engines/invariants.test.ts` when its topic has properties that hold on random inputs, and replay a published example in `src/engines/published-traces.test.ts` when a citable source has one. Record both in the spec.
 
 ## Adding a lesson
 
@@ -55,10 +56,11 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 2. Wrap each PEE section in `<Stage stage="…">`, in this order: `prerequisites`, `theory` (3–5 minutes), `predict`, `run`, `explain`, `experiment`, `check`, `deeper` (optional). The ids live in `src/components/lesson/stages.ts`.
 3. Keep theory before Predict minimal, just enough to reason. Put depth in Explain.
 4. Mind the search index. Islands (boards, Quiz) and the solutions inside Experiment `<details>` stay out of it on their own (`pagefind.yml`). Any other answer written in prose that would spoil a question needs `data-pagefind-ignore`.
+5. To publish, set `status: available` in `src/content/modules/<module>.yaml` and update the module tables in `README.md`.
 
 ## Definition of done
 
-- Lint, type check, tests and build pass.
+- Lint, type check, tests, build and the search index check pass.
 - Both languages are complete for any new string, key or lesson.
 - It works by keyboard and at 360px width, in light and dark themes.
 - Docs are updated when an architectural rule, a token or a convention changes.
