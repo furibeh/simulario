@@ -4,7 +4,7 @@ import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
 import { defineConfig } from "astro/config";
 
-// Final domain is not decided yet (see the site plan). Override with SITE_URL.
+// Override with SITE_URL if the site moves to its own domain.
 const site = process.env.SITE_URL ?? "https://simulario.pages.dev";
 
 export default defineConfig({
@@ -12,7 +12,7 @@ export default defineConfig({
   output: "static",
   trailingSlash: "never",
   // Emit /es/about.html instead of /es/about/index.html: Cloudflare Pages serves it at
-  // /es/acerca with no redirect, matching trailingSlash "never" and the canonical URLs.
+  // /es/about with no redirect, matching trailingSlash "never" and the canonical URLs.
   build: { format: "file" },
   integrations: [
     svelte(),

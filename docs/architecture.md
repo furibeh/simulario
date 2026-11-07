@@ -32,12 +32,14 @@ src/
     page-replacement/ simulate.ts, types.ts, presets.ts, simulate.test.ts
     file-system/      simulate.ts, types.ts, presets.ts, simulate.test.ts
     transactions/     simulate.ts, types.ts, presets.ts, order.ts (fitOrder), simulate.test.ts
-    trace.ts          Trace contract shared by engines and the player
+    trace.ts          Trace contract shared by every engine
+    invariants.test.ts, published-traces.test.ts   Property tests and published examples
   player/             Player.svelte and state.ts (pure reducer and keyboard map)
   components/
     token/            Token, shapes
     board/            Timeline (optional slotOf resolver when ids do not end in the
-                      entity number), board.css (shared board pieces, scoped under .sim)
+                      entity number), board.css (shared board pieces, scoped under .sim),
+                      scroll-current.ts (keeps the current cell of a scrolling table in view)
     cpu-scheduler/    CpuScheduler: workload, prediction order, metrics for this engine
     process-states/   ProcessStates: workload, prediction grid, state table, metrics
     race-conditions/  RaceConditions: thread listings, shared memory cell, manual interleaving, write log
@@ -53,11 +55,13 @@ src/
                       never ran are struck through), read and write logs
     lesson/           Stage, Quiz, stages.ts (stage ids, stepper and gated stages)
     search/           Search (nav link, dialog and shortcuts), SearchPanel (field, count, grouped results)
-    site/             Nav (with the language switch and search), ThemeToggle, PathMap
+    site/             Nav (with the language switch and search), ThemeToggle, PathMap, NotFound
   i18n/
     config.ts         Locales, default locale, helpers for localized paths
+    t.ts              useTranslations
     ui/es.ts, ui/en.ts               Interface strings
-    engines/cpu-scheduling.es.ts, process-states.es.ts …   Explanation templates per engine
+    engines/cpu-scheduling.es.ts, process-states.es.ts …   Explanation templates per engine,
+                      with one test per engine; types.ts
   content.config.ts   Collection schemas
   content/
     paths/            One YAML file per learning path
@@ -67,17 +71,21 @@ src/
   layouts/            Base.astro, Page.astro, Lesson.astro
   pages/
     index.astro                      Language redirect
+    404.astro, [lang]/404.astro      Not found pages
+    robots.txt.ts                    robots.txt endpoint
     [lang]/index.astro               Home
     [lang]/about.astro              About
     [lang]/search.astro             Search page (no-JS fallback and ?q= links)
     [lang]/[path]/index.astro        Path page
     [lang]/[path]/[lesson].astro     Lesson page
   lib/                progress.ts, theme.ts, language.ts (browser storage),
-                      catalog.ts (content queries), events.ts (island → page events),
+                      catalog.ts (content queries), drafts.ts (draft path filter), events.ts (island → page events),
                       legacy-ids.ts (renamed ids, for redirects and stored progress),
                       search.ts (pure result helpers), pagefind.ts (loads the index on demand)
   styles/             tokens.css, base.css
+public/               _headers, _redirects, favicon.svg, og.png
 docs/                 design.md, architecture.md
+  assets/             og.svg (source of public/og.png)
   lessons/            One spec per lesson (_template.md, then one file per lesson id)
 scripts/              check-search-index.mjs (CI check of the Pagefind index)
 pagefind.yml          What Pagefind indexes and leaves out
@@ -87,17 +95,21 @@ pagefind.yml          What Pagefind indexes and leaves out
 ## Layers and dependency rule
 
 ```
-pages / layouts  →  content (MDX)  →  components  →  player  →  engines
-                         ↘                ↘
-                          i18n  ←──────────┘
+pages            →  layouts, components, i18n, lib, styles
+layouts          →  components, i18n, lib, styles
+content (MDX)    →  components
+components       →  player, engines, i18n, lib
+i18n             →  engines (their types)
+lib              →  i18n
+player, engines  →  nothing else in the project
 ```
 
-Arrows point to what a layer may import. `engines/` imports nothing from the project. `player/` knows traces, not specific engines. Specific views (`components/cpu-scheduler/`) wire an engine to the player and to i18n.
+Arrows point to what a layer may import. `player/` receives a step count and a snippet, so it knows neither traces nor engines. Specific views (`components/cpu-scheduler/`) wire an engine to the player and to i18n.
 
 ## The trace contract
 
 ```ts
-// src/engines/trace.ts (shared by engines and the player)
+// src/engines/trace.ts (shared by every engine)
 export interface Explanation<K extends string = string> {
   key: K; // e.g. "fcfs.pick"
   params?: Readonly<Record<string, string | number>>; // e.g. { id: "P2", arrival: 1 }
@@ -128,7 +140,7 @@ Rules:
 
 ### CPU scheduling engine
 
-Port of the prototype's `simulate()`. Input: processes `{ id, arrival, burst, priority }`, algorithm (`fcfs | sjf | srtf | priority | rr`) and quantum. State per step: running process, ready queue, finished list, remaining time per process. Result: per-process finish, turnaround, waiting and response times, their averages, and the finish order. Keys include `fcfs.pick`, `sjf.pick`, `srtf.pick`, `srtf.preempt`, `srtf.keep`, `priority.pick`, `rr.pick`, `rr.continue`, `rr.expire`, `nonpreemptive.continue`, `finish` and `idle`.
+Implements `docs/lessons/cpu-scheduling.md`. Input: processes `{ id, arrival, burst, priority }`, algorithm (`fcfs | sjf | srtf | priority | rr`) and quantum. State per step: running process, ready queue, finished list, remaining time per process. Result: per-process finish, turnaround, waiting and response times, their averages, and the finish order. Keys include `fcfs.pick`, `sjf.pick`, `srtf.pick`, `srtf.preempt`, `srtf.keep`, `priority.pick`, `rr.pick`, `rr.continue`, `rr.expire`, `nonpreemptive.continue`, `finish` and `idle`.
 
 ### Process states engine
 
@@ -160,13 +172,13 @@ Implements `docs/lessons/inodes-links.md`. Input: a `script` of 1–12 operation
 
 ### Transactions engine
 
-Implements `docs/lessons/isolation-anomalies.md`, `docs/lessons/two-phase-locking.md` and `docs/lessons/mvcc-snapshots.md`; each level was added without changing earlier results. Input: `items` (1–3 initial values, ids `x`, `y`, `z`), `transactions` (2–3 scripts of `read`, `readForUpdate`, `write`, `writeFromRead`, `add` and `check`, an application-side rule that rolls back when the values read add up to less than a bound, ending in `commit` or `abort`), `isolation` (`read-uncommitted`, `read-committed`, `serializable-2pl` or `snapshot`) and an `order` of transaction ids, one per step (an entry that names an ended or blocked transaction throws; a short order ends with `complete: false`). Each item has a committed value and at most one uncommitted value; every write takes the item's lock until commit or abort, so the second writer waits in a FIFO queue and gets the lock, and runs its pending operation, in the step that releases it. Under the first two levels reads never wait: Read Uncommitted sees the uncommitted value, Read Committed the committed one. Under `serializable-2pl` (strict two-phase locking) a read takes a shared lock held until the end, a write needs every other reader gone (a reader that writes upgrades), and compatible waiters at the head of the queue are granted together on release. Under `snapshot` every item keeps its committed versions with their commit steps; a transaction reads the newest version committed before its first step, never waits to read, and is aborted when it gets a write lock on an item someone committed after its snapshot (first updater wins). A `writeFromRead` computed from a committed version that is no longer current is stale (a lost update if it commits). A wait that closes a cycle in the wait-for graph (searched depth first, holders in id order) aborts the waiting transaction. State: per item committed value, version, versions, uncommitted value, exclusive holder, shared readers and queue; per transaction status, program counter, wait, start step and last reads. Result: final values, committed and aborted, read and write logs, `lostUpdates`, `dirtyReads`, `dirtyAborted`, `nonRepeatable`, blocks, deadlocks and segments. Keys: `read`, `read.hidden`, `read.dirty`, `read.own`, `read.changed`, `read.lock`, `write`, `write.computed`, `write.stale`, `add`, `lock.wait`, `read.shared`, `lock.wait.shared`, `lock.upgrade`, `snapshot`, `read.old`, `serialization`, `check.pass`, `check.fail`, `handoff`, `commit`, `abort` and `deadlock`.
+Implements `docs/lessons/isolation-anomalies.md`, `docs/lessons/two-phase-locking.md` and `docs/lessons/mvcc-snapshots.md`; each level was added without changing earlier results. Input: `items` (1–3 initial values, ids `x`, `y`, `z`), `transactions` (2–3 scripts of `read`, `readForUpdate`, `write`, `writeFromRead`, `add` and `check`, an application-side rule that rolls back when the values read add up to less than a bound, ending in `commit` or `abort`), `isolation` (`read-uncommitted`, `read-committed`, `serializable-2pl` or `snapshot`) and an `order` of at most 30 transaction ids, one per step (an entry that names an ended or blocked transaction throws; a short order ends with `complete: false`). Each item has a committed value and at most one uncommitted value; every write takes the item's lock until commit or abort, so the second writer waits in a FIFO queue and gets the lock, and runs its pending operation, in the step that releases it. Under the first two levels reads never wait: Read Uncommitted sees the uncommitted value, Read Committed the committed one. Under `serializable-2pl` (strict two-phase locking) a read takes a shared lock held until the end, a write needs every other reader gone (a reader that writes upgrades), and compatible waiters at the head of the queue are granted together on release. Under `snapshot` every item keeps its committed versions with their commit steps; a transaction reads the newest version committed before its first step, never waits to read, and is aborted when it gets a write lock on an item someone committed after its snapshot (first updater wins). A `writeFromRead` computed from a committed version that is no longer current is stale (a lost update if it commits). A wait that closes a cycle in the wait-for graph (searched depth first, holders in id order) aborts the waiting transaction. State: per item committed value, version, versions, uncommitted value, exclusive holder, shared readers and queue; per transaction status, program counter, wait, start step and last reads. Result: final values, committed and aborted, read and write logs, `lostUpdates`, `dirtyReads`, `dirtyAborted`, `nonRepeatable`, blocks, deadlocks and segments. Keys: `read`, `read.hidden`, `read.dirty`, `read.own`, `read.changed`, `read.lock`, `write`, `write.computed`, `write.stale`, `add`, `lock.wait`, `read.shared`, `lock.wait.shared`, `lock.upgrade`, `snapshot`, `read.old`, `serialization`, `check.pass`, `check.fail`, `handoff`, `commit`, `abort` and `deadlock`.
 
 ## Player
 
 A Svelte component, `Player.svelte`, driven by a pure reducer in `state.ts` (`playerReducer`, `actionForKey`), which is unit-tested without the DOM:
 
-- State: `cursor` (0…steps.length), `status` (`idle | playing | paused | ended`), `speed`.
+- State: `cursor` (0…`total`), `total` and `status` (`idle | playing | paused | ended`). The speed stays in `Player.svelte`, as the interval between ticks.
 - Controls: play/pause, step back/forward, jump to start/end, speed. Keyboard: Space, ←, →, Home, End, active while focus is inside the board.
 - Hooks: `onfirstplay` runs before the first step is shown (the CPU board locks the prediction there) and `onend` runs each time playback reaches the last step (the lesson board unlocks the gated stages). Comparing the guess with `trace.result` is the specific view's job.
 - Rendering: the player receives the number of steps (`total`), a `traceKey` that rewinds it when the trace changes, and a Svelte snippet that draws the board for a cursor (the view reads `steps[cursor - 1]`). The player holds no knowledge of processes, queues or CPUs.
@@ -177,7 +189,7 @@ A Svelte component, `Player.svelte`, driven by a pure reducer in `state.ts` (`pl
 - **Locales**: `es` and `en`, both prefixed (`/es/…`, `/en/…`), configured with Astro's built-in i18n routing (`prefixDefaultLocale: true`, default locale `es`).
 - **Root `/`**: a static page that redirects with a tiny inline script. It uses the language stored from a previous visit, then `navigator.languages`, then `es`. It also contains plain links to both languages for no-JS visitors and crawlers. Cloudflare Pages redirects cannot branch on `Accept-Language`, so this happens on the client.
 - **Interface strings**: `src/i18n/ui/es.ts` is the source of truth (`as const`). `en.ts` is typed with `satisfies UiDict`, so a missing or extra key fails `astro check`. Components get a `t` function through `useTranslations(lang)`.
-- **Engine explanations**: `src/i18n/engines/<engine>.<lang>.ts` maps every engine key to a template function `(params) => string`. Typed as `Record<CpuExplainKey, …>`, so a new key without both translations fails type checking.
+- **Engine explanations**: `src/i18n/engines/<engine>.<lang>.ts` maps every engine key to a template function `(params) => string`. Typed as `ExplainTemplates<CpuExplainParams>`, so a new key without both translations fails type checking.
 - **Content**: lessons live in `src/content/lessons/<lang>/<id>.mdx`, and the same `id` in both folders links the translations. Paths and modules are single YAML entries with localized fields (`title: { es, en }`).
 - **Missing translation**: the page renders the available language with a notice and a link. `lang` on the content wrapper reflects the language actually shown.
 - **SEO**: `<link rel="alternate" hreflang>` for both locales plus `x-default` pointing at the default locale's version of the same page (`/es/…`); `lang` on `<html>`; localized sitemap through `@astrojs/sitemap`. The root `/` is `noindex` and left out of the sitemap, since it only picks a language. `robots.txt` is an endpoint (`src/pages/robots.txt.ts`) that points to the sitemap at the configured `site`.
@@ -214,7 +226,7 @@ lessons: { id: "<lang>/<slug>", module: reference('modules'), order, title, summ
 pages:   { id: "<lang>/<slug>", title, description }   // standalone MDX pages
 ```
 
-A path's modules are the modules whose `path` points to it, sorted by `order`. Lesson `prerequisites` are lesson slugs kept as plain strings, not references, so a lesson can name a prerequisite that is still planned (`cpu-scheduling` lists `process-states`). Pages must not assume every prerequisite exists.
+A path's modules are the modules whose `path` points to it, sorted by `order`. Lesson `prerequisites` are lesson slugs kept as plain strings, not references, so a lesson can name a prerequisite that is still planned. Pages must not assume every prerequisite exists.
 
 A path with `draft: true` is built by `pnpm dev` but left out of production builds, together with its modules and lessons (`withoutDrafts` in `src/lib/drafts.ts`, applied by `getCatalog()`). Its pages, home card and sitemap entries appear only when the flag is removed. No path is a draft today; the Databases path (`databases`) used the flag until its first three modules were available.
 
@@ -267,7 +279,7 @@ A lesson is a single page so the simulation keeps its state across stages. To av
 | Build           | `pnpm build` (Astro, then the Pagefind index) | yes        |
 | Search index    | `node scripts/check-search-index.mjs`         | yes        |
 
-Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs each engine must keep the guarantees of its topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode, transactions never leave a dirty write or an unbroken wait cycle, a serial order shows no anomaly, under two-phase locking the result equals running the committed transactions one after another in commit order, and under snapshot isolation reads match the state before the reader started and overlapping committed transactions never wrote the same item). They found two engine bugs that the hand-computed presets did not reach. `src/engines/published-traces.test.ts` replays published examples as an external reference, at least one per lesson: for operating systems, OSTEP §19.2, Figures 22.1, 22.2, 22.5, 26.7, 31.12 and 32.6, and §39.14–39.15; for databases, the histories H1, H2, H4 and P0 of Berenson et al. (1995) and Hermitage's PostgreSQL Read Committed tests G0, G1a, G1b, G1c, OTV, P4 and G-single; for two-phase locking, H4 under Berenson's Locking SERIALIZABLE and Hermitage's MySQL InnoDB Serializable tests P4 and G2-item; for snapshot isolation, Berenson's H1.SI, H5 and H4 and Hermitage's PostgreSQL Repeatable Read tests P4, G-single and G2-item.
+Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs seven of the nine engines (all but CPU scheduling and process states) must keep the guarantees of their topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode, transactions never leave a dirty write or an unbroken wait cycle, a serial order shows no anomaly, under two-phase locking the result equals running the committed transactions one after another in commit order, and under snapshot isolation reads match the state before the reader started and overlapping committed transactions never wrote the same item). They found two engine bugs that the hand-computed presets did not reach. `src/engines/published-traces.test.ts` replays published examples as an external reference, for every lesson except `cpu-scheduling` and `process-states`, whose references are the hand-computed values: for operating systems, OSTEP §19.2, Figures 22.1, 22.2, 22.5, 26.7, 31.12 and 32.6, and §39.14–39.15; for databases, the histories H1, H2, H4 and P0 of Berenson et al. (1995) and Hermitage's PostgreSQL Read Committed tests G0, G1a, G1b, G1c, OTV, P4 and G-single; for two-phase locking, H4 under Berenson's Locking SERIALIZABLE and Hermitage's MySQL InnoDB Serializable tests P4 and G2-item; for snapshot isolation, Berenson's H1.SI, H5 and H4 and Hermitage's PostgreSQL Repeatable Read tests P4, G-single and G2-item.
 
 ## Decisions
 
