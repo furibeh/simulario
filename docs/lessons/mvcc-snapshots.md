@@ -10,7 +10,7 @@
 
 The simulation is the **transaction board** of modules 5 and 6 with one more level: **snapshot isolation**, which is what PostgreSQL runs as `REPEATABLE READ`. Every committed write keeps its old versions, and each transaction reads from a **snapshot** taken when it starts: the versions committed before that moment. The board shows each item's chain of versions, each transaction's snapshot as the turn it started, which version every read picks, and the moment a second writer is aborted because someone changed the item after its snapshot. The learner compares the same scenarios under Read Committed, snapshot isolation and two-phase locking.
 
-This spec adds the level `snapshot` and the operation `check` to the engine of `docs/lessons/isolation-anomalies.md` and `docs/lessons/two-phase-locking.md`. Every result listed in those specs must stay the same.
+The engine is shared with `isolation-anomalies` and `two-phase-locking`; its spec is `docs/engines/transactions.md`.
 
 ## Learning objectives
 
@@ -92,40 +92,11 @@ By the end of the lesson the learner can:
 
 ## Engine behavior
 
-### New operation
-
-`check items atLeast`: the application checks that the sum of the values this transaction last read of `items` is at least `atLeast`. If so, it goes on (`check.pass`). If not, the transaction rolls back (`check.fail`); its program counter moves past the check, so the operations after it never ran. Validation: `items` is 1–3 existing items, each read (`read` or `readForUpdate`) earlier in the script; `atLeast` is an integer −999…999. `check` takes no lock and is allowed at every level.
-
-### Versions and snapshots (every level)
-
-- Each item keeps its list of committed versions: value, the transaction that committed it (null for the initial one) and the step of the commit (null for the initial one). The state exposes it as `versions`.
-- Each transaction records `start`, the step of its first operation (null before it runs).
-
-### Rules under `snapshot`
-
-- At a transaction's first operation the step starts with `snapshot` (the snapshot is taken).
-- **Reads** (`read`) never take a lock and never wait. A transaction with an uncommitted value on the item reads it (`read.own`). Otherwise it reads the newest version committed at a step before its `start`. If a newer committed version exists, the key is `read.old` (with the current committed value and its committer); otherwise, if another transaction holds an uncommitted value, `read.hidden`; otherwise `read`.
-- **Writes** (`write`, `writeFromRead`, `add`) and `readForUpdate` take the exclusive lock exactly as under Read Committed (waiting, FIFO handoff, deadlock detection). When the transaction gets the lock (at once or by handoff), if the item's newest committed version was committed at a step after its `start`, the operation does not run: the transaction is aborted (`serialization`, with the committer), its uncommitted values are discarded, its program counter stays on that operation, and its locks are released with the usual rule. Otherwise the operation runs as under Read Committed; `add` and `readForUpdate` then see the snapshot's value, which is also the newest committed one.
-- `read.changed` and `write.stale` keep their definitions; under `snapshot` they never occur for committed transactions.
-- Keys within a step, in order: `snapshot`, then the keys of module 5 and 6, with `serialization` in the place of the operation's key.
-
-### New explanation keys
-
-| Key             | Params                                 | Example (es)                                                                                                   | Example (en)                                                                                |
-| --------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `snapshot`      | `tx`                                   | T1 empieza y toma su instantánea: verá los datos tal como están confirmados ahora.                             | T1 starts and takes its snapshot: it will see the data as it is committed now.              |
-| `read.old`      | `tx`, `item`, `value`, `current`, `by` | T1 lee y = 50 en su instantánea, aunque T2 confirmó 90 después de que T1 empezara.                             | T1 reads y = 50 from its snapshot, although T2 committed 90 after T1 started.               |
-| `serialization` | `tx`, `item`, `by`                     | T2 no puede escribir x: T1 lo cambió y confirmó después de la instantánea de T2. La base de datos aborta a T2. | T2 cannot write x: T1 changed and committed it after T2's snapshot. The database aborts T2. |
-| `check.pass`    | `tx`, `sum`, `atLeast`                 | T1 comprueba la regla: ve 2, y hace falta al menos 2. Sigue adelante.                                          | T1 checks the rule: it sees 2, and at least 2 are needed. It goes on.                       |
-| `check.fail`    | `tx`, `sum`, `atLeast`                 | T2 comprueba la regla: ve 1, y hace falta al menos 2. Se deshace sin escribir.                                 | T2 checks the rule: it sees 1, and at least 2 are needed. It rolls back without writing.    |
-
-### State
-
-Per item, add `versions` (value, `by`, `step`); per transaction, add `start`.
+Defined in [`docs/engines/transactions.md`](../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `snapshot` and the operation `check`, compared with `read-committed` and `serializable-2pl`.
 
 ## Expected results (hand-computed)
 
-Notation of the earlier specs, plus: `snap` the snapshot, `ro` a read of an old version (`read.old`), `✓k`/`✗k` a check that passes or fails with sum k, `ser(T1)` a serialization abort because of T1's commit. Steps are indexes from 0.
+Notation: see "Notation of the traces" in the engine spec. Steps are indexes from 0; the board counts from 1.
 
 ### Preset: Guardia (x = 1, y = 1)
 
@@ -150,38 +121,6 @@ Scripts: T1 (Alice) `read x, read y, check x+y ≥ 2, write x 0, commit`; T2 (Bo
 ### Preset: Transferencia under snapshot (E1)
 
 Module 5's order T1, T2, T2, T2, T2, T2, T1, T1: 0 T1 snap, r x 50 · 1 T2 snap, r x 50 · 2 T2 wc x 10 · 3 T2 r y 50 · 4 T2 wc y 90 · 5 T2 c · 6 T1 ro y 50 (current 90 by T2) · 7 T1 c. The report reads 50 + 50 = 100; no block, no abort.
-
-### External cross-check
-
-`src/engines/published-traces.test.ts` adds, transcribed from the sources:
-
-- **Berenson et al. 1995, §4.2** (snapshot isolation):
-  - H1.SI: x = y = 50; T1 `read x, writeFromRead x −40, read y, writeFromRead y +40, commit`, T2 `read x, read y, commit`; order T1 T1 T2 T2 T2 T1 T1 T1. T2 reads x 50 and y 50; both commit; final 10, 90.
-  - H5 (write skew, A5B): x = y = 50; T1 `read x, read y, writeFromRead y −90, commit`, T2 `read x, read y, writeFromRead x −90, commit`; order T1 T1 T2 T2 T1 T2 T1 T2. Both commit; final x −40, y −40: x + y > 0 is violated.
-  - H2 under snapshot: read skew does not happen (preset _Transferencia_, E1).
-  - H4 under snapshot: order T1 T2 T2 T2 T1; T1's write at step 4 finds T2's version committed after its snapshot and is aborted. Final 120, no lost update.
-- **Hermitage, PostgreSQL, Repeatable Read** (`postgres.md`), row 1 is x = 10, row 2 is y = 20:
-  - P4: T1 `read x, write x 11, commit`; T2 `read x, write x 11, commit`; order T1 T2 T1 T2 T1. T2's update waits; when T1 commits, T2 fails with a serialization error. Final 11.
-  - G-single (id-based): T1 `read x, read y, commit`; T2 `read x, read y, write x 12, write y 18, commit`; order T1 T2 T2 T2 T2 T2 T1 T1. T1 reads x 10 and y 20.
-  - G2-item: T1 `read x, read y, write x 11, commit`; T2 `read x, read y, write y 21, commit`; order T1 T1 T2 T2 T1 T2 T1 T2. Both commit; final 11, 21.
-
-### Edge cases
-
-| Case                                 | Input                                                                              | Expected                                                                                     |
-| ------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Repeatable reads                     | x = 50. T1 `read x, read x, commit`; T2 `write x 10, commit`; order T1 T2 T2 T1 T1 | Step 3: T1 reads 50 (`read.old`, current 10 by T2); `nonRepeatable` 0. Compare module 5: 10. |
-| Snapshot after a commit sees it      | x = 5. T1 `write x 6, commit`; T2 `read x, commit`; order T1 T1 T2 T2              | Step 2: T2 takes its snapshot after T1's commit and reads 6 (`read`).                        |
-| A writer whose holder aborts goes on | x = 5. T1 `write x 6, abort`; T2 `write x 7, commit`; order T1 T2 T1 T2            | 1 T2 W(T1) · 2 T1 a, →T2, w x 7 (no committed change after T2's snapshot) · 3 T2 c. Final 7. |
-| `check` without an earlier read      | T1 `check x ≥ 1, commit`                                                           | `RangeError`.                                                                                |
-| Earlier levels                       | every preset and edge case of the two earlier specs                                | unchanged (they never use `check`; `versions` and `start` are new state fields only)         |
-
-### Properties for `src/engines/invariants.test.ts`
-
-On seeded random inputs under `snapshot`, with random valid orders run to the end:
-
-- `lostUpdates`, `dirtyReads` and `nonRepeatable` are 0.
-- Every read of another transaction's data returns the item's committed value at the end of the step before the reader's `start` (checked against the trace's own earlier states).
-- No two committed transactions whose lifetimes overlap (from `start` to commit) both wrote the same item (first updater wins).
 
 ## Go deeper (optional section)
 

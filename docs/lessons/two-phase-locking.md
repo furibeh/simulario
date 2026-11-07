@@ -10,7 +10,7 @@
 
 The simulation is the **transaction board** of `isolation-anomalies`, with one more level: **Serializable by strict two-phase locking**. Reads now take a **shared** lock and keep it until the end, so each item can have several readers or one writer. The board shows every lock with its mode and owners, who waits for whom, and the moment a wait closes a cycle and the database aborts a victim. The same scenarios as module 5 can be replayed under Read Committed and under two-phase locking side by side.
 
-This spec adds the level `serializable-2pl` to the engine defined in `docs/lessons/isolation-anomalies.md`. Every result listed in that spec must stay the same; the new rules apply only when `isolation` is `serializable-2pl`.
+The engine is shared with `isolation-anomalies` and `mvcc-snapshots`; its spec is `docs/engines/transactions.md`.
 
 ## Learning objectives
 
@@ -100,42 +100,11 @@ By the end of the lesson the learner can:
 
 ## Engine behavior
 
-### Inputs and limits
-
-As in `isolation-anomalies`, with `isolation` also accepting `serializable-2pl`.
-
-### Locks under `serializable-2pl`
-
-Each item has an exclusive holder (`holder`, at most one) and a set of shared holders (`readers`, kept in id order). Under the other levels `readers` is always empty.
-
-- **Requested mode**: `read` asks for S; `write`, `writeFromRead`, `add` and `readForUpdate` ask for X.
-- **Granted at once** if compatible with the current holders other than the requester: S needs no other X holder; X needs no other holder of any mode. The queue does not delay a compatible request (a simplification: InnoDB also queues a request behind waiting ones).
-- A transaction that already holds X needs nothing more. One that holds S and asks for S needs nothing more. One that holds S and gets X **upgrades** (`lock.upgrade`) and leaves `readers`.
-- **Waiting**: an incompatible request blocks the transaction and joins the item's FIFO queue. A blocked S request waits for the X holder (`lock.wait`, as in module 5). A blocked X request waits for the other shared holders (`lock.wait.shared`, with `holders` written as ids joined by ", " in id order) or, if another transaction holds X, for it (`lock.wait`).
-- **Releasing**, after commit or abort, item by item in id order: the transaction leaves `holder` and `readers`; then, while the queue's first waiter is compatible with the remaining holders, it gets its lock (`handoff`, then `lock.upgrade` if it held S and got X, then the keys of its pending operation) and leaves the queue. The first incompatible waiter stops the item's queue.
-- **Deadlock**: after a block, the engine searches the wait-for graph from the blocked transaction T. T waits for every incompatible holder of the item it asked for; it does not wait for others in the queue. Holders are visited in id order, depth first; the first path that returns to T is the cycle, written `T → item → U → … → T`. T is the victim, exactly as in module 5.
-
-### Reads under `serializable-2pl`
-
-- A read that takes a new S lock reads the committed value (`read.shared`).
-- A read by a transaction that already holds S or X on the item takes no new lock: `read.own` if it has an uncommitted value there, `read` otherwise.
-- `read.changed`, `write.stale`, dirty reads: same definitions as module 5. Strict 2PL makes all three impossible for committed transactions (see "Properties").
-
-### New explanation keys
-
-| Key                | Params                  | Example (es)                                                                              | Example (en)                                                                    |
-| ------------------ | ----------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `read.shared`      | `tx`, `item`, `value`   | T1 lee x = 100 y toma un bloqueo compartido: nadie podrá escribir x hasta que T1 termine. | T1 reads x = 100 and takes a shared lock: nobody can write x until T1 finishes. |
-| `lock.wait.shared` | `tx`, `item`, `holders` | T1 quiere escribir x, pero T2 lo está leyendo con un bloqueo compartido: T1 espera.       | T1 wants to write x, but T2 holds a shared lock to read it: T1 waits.           |
-| `lock.upgrade`     | `tx`, `item`            | T1 ya tenía un bloqueo compartido de x y lo convierte en exclusivo.                       | T1 already had a shared lock on x and turns it into an exclusive one.           |
-
-### Result
-
-As in module 5. The state adds `readers` per item.
+Defined in [`docs/engines/transactions.md`](../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `serializable-2pl`, compared with `read-committed`.
 
 ## Expected results (hand-computed)
 
-Notation of `isolation-anomalies`, plus: `rs` a read that takes a shared lock, `up` an upgrade, `WS(T2)` a wait for T2's shared lock, `W(T1)` a wait for T1's exclusive lock, `✗T2` the deadlock victim. Steps are indexes from 0.
+Notation: see "Notation of the traces" in the engine spec. Steps are indexes from 0; the board counts from 1.
 
 ### Preset: Saldo under Serializable (2PL)
 
@@ -164,33 +133,6 @@ Scripts: T1 `read x, writeFromRead x −10, read y, writeFromRead y +10, commit`
 | Serial, either level | T1×5, T2×5                 | no waits                                                                                                                                                                               | x 100, y 100; both commit             |
 
 In the Read Committed variant, T1's write at step 7 is not stale: T2's 90 on y was never committed.
-
-### External cross-check
-
-`src/engines/published-traces.test.ts` adds, transcribed from the sources:
-
-- **Berenson et al. 1995**, Table 2: Locking SERIALIZABLE holds long read and write locks, which is `serializable-2pl`. H4 (`r1[x=100] r2[x=100] w2[x=120] c2 w1[x=130] c1`) cannot run under it: with order T1, T2, T2, T1, T2 the engine reaches step 2 with T2 waiting for T1's shared lock; at step 3 T1's write closes the cycle (`T1 → x → T2 → x → T1`), T1 is aborted and T2 upgrades and writes 120; T2 commits at step 4. Final 120, no lost update.
-- **Hermitage, MySQL InnoDB, Serializable** (`mysql.md`), row 1 is x = 10, row 2 is y = 20:
-  - P4: T1 `read x, write x 11, commit`; T2 `read x, write x 11, commit`; order T1, T2, T1, T2, T1. T1's update waits; T2's update gets the deadlock error; T1 commits. Final x 11, aborted T2.
-  - G2-item: T1 `read x, read y, write x 11, commit`; T2 `read x, read y, write y 21, commit`; order T1, T1, T2, T2, T1, T2, T1. T1's update waits; T2's update gets the deadlock error; T1 commits. Final x 11, y 20.
-  - Left out: G-single (its `delete … where value = 20` is a predicate write), PMP and G2 (predicates and inserts), and Fekete's G2 example, where InnoDB picks a different victim than the lesson's rule.
-
-### Edge cases
-
-| Case                      | Input                                                                                         | Expected                                                                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Three readers, one writer | x = 1. T1 `read x, commit`; T2 `read x, commit`; T3 `write x 9, commit`; order T1 T2 T3 T1 T2 | 2 T3 WS on x with holders "T1, T2" · 3 T1 c (T3 still waits for T2) · 4 T2 c, →T3, w x 9. T3 has not committed; `complete` false. |
-| Re-read under a held lock | x = 5. T1 `read x, read x, commit`; T2 `commit`; order T1 T1 T1 T2                            | Step 0 `read.shared`, step 1 `read` (no new lock), no `read.changed`.                                                             |
-| Writer blocks a reader    | x = 5. T1 `write x 6, commit`; T2 `read x, commit`; order T1 T2 T1 T2                         | 1 T2 W(T1) · 2 T1 c, →T2 rs 6 · 3 T2 c.                                                                                           |
-| Module 5 results          | every preset and edge case of `isolation-anomalies` under its levels                          | unchanged                                                                                                                         |
-
-### Properties for `src/engines/invariants.test.ts`
-
-On seeded random inputs under `serializable-2pl`, with random valid orders run to the end:
-
-- `lostUpdates`, `dirtyReads` and `nonRepeatable` are 0.
-- The final values equal running the committed transactions' scripts **one after another in commit order** from the initial values, computed by a small interpreter in the test (independent of the engine).
-- No item ever has an exclusive holder together with a shared holder other than itself.
 
 ## Go deeper (optional section)
 

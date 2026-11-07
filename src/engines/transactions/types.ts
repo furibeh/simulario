@@ -14,8 +14,7 @@ export const itemIds = ["x", "y", "z"] as const;
 export type ItemId = (typeof itemIds)[number];
 
 /**
- * Levels: read-uncommitted and read-committed (docs/lessons/isolation-anomalies.md),
- * serializable-2pl (docs/lessons/two-phase-locking.md), snapshot (docs/lessons/mvcc-snapshots.md).
+ * Levels and their rules: docs/engines/transactions.md.
  */
 export const isolationLevels = [
   "read-uncommitted",

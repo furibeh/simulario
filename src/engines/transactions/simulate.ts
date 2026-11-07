@@ -48,7 +48,7 @@ interface Tx {
 const inRange = (v: number, r: { min: number; max: number }) =>
   Number.isInteger(v) && v >= r.min && v <= r.max;
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/isolation-anomalies.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/engines/transactions.md. */
 export function assertValidInput(input: TxInput): void {
   if (!inRange(input.items.length, limits.items)) throw new RangeError("Invalid item count");
   if (!input.items.every((v) => inRange(v, limits.value))) {

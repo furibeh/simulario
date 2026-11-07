@@ -49,7 +49,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 4. Embed it in a lesson MDX file inside `<Stage stage="run">`.
 5. Add the engine's guarantees to `src/engines/invariants.test.ts` when its topic has properties that hold on random inputs, and replay a published example in `src/engines/published-traces.test.ts` when a citable source has one. Record both in the spec.
 
-An engine's rules, keys and cases live in the spec of its lesson. When a second lesson uses the engine, move them to `docs/engines/<engine>.md`; each lesson spec keeps its teaching plan and its scenarios. `docs/architecture.md` only summarizes each engine and links to its spec.
+An engine's rules, keys and cases live in the spec of its lesson. When a second lesson uses the engine, move them to `docs/engines/<engine>.md` (`docs/engines/transactions.md` is the model); each lesson spec keeps its teaching plan and its scenarios. `docs/architecture.md` only summarizes each engine and links to its spec.
 
 ## Adding a lesson
 

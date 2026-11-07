@@ -72,6 +72,8 @@ Follow "What every lesson needs" in `docs/design.md`, section "Teaching method".
 
 ## Engine behavior
 
+<!-- If the engine has its own spec in docs/engines/, link to it here and keep only this lesson's scenarios under "Expected results". -->
+
 ### Inputs and limits
 
 <fields, ranges, defaults>

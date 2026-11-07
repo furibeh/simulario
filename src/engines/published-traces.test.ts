@@ -219,7 +219,7 @@ describe("OSTEP ch. 39, §39.14 and §39.15 (hard and symbolic links)", () => {
  * External cross-check, databases: histories published in Berenson et al., "A Critique of ANSI SQL
  * Isolation Levels" (SIGMOD 1995, MSR-TR-95-51), and Kleppmann's Hermitage tests for PostgreSQL
  * (https://github.com/ept/hermitage, postgres.md), transcribed from the sources, not from any
- * engine output. Mapping rules: docs/lessons/isolation-anomalies.md, "External cross-check".
+ * engine output. Mapping rules: docs/engines/transactions.md, "External cross-check".
  */
 
 const r = (item: "x" | "y"): TxOperation => ({ op: "read", item });

@@ -22,7 +22,7 @@ describe("transactions explanation templates", () => {
       ),
       { ...presets.balance, transactions: fixBalance("atomic"), order: ["T1", "T2", "T1", "T2"] },
       { ...presets.balance, transactions: fixBalance("forUpdate") },
-      // Snapshot isolation (docs/lessons/mvcc-snapshots.md).
+      // Snapshot isolation (docs/engines/transactions.md).
       presets.onCall,
       {
         ...presets.onCall,
@@ -30,7 +30,7 @@ describe("transactions explanation templates", () => {
       },
       { ...presets.balance, isolation: "snapshot", order: ["T1", "T2", "T1", "T1", "T2"] },
       { ...presets.transfer, isolation: "snapshot" },
-      // Two-phase locking (docs/lessons/two-phase-locking.md).
+      // Two-phase locking (docs/engines/transactions.md).
       { ...presets.balance, isolation: "serializable-2pl", order: ["T1", "T2", "T1", "T2", "T1"] },
       presets.crossTransfers,
       {
