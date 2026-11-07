@@ -1,12 +1,12 @@
 # Lesson spec: Transactions and isolation anomalies
 
-| Field          | Value                                                   |
-| -------------- | ------------------------------------------------------- |
-| Id             | `isolation-anomalies`                                   |
-| Path / module  | Databases (`databases`) / 5, Transactions and isolation |
-| Engine         | `src/engines/transactions/`                             |
-| Estimated time | 30 minutes                                              |
-| Status         | Published                                               |
+| Field              | Value                                                   |
+| ------------------ | ------------------------------------------------------- |
+| Id                 | `isolation-anomalies`                                   |
+| Path / module      | Databases (`databases`) / 5, Transactions and isolation |
+| Engine             | `src/engines/transactions/`                             |
+| Estimated time     | 30 minutes                                              |
+| Translation review | Reviewed                                                |
 
 The simulation is a **transaction board**: two or three transactions run short scripts of reads and writes against one to three data items, one operation per turn, in an order the lesson (or the learner) chooses. Each transaction shows its script, its program counter and the values it has read. Each item shows its committed value, the uncommitted value someone is writing (if any), who holds its write lock and who waits for it. A read log records what every read returned and what was committed at that moment, and a write computed from an out-of-date read is marked as stale.
 
@@ -281,10 +281,3 @@ On seeded random inputs (2–3 transactions, 1–3 items, random valid orders ru
 - Kleppmann, Hermitage: testing transaction isolation levels, `postgres.md`: https://github.com/ept/hermitage
 - PostgreSQL documentation, "Transaction Isolation" (§13.2) and "Explicit Locking" (§13.3, `FOR UPDATE`): https://www.postgresql.org/docs/current/transaction-iso.html
 - PostgreSQL documentation, `deadlock_timeout`: https://www.postgresql.org/docs/current/runtime-config-locks.html
-
-## Translations
-
-| Language | File                                             | Status   |
-| -------- | ------------------------------------------------ | -------- |
-| es       | `src/content/lessons/es/isolation-anomalies.mdx` | Reviewed |
-| en       | `src/content/lessons/en/isolation-anomalies.mdx` | Reviewed |

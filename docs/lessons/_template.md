@@ -7,13 +7,13 @@ for both MDX translations and for the engine tests. Write it in English.
 Lesson prose does not belong here; the MDX files hold it.
 -->
 
-| Field          | Value                                        |
-| -------------- | -------------------------------------------- |
-| Id             | `<id>`                                       |
-| Path / module  | <path> / <module number and name>            |
-| Engine         | `src/engines/<engine>/`                      |
-| Estimated time | <minutes>                                    |
-| Status         | Draft / Ready to write / Written / Published |
+| Field              | Value                             |
+| ------------------ | --------------------------------- |
+| Id                 | `<id>`                            |
+| Path / module      | <path> / <module number and name> |
+| Engine             | `src/engines/<engine>/`           |
+| Estimated time     | <minutes>                         |
+| Translation review | Pending / Reviewed, <date>        |
 
 ## Learning objectives
 
@@ -125,10 +125,3 @@ Tests in `src/engines/<engine>/` assert these values. Compute them by hand from 
 ## References
 
 - <author, title, edition, chapter/section, URL if free>
-
-## Translations
-
-| Language | File                              | Status      |
-| -------- | --------------------------------- | ----------- |
-| es       | `src/content/lessons/es/<id>.mdx` | Not started |
-| en       | `src/content/lessons/en/<id>.mdx` | Not started |

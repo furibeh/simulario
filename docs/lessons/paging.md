@@ -1,12 +1,12 @@
 # Lesson spec: Virtual memory and paging
 
-| Field          | Value                                                                  |
-| -------------- | ---------------------------------------------------------------------- |
-| Id             | `paging`                                                               |
-| Path / module  | Operating systems (`operating-systems`) / 6, Virtual memory and paging |
-| Engine         | `src/engines/address-translation/`                                     |
-| Estimated time | 35 minutes                                                             |
-| Status         | Published                                                              |
+| Field              | Value                                                                  |
+| ------------------ | ---------------------------------------------------------------------- |
+| Id                 | `paging`                                                               |
+| Path / module      | Operating systems (`operating-systems`) / 6, Virtual memory and paging |
+| Engine             | `src/engines/address-translation/`                                     |
+| Estimated time     | 35 minutes                                                             |
+| Translation review | Reviewed, 2026-11-04                                                   |
 
 The simulation is an **address translation board**. A process issues a short list of memory accesses. For each one the board splits the virtual address into page number and offset (in decimal and in binary), looks the page up in a small TLB, then in the page table, serves a page fault from disk when needed, and builds the physical address. The TLB, the page table, physical memory (frames) and the disk are all visible, and every access shows what it cost. Pages are tokens that move between disk and frames.
 
@@ -217,10 +217,3 @@ Hits 0, misses 2, faults 3, no invalid access. Total 31 005. Final page table: p
 - Arpaci-Dusseau and Arpaci-Dusseau, _Operating Systems: Three Easy Pieces_, ch. 18 "Paging: Introduction", ch. 19 "Paging: Faster Translations (TLBs)", ch. 20 "Paging: Smaller Tables" and ch. 21 "Beyond Physical Memory: Mechanisms". Free at https://pages.cs.wisc.edu/~remzi/OSTEP/
 - Silberschatz, Galvin and Gagne, _Operating System Concepts_, 10th ed., §9.3 "Paging" and §10.2 "Demand Paging".
 - Linux kernel documentation, "5-level paging": https://docs.kernel.org/arch/x86/x86_64/5level-paging.html
-
-## Translations
-
-| Language | File                                | Status               |
-| -------- | ----------------------------------- | -------------------- |
-| es       | `src/content/lessons/es/paging.mdx` | Reviewed, 2026-11-04 |
-| en       | `src/content/lessons/en/paging.mdx` | Reviewed, 2026-11-04 |

@@ -1,12 +1,12 @@
 # Lesson spec: Page replacement algorithms
 
-| Field          | Value                                                                    |
-| -------------- | ------------------------------------------------------------------------ |
-| Id             | `page-replacement`                                                       |
-| Path / module  | Operating systems (`operating-systems`) / 7, Page replacement algorithms |
-| Engine         | `src/engines/page-replacement/`                                          |
-| Estimated time | 30 minutes                                                               |
-| Status         | Published                                                                |
+| Field              | Value                                                                    |
+| ------------------ | ------------------------------------------------------------------------ |
+| Id                 | `page-replacement`                                                       |
+| Path / module      | Operating systems (`operating-systems`) / 7, Page replacement algorithms |
+| Engine             | `src/engines/page-replacement/`                                          |
+| Estimated time     | 30 minutes                                                               |
+| Translation review | Reviewed, 2026-11-04                                                     |
 
 The simulation is a **frame grid**: one column per page reference, one row per frame, filled as the run advances, with every fault marked and every victim crossed out. Beside it, the selected algorithm shows its own bookkeeping: the FIFO queue, the LRU recency list, OPT's next use of each page, or the Clock dial with its hand and use bits. Below, a comparison table runs every algorithm with 1 to 6 frames on the same reference string, so Belady's anomaly shows up as a number that goes up instead of down.
 
@@ -191,10 +191,3 @@ Clock 3, traced by hand: faults at references 1, 2, 3, 4, 6, 8, 9, 11, 12, 14, 1
 - Arpaci-Dusseau and Arpaci-Dusseau, _Operating Systems: Three Easy Pieces_, ch. 22 "Beyond Physical Memory: Policies". Free at https://pages.cs.wisc.edu/~remzi/OSTEP/
 - Silberschatz, Galvin and Gagne, _Operating System Concepts_, 10th ed., §10.4 "Page Replacement".
 - Linux kernel documentation, "Multi-Gen LRU": https://docs.kernel.org/admin-guide/mm/multigen_lru.html
-
-## Translations
-
-| Language | File                                          | Status               |
-| -------- | --------------------------------------------- | -------------------- |
-| es       | `src/content/lessons/es/page-replacement.mdx` | Reviewed, 2026-11-04 |
-| en       | `src/content/lessons/en/page-replacement.mdx` | Reviewed, 2026-11-04 |

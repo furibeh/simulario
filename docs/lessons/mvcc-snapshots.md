@@ -1,12 +1,12 @@
 # Lesson spec: MVCC and snapshot isolation
 
-| Field          | Value                                           |
-| -------------- | ----------------------------------------------- |
-| Id             | `mvcc-snapshots`                                |
-| Path / module  | Databases (`databases`) / 7, MVCC and snapshots |
-| Engine         | `src/engines/transactions/` (level `snapshot`)  |
-| Estimated time | 30 minutes                                      |
-| Status         | Published                                       |
+| Field              | Value                                           |
+| ------------------ | ----------------------------------------------- |
+| Id                 | `mvcc-snapshots`                                |
+| Path / module      | Databases (`databases`) / 7, MVCC and snapshots |
+| Engine             | `src/engines/transactions/` (level `snapshot`)  |
+| Estimated time     | 30 minutes                                      |
+| Translation review | Reviewed                                        |
 
 The simulation is the **transaction board** of modules 5 and 6 with one more level: **snapshot isolation**, which is what PostgreSQL runs as `REPEATABLE READ`. Every committed write keeps its old versions, and each transaction reads from a **snapshot** taken when it starts: the versions committed before that moment. The board shows each item's chain of versions, each transaction's snapshot as the turn it started, which version every read picks, and the moment a second writer is aborted because someone changed the item after its snapshot. The learner compares the same scenarios under Read Committed, snapshot isolation and two-phase locking.
 
@@ -197,10 +197,3 @@ On seeded random inputs under `snapshot`, with random valid orders run to the en
 - PostgreSQL documentation, "Repeatable Read Isolation Level" and "Serializable Isolation Level": https://www.postgresql.org/docs/current/transaction-iso.html
 - Cahill, Röhm and Fekete, "Serializable Isolation for Snapshot Databases", _SIGMOD 2008_.
 - Ports and Grittner, "Serializable Snapshot Isolation in PostgreSQL", _VLDB 2012_.
-
-## Translations
-
-| Language | File                                        | Status   |
-| -------- | ------------------------------------------- | -------- |
-| es       | `src/content/lessons/es/mvcc-snapshots.mdx` | Reviewed |
-| en       | `src/content/lessons/en/mvcc-snapshots.mdx` | Reviewed |

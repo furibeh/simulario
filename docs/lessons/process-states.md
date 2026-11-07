@@ -1,12 +1,12 @@
 # Lesson spec: Process states
 
-| Field          | Value                                                                   |
-| -------------- | ----------------------------------------------------------------------- |
-| Id             | `process-states`                                                        |
-| Path / module  | Operating systems (`operating-systems`) / 1, Processes and their states |
-| Engine         | `src/engines/process-states/`                                           |
-| Estimated time | 25–30 minutes                                                           |
-| Status         | Published                                                               |
+| Field              | Value                                                                   |
+| ------------------ | ----------------------------------------------------------------------- |
+| Id                 | `process-states`                                                        |
+| Path / module      | Operating systems (`operating-systems`) / 1, Processes and their states |
+| Engine             | `src/engines/process-states/`                                           |
+| Estimated time     | 25–30 minutes                                                           |
+| Translation review | Reviewed                                                                |
 
 This is the first lesson of the path. `cpu-scheduling` already lists it as a prerequisite, so this lesson must leave the learner fluent in _ready_, _running_ and _blocked_.
 
@@ -282,10 +282,3 @@ Makespan 7, busy 4, utilization 4/7 (≈ 57%), serial time 11.
 - Arpaci-Dusseau and Arpaci-Dusseau, _Operating Systems: Three Easy Pieces_, ch. 4 "The Abstraction: The Process". Free at https://pages.cs.wisc.edu/~remzi/OSTEP/
 - Stallings, _Operating Systems: Internals and Design Principles_, 9th ed., §3.2 "Process States".
 - `ps(1)` manual, section "PROCESS STATE CODES": https://man7.org/linux/man-pages/man1/ps.1.html
-
-## Translations
-
-| Language | File                                        | Status   |
-| -------- | ------------------------------------------- | -------- |
-| es       | `src/content/lessons/es/process-states.mdx` | Reviewed |
-| en       | `src/content/lessons/en/process-states.mdx` | Reviewed |

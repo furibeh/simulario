@@ -1,12 +1,12 @@
 # Lesson spec: CPU scheduler
 
-| Field          | Value                                                       |
-| -------------- | ----------------------------------------------------------- |
-| Id             | `cpu-scheduling`                                            |
-| Path / module  | Operating systems (`operating-systems`) / 2, CPU scheduling |
-| Engine         | `src/engines/cpu-scheduling/`                               |
-| Estimated time | 30–40 minutes                                               |
-| Status         | Published                                                   |
+| Field              | Value                                                       |
+| ------------------ | ----------------------------------------------------------- |
+| Id                 | `cpu-scheduling`                                            |
+| Path / module      | Operating systems (`operating-systems`) / 2, CPU scheduling |
+| Engine             | `src/engines/cpu-scheduling/`                               |
+| Estimated time     | 30–40 minutes                                               |
+| Translation review | Reviewed                                                    |
 
 ## Learning objectives
 
@@ -233,10 +233,3 @@ Notes: P1 and P2 arrive together and enter the queue in input order. In SJF and 
 - Arpaci-Dusseau and Arpaci-Dusseau, _Operating Systems: Three Easy Pieces_, ch. 7 "Scheduling: Introduction" and ch. 8 "Multi-level Feedback Queue". Free at https://pages.cs.wisc.edu/~remzi/OSTEP/
 - Tanenbaum and Bos, _Modern Operating Systems_, 4th ed., §2.4 "Scheduling".
 - Linux kernel documentation, "EEVDF Scheduler": https://docs.kernel.org/scheduler/sched-eevdf.html
-
-## Translations
-
-| Language | File                                        | Status   |
-| -------- | ------------------------------------------- | -------- |
-| es       | `src/content/lessons/es/cpu-scheduling.mdx` | Reviewed |
-| en       | `src/content/lessons/en/cpu-scheduling.mdx` | Reviewed |

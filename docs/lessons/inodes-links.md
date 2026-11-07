@@ -1,12 +1,12 @@
 # Lesson spec: File systems: inodes and links
 
-| Field          | Value                                                     |
-| -------------- | --------------------------------------------------------- |
-| Id             | `inodes-links`                                            |
-| Path / module  | Operating systems (`operating-systems`) / 8, File systems |
-| Engine         | `src/engines/file-system/`                                |
-| Estimated time | 30 minutes                                                |
-| Status         | Published                                                 |
+| Field              | Value                                                     |
+| ------------------ | --------------------------------------------------------- |
+| Id                 | `inodes-links`                                            |
+| Path / module      | Operating systems (`operating-systems`) / 8, File systems |
+| Engine             | `src/engines/file-system/`                                |
+| Estimated time     | 30 minutes                                                |
+| Translation review | Reviewed, 2026-11-04                                      |
 
 The simulation is a **three-layer file system board**: the directory (names), the inode table (one card per inode with type, link count, open count, size and block pointers) and the data blocks (a grid of tiny 4-byte blocks), with the inode and data bitmaps above them. The learner runs a script of shell-like operations (`create`, `write`, `link`, `symlink`, `unlink`, `open`, `close`, `cat`, `read`, `rename`) one per step and watches which layer each one touches. Arrows go from names to inodes and from inodes to blocks, so "two names, one inode" and "a symlink that points to a name, not to an inode" are visible.
 
@@ -244,10 +244,3 @@ Block contents after step 2: block 1 `hola`, block 2 ` mun`, block 3 `do`. Inode
 - Silberschatz, Galvin and Gagne, _Operating System Concepts_, 10th ed., ch. 13 "File-System Interface" and ch. 14 "File-System Implementation".
 - `unlink(2)` and `symlink(7)` manual pages: https://man7.org/linux/man-pages/man2/unlink.2.html
 - Linux kernel documentation, "ext4 Data Structures and Algorithms" (inodes, extents, fast symlinks): https://docs.kernel.org/filesystems/ext4/
-
-## Translations
-
-| Language | File                                      | Status               |
-| -------- | ----------------------------------------- | -------------------- |
-| es       | `src/content/lessons/es/inodes-links.mdx` | Reviewed, 2026-11-04 |
-| en       | `src/content/lessons/en/inodes-links.mdx` | Reviewed, 2026-11-04 |

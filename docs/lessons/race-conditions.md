@@ -1,12 +1,12 @@
 # Lesson spec: Threads and race conditions
 
-| Field          | Value                                                                    |
-| -------------- | ------------------------------------------------------------------------ |
-| Id             | `race-conditions`                                                        |
-| Path / module  | Operating systems (`operating-systems`) / 3, Threads and race conditions |
-| Engine         | `src/engines/race-conditions/`                                           |
-| Estimated time | 30 minutes                                                               |
-| Status         | Published                                                                |
+| Field              | Value                                                                    |
+| ------------------ | ------------------------------------------------------------------------ |
+| Id                 | `race-conditions`                                                        |
+| Path / module      | Operating systems (`operating-systems`) / 3, Threads and race conditions |
+| Engine             | `src/engines/race-conditions/`                                           |
+| Estimated time     | 30 minutes                                                               |
+| Translation review | Reviewed, 2026-11-04                                                     |
 
 The simulation is an **interleaving board**: two or three threads run `counter++` on one shared variable, one machine instruction per turn, on a single CPU. The learner either lets a timer (round robin with a quantum counted in instructions) decide the interleaving, or builds the interleaving by hand. Each thread shows its code listing with its program counter and its private register; the shared variable sits in the middle. Every store is logged, and a store that overwrites a value the thread never saw is marked as stale.
 
@@ -237,10 +237,3 @@ For the first edge case (2 threads × 2 increments, quantum 1): T1 L0, T2 L0, T1
 - Silberschatz, Galvin and Gagne, _Operating System Concepts_, 10th ed., §4.1 "Overview" (threads) and §6.1 "Background" (race conditions).
 - cppreference, "Multi-threaded executions and data races": https://en.cppreference.com/w/cpp/language/multithread
 - PEP 779, "Criteria for supported status for free-threaded Python": https://peps.python.org/pep-0779/
-
-## Translations
-
-| Language | File                                         | Status               |
-| -------- | -------------------------------------------- | -------------------- |
-| es       | `src/content/lessons/es/race-conditions.mdx` | Reviewed, 2026-11-04 |
-| en       | `src/content/lessons/en/race-conditions.mdx` | Reviewed, 2026-11-04 |

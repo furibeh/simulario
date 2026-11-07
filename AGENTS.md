@@ -26,7 +26,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 2. **Engines never return prose.** Explanations are `{ key, params }`. Add every new key to the engine's key union and to both `src/i18n/engines/<engine>.es.ts` and `.en.ts`.
 3. **No hard-coded visible text** in `.svelte` or `.astro` files. Interface strings go in `src/i18n/ui/es.ts` (source of truth) and `en.ts`. Lesson prose lives in MDX.
 4. **Every lesson exists in both languages**, under the same id in `src/content/lessons/es/` and `src/content/lessons/en/`. If you cannot write a translation, say so; do not ship machine-translated text without flagging it in the PR.
-5. **Every engine has tests.** New behavior needs a Vitest case with expected values computed by hand, not copied from the engine's own output. Those values live in the lesson spec (`docs/lessons/<id>.md`, "Expected results"); if a test and the spec disagree, fix the spec or the engine, never silence the test.
+5. **Every engine has tests.** New behavior needs a Vitest case with expected values computed by hand, not copied from the engine's own output. Those values live in the lesson spec (`docs/lessons/<id>.md`, "Expected results") or, for an engine shared by several lessons, also in the engine spec (`docs/engines/<engine>.md`); if a test and the spec disagree, fix the spec or the engine, never silence the test.
 6. **No literal colors, fonts or radii in components.** Use the CSS custom properties from `src/styles/tokens.css`. Entities use the `Token` component and the entity slots (shape + color), never a color alone.
 7. **Accessibility is not optional.** Real `<button>`, `<a>` and `<input>` elements; visible focus; 44px touch targets; keyboard operation for every simulation; `aria-live` for step explanations; respect `prefers-reduced-motion`.
 8. **No backend, no tracking.** Do not add servers, cookies, accounts or third-party scripts beyond Cloudflare Web Analytics.
@@ -48,6 +48,8 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 3. Build the views in `src/components/<name>/` using `Token`, `Timeline` and the generic `Player` (`src/player/`). Shared board styles (cards, controls, zones, tables, the "why" panel) live in `src/components/board/board.css`: import it and put `class="sim"` on the view's root. Keep only view-specific layout in the view's own `<style>`.
 4. Embed it in a lesson MDX file inside `<Stage stage="run">`.
 5. Add the engine's guarantees to `src/engines/invariants.test.ts` when its topic has properties that hold on random inputs, and replay a published example in `src/engines/published-traces.test.ts` when a citable source has one. Record both in the spec.
+
+An engine's rules, keys and cases live in the spec of its lesson. When a second lesson uses the engine, move them to `docs/engines/<engine>.md`; each lesson spec keeps its teaching plan and its scenarios. `docs/architecture.md` only summarizes each engine and links to its spec.
 
 ## Adding a lesson
 

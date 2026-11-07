@@ -1,12 +1,12 @@
 # Lesson spec: Synchronization: mutexes and semaphores
 
-| Field          | Value                                                                                |
-| -------------- | ------------------------------------------------------------------------------------ |
-| Id             | `mutex-semaphores`                                                                   |
-| Path / module  | Operating systems (`operating-systems`) / 4, Synchronization: mutexes and semaphores |
-| Engine         | `src/engines/bounded-buffer/`                                                        |
-| Estimated time | 35 minutes                                                                           |
-| Status         | Published                                                                            |
+| Field              | Value                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| Id                 | `mutex-semaphores`                                                                   |
+| Path / module      | Operating systems (`operating-systems`) / 4, Synchronization: mutexes and semaphores |
+| Engine             | `src/engines/bounded-buffer/`                                                        |
+| Estimated time     | 35 minutes                                                                           |
+| Translation review | Reviewed, 2026-11-04                                                                 |
 
 The simulation is the **bounded buffer** (producer–consumer) board. Producers put items into a circular buffer of a few slots; consumers take them out. Three semaphores coordinate them: `empty` (free slots), `full` (filled slots) and `mutex` (one thread at a time touches the buffer indexes). Each semaphore is drawn as a counter with its own waiting line. One CPU runs one operation per step; the learner can pick the code version (correct or with the two waits of the producer swapped), the buffer size, the workload and the quantum.
 
@@ -313,10 +313,3 @@ Each turn is one operation; the ready queue alternates whenever both threads are
 - Silberschatz, Galvin and Gagne, _Operating System Concepts_, 10th ed., §6.5–6.6 (mutex locks, semaphores) and §7.1.1 (the bounded-buffer problem).
 - Dijkstra, E. W., "Cooperating sequential processes" (EWD 123), 1965: https://www.cs.utexas.edu/~EWD/transcriptions/EWD01xx/EWD123.html
 - `sem_overview(7)` and `futex(7)` manual pages: https://man7.org/linux/man-pages/man7/sem_overview.7.html
-
-## Translations
-
-| Language | File                                          | Status               |
-| -------- | --------------------------------------------- | -------------------- |
-| es       | `src/content/lessons/es/mutex-semaphores.mdx` | Reviewed, 2026-11-04 |
-| en       | `src/content/lessons/en/mutex-semaphores.mdx` | Reviewed, 2026-11-04 |
