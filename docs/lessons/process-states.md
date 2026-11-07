@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 1, Processes and their states |
 | Engine         | `src/engines/process-states/`                                           |
 | Estimated time | 25–30 minutes                                                           |
-| Status         | Written                                                                 |
+| Status         | Published                                                               |
 
 This is the first lesson of the path. `cpu-scheduling` already lists it as a prerequisite, so this lesson must leave the learner fluent in _ready_, _running_ and _blocked_.
 
@@ -285,7 +285,7 @@ Makespan 7, busy 4, utilization 4/7 (≈ 57%), serial time 11.
 
 ## Translations
 
-| Language | File                                        | Status             |
-| -------- | ------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/process-states.mdx` | Written, in review |
-| en       | `src/content/lessons/en/process-states.mdx` | Written, in review |
+| Language | File                                        | Status   |
+| -------- | ------------------------------------------- | -------- |
+| es       | `src/content/lessons/es/process-states.mdx` | Reviewed |
+| en       | `src/content/lessons/en/process-states.mdx` | Reviewed |

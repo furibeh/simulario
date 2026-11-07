@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 3, Threads and race conditions |
 | Engine         | `src/engines/race-conditions/`                                           |
 | Estimated time | 30 minutes                                                               |
-| Status         | Written                                                                  |
+| Status         | Published                                                                |
 
 The simulation is an **interleaving board**: two or three threads run `counter++` on one shared variable, one machine instruction per turn, on a single CPU. The learner either lets a timer (round robin with a quantum counted in instructions) decide the interleaving, or builds the interleaving by hand. Each thread shows its code listing with its program counter and its private register; the shared variable sits in the middle. Every store is logged, and a store that overwrites a value the thread never saw is marked as stale.
 

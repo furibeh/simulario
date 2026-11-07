@@ -6,7 +6,7 @@
 | Path / module  | Databases (`databases`) / 7, MVCC and snapshots |
 | Engine         | `src/engines/transactions/` (level `snapshot`)  |
 | Estimated time | 30 minutes                                      |
-| Status         | Written                                         |
+| Status         | Published                                       |
 
 The simulation is the **transaction board** of modules 5 and 6 with one more level: **snapshot isolation**, which is what PostgreSQL runs as `REPEATABLE READ`. Every committed write keeps its old versions, and each transaction reads from a **snapshot** taken when it starts: the versions committed before that moment. The board shows each item's chain of versions, each transaction's snapshot as the turn it started, which version every read picks, and the moment a second writer is aborted because someone changed the item after its snapshot. The learner compares the same scenarios under Read Committed, snapshot isolation and two-phase locking.
 
@@ -200,7 +200,7 @@ On seeded random inputs under `snapshot`, with random valid orders run to the en
 
 ## Translations
 
-| Language | File                                        | Status             |
-| -------- | ------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/mvcc-snapshots.mdx` | Written, in review |
-| en       | `src/content/lessons/en/mvcc-snapshots.mdx` | Written, in review |
+| Language | File                                        | Status   |
+| -------- | ------------------------------------------- | -------- |
+| es       | `src/content/lessons/es/mvcc-snapshots.mdx` | Reviewed |
+| en       | `src/content/lessons/en/mvcc-snapshots.mdx` | Reviewed |

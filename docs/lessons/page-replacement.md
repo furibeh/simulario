@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 7, Page replacement algorithms |
 | Engine         | `src/engines/page-replacement/`                                          |
 | Estimated time | 30 minutes                                                               |
-| Status         | Written                                                                  |
+| Status         | Published                                                                |
 
 The simulation is a **frame grid**: one column per page reference, one row per frame, filled as the run advances, with every fault marked and every victim crossed out. Beside it, the selected algorithm shows its own bookkeeping: the FIFO queue, the LRU recency list, OPT's next use of each page, or the Clock dial with its hand and use bits. Below, a comparison table runs every algorithm with 1 to 6 frames on the same reference string, so Belady's anomaly shows up as a number that goes up instead of down.
 

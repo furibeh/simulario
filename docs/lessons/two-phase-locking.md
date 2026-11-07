@@ -6,7 +6,7 @@
 | Path / module  | Databases (`databases`) / 6, Two-phase locking         |
 | Engine         | `src/engines/transactions/` (level `serializable-2pl`) |
 | Estimated time | 30 minutes                                             |
-| Status         | Written                                                |
+| Status         | Published                                              |
 
 The simulation is the **transaction board** of `isolation-anomalies`, with one more level: **Serializable by strict two-phase locking**. Reads now take a **shared** lock and keep it until the end, so each item can have several readers or one writer. The board shows every lock with its mode and owners, who waits for whom, and the moment a wait closes a cycle and the database aborts a victim. The same scenarios as module 5 can be replayed under Read Committed and under two-phase locking side by side.
 
@@ -209,7 +209,7 @@ On seeded random inputs under `serializable-2pl`, with random valid orders run t
 
 ## Translations
 
-| Language | File                                           | Status             |
-| -------- | ---------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/two-phase-locking.mdx` | Written, in review |
-| en       | `src/content/lessons/en/two-phase-locking.mdx` | Written, in review |
+| Language | File                                           | Status   |
+| -------- | ---------------------------------------------- | -------- |
+| es       | `src/content/lessons/es/two-phase-locking.mdx` | Reviewed |
+| en       | `src/content/lessons/en/two-phase-locking.mdx` | Reviewed |

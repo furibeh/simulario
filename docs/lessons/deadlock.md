@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 5, Deadlock |
 | Engine         | `src/engines/resource-graph/`                         |
 | Estimated time | 30 minutes                                            |
-| Status         | Written                                               |
+| Status         | Published                                             |
 
 The simulation is a **resource-allocation graph** drawn live. Threads sit on an outer ring and single-instance resources (locks, forks) on an inner ring. A solid arrow from a resource to a thread means "holds"; a dashed arrow from a thread to a resource means "waits for". Threads run a short script of `acquire`, `release` and `work` operations, one operation per turn. When the arrows close a cycle, the cycle is highlighted and named, and the threads on it never move again, while threads outside it keep running. The learner can change the number of philosophers, delay a thread's start, and switch on a global lock order.
 
@@ -23,7 +23,7 @@ By the end of the lesson the learner can:
 ## Prerequisites
 
 - Mutexes, blocking and waking up (lesson `mutex-semaphores`).
-- Ready queue and blocked state (lesson `process-states`).
+- Ready queue and blocked state (lesson `process-states`, which `mutex-semaphores` already requires).
 
 ## Misconceptions targeted
 

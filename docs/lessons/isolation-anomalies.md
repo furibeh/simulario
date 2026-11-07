@@ -6,7 +6,7 @@
 | Path / module  | Databases (`databases`) / 5, Transactions and isolation |
 | Engine         | `src/engines/transactions/`                             |
 | Estimated time | 30 minutes                                              |
-| Status         | Written                                                 |
+| Status         | Published                                               |
 
 The simulation is a **transaction board**: two or three transactions run short scripts of reads and writes against one to three data items, one operation per turn, in an order the lesson (or the learner) chooses. Each transaction shows its script, its program counter and the values it has read. Each item shows its committed value, the uncommitted value someone is writing (if any), who holds its write lock and who waits for it. A read log records what every read returned and what was committed at that moment, and a write computed from an out-of-date read is marked as stale.
 
@@ -108,7 +108,7 @@ By the end of the lesson the learner can:
 | `items`        | 1–3 items with ids `x`, `y`, `z` (in that order), each with an integer initial value 0–999 | `x = 100`      |
 | `transactions` | 2–3 transactions `T1`…`T3`, each with a script of 1–6 operations                           | _Saldo_        |
 | `isolation`    | `read-uncommitted` or `read-committed` (modules 6 and 7 add levels)                        | read-committed |
-| `order`        | list of transaction ids, one per step                                                      | preset order   |
+| `order`        | list of at most 30 transaction ids, one per step                                           | preset order   |
 
 Operations (`d` an integer −999…999, `v` an integer 0–999):
 
@@ -284,7 +284,7 @@ On seeded random inputs (2–3 transactions, 1–3 items, random valid orders ru
 
 ## Translations
 
-| Language | File                                             | Status             |
-| -------- | ------------------------------------------------ | ------------------ |
-| es       | `src/content/lessons/es/isolation-anomalies.mdx` | Written, in review |
-| en       | `src/content/lessons/en/isolation-anomalies.mdx` | Written, in review |
+| Language | File                                             | Status   |
+| -------- | ------------------------------------------------ | -------- |
+| es       | `src/content/lessons/es/isolation-anomalies.mdx` | Reviewed |
+| en       | `src/content/lessons/en/isolation-anomalies.mdx` | Reviewed |

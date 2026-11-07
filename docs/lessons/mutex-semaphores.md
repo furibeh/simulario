@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 4, Synchronization: mutexes and semaphores |
 | Engine         | `src/engines/bounded-buffer/`                                                        |
 | Estimated time | 35 minutes                                                                           |
-| Status         | Written                                                                              |
+| Status         | Published                                                                            |
 
 The simulation is the **bounded buffer** (producer–consumer) board. Producers put items into a circular buffer of a few slots; consumers take them out. Three semaphores coordinate them: `empty` (free slots), `full` (filled slots) and `mutex` (one thread at a time touches the buffer indexes). Each semaphore is drawn as a counter with its own waiting line. One CPU runs one operation per step; the learner can pick the code version (correct or with the two waits of the producer swapped), the buffer size, the workload and the quantum.
 

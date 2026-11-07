@@ -6,7 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 8, File systems |
 | Engine         | `src/engines/file-system/`                                |
 | Estimated time | 30 minutes                                                |
-| Status         | Written                                                   |
+| Status         | Published                                                 |
 
 The simulation is a **three-layer file system board**: the directory (names), the inode table (one card per inode with type, link count, open count, size and block pointers) and the data blocks (a grid of tiny 4-byte blocks), with the inode and data bitmaps above them. The learner runs a script of shell-like operations (`create`, `write`, `link`, `symlink`, `unlink`, `open`, `close`, `cat`, `read`, `rename`) one per step and watches which layer each one touches. Arrows go from names to inodes and from inodes to blocks, so "two names, one inode" and "a symlink that points to a name, not to an inode" are visible.
 
@@ -117,7 +117,7 @@ By the end of the lesson the learner can:
 | `script` | 1–12 operations                                  | _Enlaces_ |
 | names    | 1–12 characters from `a–z`, `0–9`, `.`, `_`, `-` | —         |
 | text     | 0–12 characters                                  | —         |
-| fd       | integer 3–9                                      | —         |
+| fd       | integer; `open` hands out 3–9                    | —         |
 
 Fixed geometry: 8 inodes (inode 0 is the root directory), 12 data blocks of 4 bytes (block 0 holds the root directory), at most 8 directory entries. A structurally invalid script (unknown operation, bad name, text too long) throws a `RangeError`. Operations that fail at run time (missing name, full disk…) emit an `error.*` key and change nothing.
 

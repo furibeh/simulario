@@ -6,9 +6,7 @@
 | Path / module  | Operating systems (`operating-systems`) / 2, CPU scheduling |
 | Engine         | `src/engines/cpu-scheduling/`                               |
 | Estimated time | 30–40 minutes                                               |
-| Status         | Written                                                     |
-
-Origin: the single-file prototype _Planificador de CPU_ (claude.ai artifact). This spec fixes its behavior so the engine port can be tested against hand-computed values.
+| Status         | Published                                                   |
 
 ## Learning objectives
 
@@ -22,7 +20,7 @@ By the end of the lesson the learner can:
 
 ## Prerequisites
 
-- What a process is, and the ready and running states (lesson `process-states`, module 1). Until that lesson exists, Theory covers it in two sentences and links nowhere.
+- What a process is, and the ready and running states (lesson `process-states`, module 1).
 - Reading a timeline left to right. No programming needed.
 
 ## Misconceptions targeted
@@ -60,7 +58,7 @@ By the end of the lesson the learner can:
 - **Correct answer**: P1, P2, P3, P4.
 - **Naive answer and why it fails**: P3, P2, P4, P1 (shortest first, M1). In the run, P1 holds the CPU from 0 to 10 although P2 (t = 1) and P3 (t = 2) are shorter; FCFS never looks at burst length.
 
-The prediction widget is available for every algorithm and preset (as in the prototype), but the lesson text asks for this one first.
+The prediction widget is available for every algorithm and preset, but the lesson text asks for this one first.
 
 ## Run
 
@@ -238,7 +236,7 @@ Notes: P1 and P2 arrive together and enter the queue in input order. In SJF and 
 
 ## Translations
 
-| Language | File                                        | Status             |
-| -------- | ------------------------------------------- | ------------------ |
-| es       | `src/content/lessons/es/cpu-scheduling.mdx` | Written, in review |
-| en       | `src/content/lessons/en/cpu-scheduling.mdx` | Written, in review |
+| Language | File                                        | Status   |
+| -------- | ------------------------------------------- | -------- |
+| es       | `src/content/lessons/es/cpu-scheduling.mdx` | Reviewed |
+| en       | `src/content/lessons/en/cpu-scheduling.mdx` | Reviewed |
