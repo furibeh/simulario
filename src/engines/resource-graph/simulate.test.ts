@@ -4,7 +4,7 @@ import { simulate } from "./simulate";
 import type { GraphExplanation, GraphInput, GraphTrace } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/deadlock.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/operating-systems/deadlock.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 

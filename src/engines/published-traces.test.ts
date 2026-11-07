@@ -32,7 +32,7 @@ describe("OSTEP ch. 22, Figures 22.1, 22.2 and 22.5 (refs 0 1 2 0 1 3 0 3 1 2 1,
   it("Figure 22.1, optimal: 6 hits; first victim 2; the second is a tie", () => {
     expect(marks("opt")).toEqual("Miss Miss Miss Hit Hit Miss Hit Hit Hit Miss Hit".split(" "));
     // At reference 10 pages 0 and 3 are never used again. The book evicts 3; the lesson's rule
-    // (docs/lessons/page-replacement.md) breaks ties by the lowest slot and evicts 0. Both are
+    // (docs/lessons/operating-systems/page-replacement.md) breaks ties by the lowest slot and evicts 0. Both are
     // optimal and give the same hits and misses.
     const [first, second] = evictions("opt");
     expect(first).toBe(2);

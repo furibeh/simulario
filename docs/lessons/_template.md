@@ -1,7 +1,7 @@
 # Lesson spec: <title>
 
 <!--
-Copy this file to docs/lessons/<id>.md, where <id> is the lesson's content id
+Copy this file to docs/lessons/<path>/<id>.md, where <path> is the learning path's id and <id> is the lesson's content id
 (the MDX filename in src/content/lessons/{es,en}/). This spec is the contract
 for both MDX translations and for the engine tests. Write it in English.
 Lesson prose does not belong here; the MDX files hold it.

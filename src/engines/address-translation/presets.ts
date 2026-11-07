@@ -7,7 +7,7 @@ const f = (frame: number): PageEntry => ({ kind: "frame", frame });
 const disk: PageEntry = { kind: "disk" };
 const invalid: PageEntry = { kind: "invalid" };
 
-/** Workloads from docs/lessons/paging.md. */
+/** Workloads from docs/lessons/operating-systems/paging.md. */
 export const presets: Record<PresetId, TranslationInput> = {
   /** "Recorrido" / "Walkthrough". */
   walk: {

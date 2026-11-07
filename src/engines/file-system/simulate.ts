@@ -30,7 +30,7 @@ const names = (op: Operation): string[] => {
   }
 };
 
-/** Throws a RangeError describing the first invalid operation. Rules: docs/lessons/inodes-links.md. */
+/** Throws a RangeError describing the first invalid operation. Rules: docs/lessons/operating-systems/inodes-links.md. */
 export function assertValidInput(input: FsInput): void {
   const { script } = input;
   if (script.length < limits.script.min || script.length > limits.script.max) {

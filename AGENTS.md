@@ -26,7 +26,7 @@ Before you say a change is done, run `pnpm lint && pnpm check && pnpm test && pn
 2. **Engines never return prose.** Explanations are `{ key, params }`. Add every new key to the engine's key union and to both `src/i18n/engines/<engine>.es.ts` and `.en.ts`.
 3. **No hard-coded visible text** in `.svelte` or `.astro` files. Interface strings go in `src/i18n/ui/es.ts` (source of truth) and `en.ts`. Lesson prose lives in MDX.
 4. **Every lesson exists in both languages**, under the same id in `src/content/lessons/es/` and `src/content/lessons/en/`. If you cannot write a translation, say so; do not ship machine-translated text without flagging it in the PR.
-5. **Every engine has tests.** New behavior needs a Vitest case with expected values computed by hand, not copied from the engine's own output. Those values live in the lesson spec (`docs/lessons/<id>.md`, "Expected results") or, for an engine shared by several lessons, also in the engine spec (`docs/engines/<engine>.md`); if a test and the spec disagree, fix the spec or the engine, never silence the test.
+5. **Every engine has tests.** New behavior needs a Vitest case with expected values computed by hand, not copied from the engine's own output. Those values live in the lesson spec (`docs/lessons/<path>/<id>.md`, "Expected results") or, for an engine shared by several lessons, also in the engine spec (`docs/engines/<engine>.md`); if a test and the spec disagree, fix the spec or the engine, never silence the test.
 6. **No literal colors, fonts or radii in components.** Use the CSS custom properties from `src/styles/tokens.css`. Entities use the `Token` component and the entity slots (shape + color), never a color alone.
 7. **Accessibility is not optional.** Real `<button>`, `<a>` and `<input>` elements; visible focus; 44px touch targets; keyboard operation for every simulation; `aria-live` for step explanations; respect `prefers-reduced-motion`.
 8. **No backend, no tracking.** Do not add servers, cookies, accounts or third-party scripts beyond Cloudflare Web Analytics.
@@ -53,7 +53,7 @@ An engine's rules, keys and cases live in the spec of its lesson. When a second 
 
 ## Adding a lesson
 
-0. Write the lesson spec first: copy `docs/lessons/_template.md` to `docs/lessons/<id>.md` and fill it in (objectives, misconceptions, prediction, experiments, checks, engine rules and hand-computed expected results). The MDX files and the engine tests follow it.
+0. Write the lesson spec first: copy `docs/lessons/_template.md` to `docs/lessons/<path>/<id>.md` and fill it in (objectives, misconceptions, prediction, experiments, checks, engine rules and hand-computed expected results). The MDX files and the engine tests follow it.
 1. Add `src/content/lessons/es/<id>.mdx` and `src/content/lessons/en/<id>.mdx` with the frontmatter required by `src/content.config.ts`.
 2. Wrap each PEE section in `<Stage stage="…">`, in this order: `prerequisites`, `theory` (3–5 minutes), `predict`, `run`, `explain`, `experiment`, `check`, `deeper` (optional). The ids live in `src/components/lesson/stages.ts`.
 3. Keep theory before Predict minimal, just enough to reason. Put depth in Explain.

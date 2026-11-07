@@ -8,7 +8,7 @@ export const limits = {
   accesses: { min: 1, max: 10 },
 } as const;
 
-/** Cost model from docs/lessons/paging.md. */
+/** Cost model from docs/lessons/operating-systems/paging.md. */
 export const costs = { tlb: 1, memory: 100, fault: 10_000 } as const;
 
 export type PageEntry = { kind: "frame"; frame: number } | { kind: "disk" } | { kind: "invalid" };

@@ -3,7 +3,7 @@ import type { BufferInput } from "./types";
 export const presetIds = ["fastProducer", "swapped", "twoProducers"] as const;
 export type PresetId = (typeof presetIds)[number];
 
-/** Workloads from docs/lessons/mutex-semaphores.md. */
+/** Workloads from docs/lessons/operating-systems/mutex-semaphores.md. */
 export const presets: Record<PresetId, BufferInput> = {
   /** "Productor rápido" / "Fast producer". */
   fastProducer: {

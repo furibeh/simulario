@@ -100,7 +100,7 @@ By the end of the lesson the learner can:
 
 ## Engine behavior
 
-Defined in [`docs/engines/transactions.md`](../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `serializable-2pl`, compared with `read-committed`.
+Defined in [`docs/engines/transactions.md`](../../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `serializable-2pl`, compared with `read-committed`.
 
 ## Expected results (hand-computed)
 

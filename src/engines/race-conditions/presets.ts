@@ -3,7 +3,7 @@ import type { RaceInput } from "./types";
 export const presetIds = ["twoOnce", "threeTwice", "worstCase"] as const;
 export type PresetId = (typeof presetIds)[number];
 
-/** Workloads from docs/lessons/race-conditions.md. */
+/** Workloads from docs/lessons/operating-systems/race-conditions.md. */
 export const presets: Record<PresetId, RaceInput> = {
   /** "Dos incrementos" / "Two increments". */
   twoOnce: { threads: 2, increments: 1, atomic: false, schedule: { kind: "timer", quantum: 2 } },

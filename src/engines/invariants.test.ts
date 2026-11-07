@@ -22,7 +22,7 @@ import {
 /**
  * Properties each topic guarantees in theory, checked on many seeded random inputs.
  * They do not come from any engine output: each one is a statement from the lesson specs
- * (docs/lessons/*.md) or a textbook result, and some use an independent brute-force oracle.
+ * (docs/lessons/<path>/<id>.md) or a textbook result, and some use an independent brute-force oracle.
  */
 
 /** Small deterministic generator (mulberry32), so failures are reproducible. */

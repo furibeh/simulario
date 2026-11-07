@@ -4,7 +4,7 @@ import { simulate } from "./simulate";
 import type { Operation, TxExplanation, TxInput, TxTrace } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/isolation-anomalies.md ("Expected results")
+ * Expected values are hand-computed in docs/lessons/databases/isolation-anomalies.md ("Expected results")
  * and docs/engines/transactions.md ("Edge cases").
  * Never regenerate them from the engine's output.
  */
@@ -316,7 +316,7 @@ describe("edge cases", () => {
   });
 });
 
-/** docs/lessons/two-phase-locking.md, "Expected results", and docs/engines/transactions.md, "Edge cases". */
+/** docs/lessons/databases/two-phase-locking.md, "Expected results", and docs/engines/transactions.md, "Edge cases". */
 describe("serializable-2pl", () => {
   const twoPl = (base: TxInput, o: string): TxInput => ({
     ...base,
@@ -506,7 +506,7 @@ describe("serializable-2pl", () => {
   });
 });
 
-/** docs/lessons/mvcc-snapshots.md, "Expected results", and docs/engines/transactions.md, "Edge cases". */
+/** docs/lessons/databases/mvcc-snapshots.md, "Expected results", and docs/engines/transactions.md, "Edge cases". */
 describe("snapshot", () => {
   const snap = (base: TxInput, o: string): TxInput => ({
     ...base,

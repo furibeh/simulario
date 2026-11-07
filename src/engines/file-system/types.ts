@@ -1,6 +1,6 @@
 import type { Step, Trace } from "../trace";
 
-/** Fixed geometry from docs/lessons/inodes-links.md. */
+/** Fixed geometry from docs/lessons/operating-systems/inodes-links.md. */
 export const geometry = {
   inodes: 8,
   blocks: 12,

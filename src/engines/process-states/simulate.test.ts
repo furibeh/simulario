@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/process-states.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/operating-systems/process-states.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 

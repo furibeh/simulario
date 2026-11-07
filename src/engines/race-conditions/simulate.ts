@@ -27,7 +27,7 @@ export function programFor(increments: number, atomic: boolean): Instruction[] {
   return Array.from({ length: increments }, () => one).flat();
 }
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/race-conditions.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/operating-systems/race-conditions.md. */
 export function assertValidInput(input: RaceInput): void {
   if (!inRange(input.threads, limits.threads)) throw new RangeError("Invalid thread count");
   if (!inRange(input.increments, limits.increments)) throw new RangeError("Invalid increments");

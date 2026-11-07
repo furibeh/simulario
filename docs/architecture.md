@@ -87,7 +87,7 @@ public/               _headers, _redirects, favicon.svg, og.png
 docs/                 design.md, architecture.md
   assets/             og.svg (source of public/og.png)
   engines/            Specs of engines shared by several lessons (transactions.md)
-  lessons/            One spec per lesson (_template.md, then one file per lesson id)
+  lessons/            _template.md, then one spec per lesson: <path>/<id>.md
 scripts/              check-search-index.mjs (CI check of the Pagefind index)
 pagefind.yml          What Pagefind indexes and leaves out
 .github/workflows/    ci.yml
@@ -143,35 +143,35 @@ Each engine's rules, keys and expected results live in its spec. The sections be
 
 ### CPU scheduling engine
 
-Spec: `docs/lessons/cpu-scheduling.md`. FCFS, SJF, SRTF, priority and Round Robin on one CPU, with one step per time unit. The result holds per-process times, their averages and the finish order.
+Spec: `docs/lessons/operating-systems/cpu-scheduling.md`. FCFS, SJF, SRTF, priority and Round Robin on one CPU, with one step per time unit. The result holds per-process times, their averages and the finish order.
 
 ### Process states engine
 
-Spec: `docs/lessons/process-states.md`. One CPU, FCFS dispatch and a private I/O device per process, with alternating CPU and I/O bursts. Steps are **instants**, not units: `steps[t]` holds the state after the transitions at `t`, and the last step is the instant of the last exit (`steps.length === makespan + 1`).
+Spec: `docs/lessons/operating-systems/process-states.md`. One CPU, FCFS dispatch and a private I/O device per process, with alternating CPU and I/O bursts. Steps are **instants**, not units: `steps[t]` holds the state after the transitions at `t`, and the last step is the instant of the last exit (`steps.length === makespan + 1`).
 
 ### Race conditions engine
 
-Spec: `docs/lessons/race-conditions.md`. Threads run `load`, `add`, `store` per increment, or one atomic `inc`, under a timer or a manual order, with one step per instruction. A `store` is stale when `counter` differs from the value that thread loaded.
+Spec: `docs/lessons/operating-systems/race-conditions.md`. Threads run `load`, `add`, `store` per increment, or one atomic `inc`, under a timer or a manual order, with one step per instruction. A `store` is stale when `counter` differs from the value that thread loaded.
 
 ### Bounded buffer engine
 
-Spec: `docs/lessons/mutex-semaphores.md`. Producers and consumers on a buffer guarded by the semaphores `empty`, `full` and `mutex`, with correct or swapped code and one step per operation. `signal` hands the permit straight to the first waiter, so the counter only rises when nobody waits.
+Spec: `docs/lessons/operating-systems/mutex-semaphores.md`. Producers and consumers on a buffer guarded by the semaphores `empty`, `full` and `mutex`, with correct or swapped code and one step per operation. `signal` hands the permit straight to the first waiter, so the counter only rises when nobody waits.
 
 ### Resource graph engine
 
-Spec: `docs/lessons/deadlock.md`. Threads acquire and release single-instance resources in script or global order, with one step per operation. After every block the engine follows the waits and reports the first cycle as a path.
+Spec: `docs/lessons/operating-systems/deadlock.md`. Threads acquire and release single-instance resources in script or global order, with one step per operation. After every block the engine follows the waits and reports the first cycle as a path.
 
 ### Address translation engine
 
-Spec: `docs/lessons/paging.md`. One step per access: split into page and offset, TLB (LRU), page table, page fault (FIFO eviction) and the physical access. A fixed cost model (`costs`) prices each access, and an invalid page ends the trace.
+Spec: `docs/lessons/operating-systems/paging.md`. One step per access: split into page and offset, TLB (LRU), page table, page fault (FIFO eviction) and the physical access. A fixed cost model (`costs`) prices each access, and an invalid page ends the trace.
 
 ### Page replacement engine
 
-Spec: `docs/lessons/page-replacement.md`. FIFO, LRU, OPT and Clock, with one step per reference. `faultTable(refs)` runs every algorithm with 1–6 frames for the comparison table.
+Spec: `docs/lessons/operating-systems/page-replacement.md`. FIFO, LRU, OPT and Clock, with one step per reference. `faultTable(refs)` runs every algorithm with 1–6 frames for the comparison table.
 
 ### File system engine
 
-Spec: `docs/lessons/inodes-links.md`. A script of operations on a fixed tiny file system (`geometry`), with one step per operation. Structurally invalid scripts throw; operations that fail at run time emit an `error.*` key and change nothing.
+Spec: `docs/lessons/operating-systems/inodes-links.md`. A script of operations on a fixed tiny file system (`geometry`), with one step per operation. Structurally invalid scripts throw; operations that fail at run time emit an `error.*` key and change nothing.
 
 ### Transactions engine
 
@@ -282,7 +282,7 @@ A lesson is a single page so the simulation keeps its state across stages. To av
 | Build           | `pnpm build` (Astro, then the Pagefind index) | yes        |
 | Search index    | `node scripts/check-search-index.mjs`         | yes        |
 
-Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs seven of the nine engines (all but CPU scheduling and process states) must keep the guarantees of their topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode, transactions never leave a dirty write or an unbroken wait cycle, a serial order shows no anomaly, under two-phase locking the result equals running the committed transactions one after another in commit order, and under snapshot isolation reads match the state before the reader started and overlapping committed transactions never wrote the same item). They found two engine bugs that the hand-computed presets did not reach. `src/engines/published-traces.test.ts` replays published examples as an external reference, for every lesson except `cpu-scheduling` and `process-states`, whose references are the hand-computed values: for operating systems, OSTEP §19.2, Figures 22.1, 22.2, 22.5, 26.7, 31.12 and 32.6, and §39.14–39.15; for databases, the histories H1, H2, H4 and P0 of Berenson et al. (1995) and Hermitage's PostgreSQL Read Committed tests G0, G1a, G1b, G1c, OTV, P4 and G-single; for two-phase locking, H4 under Berenson's Locking SERIALIZABLE and Hermitage's MySQL InnoDB Serializable tests P4 and G2-item; for snapshot isolation, Berenson's H1.SI, H5 and H4 and Hermitage's PostgreSQL Repeatable Read tests P4, G-single and G2-item.
+Engine tests cover every preset × algorithm against the hand-computed metrics and finish orders recorded in the lesson spec (`docs/lessons/<path>/<id>.md`), plus edge cases: idle CPU, ties, quantum 1 and simultaneous arrivals. An i18n test renders every engine key in both languages with sample params and asserts that no placeholder is left. `src/engines/invariants.test.ts` adds property tests: on hundreds of seeded random inputs seven of the nine engines (all but CPU scheduling and process states) must keep the guarantees of their topic (lost updates never exceed the request, the correct bounded buffer never deadlocks, a global lock order never deadlocks and a stall implies a cycle, the offset survives translation, OPT equals a brute-force optimum and LRU/OPT never fault more with more frames, link counts equal the names of an inode, transactions never leave a dirty write or an unbroken wait cycle, a serial order shows no anomaly, under two-phase locking the result equals running the committed transactions one after another in commit order, and under snapshot isolation reads match the state before the reader started and overlapping committed transactions never wrote the same item). They found two engine bugs that the hand-computed presets did not reach. `src/engines/published-traces.test.ts` replays published examples as an external reference, for every lesson except `cpu-scheduling` and `process-states`, whose references are the hand-computed values: for operating systems, OSTEP §19.2, Figures 22.1, 22.2, 22.5, 26.7, 31.12 and 32.6, and §39.14–39.15; for databases, the histories H1, H2, H4 and P0 of Berenson et al. (1995) and Hermitage's PostgreSQL Read Committed tests G0, G1a, G1b, G1c, OTV, P4 and G-single; for two-phase locking, H4 under Berenson's Locking SERIALIZABLE and Hermitage's MySQL InnoDB Serializable tests P4 and G2-item; for snapshot isolation, Berenson's H1.SI, H5 and H4 and Hermitage's PostgreSQL Repeatable Read tests P4, G-single and G2-item.
 
 ## Decisions
 

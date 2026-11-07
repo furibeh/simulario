@@ -4,7 +4,7 @@ import { faultTable, simulate } from "./simulate";
 import type { Algorithm, ReplacementExplanation, ReplacementTrace } from "./types";
 
 /**
- * Expected values are hand-computed in docs/lessons/page-replacement.md ("Expected results").
+ * Expected values are hand-computed in docs/lessons/operating-systems/page-replacement.md ("Expected results").
  * Never regenerate them from the engine's output.
  */
 

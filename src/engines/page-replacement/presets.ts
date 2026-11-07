@@ -1,7 +1,7 @@
 export const presetIds = ["belady", "classic"] as const;
 export type PresetId = (typeof presetIds)[number];
 
-/** Reference strings from docs/lessons/page-replacement.md. */
+/** Reference strings from docs/lessons/operating-systems/page-replacement.md. */
 export const presets: Record<PresetId, readonly number[]> = {
   /** "Belady": FIFO faults more with 4 frames than with 3. */
   belady: [1, 2, 3, 4, 1, 2, 5, 1, 2, 3, 4, 5],

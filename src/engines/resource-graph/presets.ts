@@ -28,7 +28,7 @@ export const twoLocks: GraphInput = {
   ordering: "script",
 };
 
-/** Workloads from docs/lessons/deadlock.md. */
+/** Workloads from docs/lessons/operating-systems/deadlock.md. */
 export const presets: Record<PresetId, GraphInput> = {
   philosophers: philosophers(5),
   twoLocks,

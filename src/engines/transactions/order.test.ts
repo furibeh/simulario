@@ -5,7 +5,7 @@ import type { Isolation, TxInput } from "./types";
 
 /**
  * The board fits each preset's order to the chosen level. These expectations are the orders
- * traced by hand in docs/lessons/isolation-anomalies.md, two-phase-locking.md and mvcc-snapshots.md.
+ * traced by hand in docs/lessons/databases/isolation-anomalies.md, two-phase-locking.md and mvcc-snapshots.md.
  */
 const fitted = (base: TxInput, isolation: Isolation) => fitOrder({ ...base, isolation }).join(" ");
 

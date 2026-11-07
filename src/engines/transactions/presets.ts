@@ -3,7 +3,7 @@ import type { Operation, TxInput } from "./types";
 export const presetIds = ["balance", "dirtyRead", "transfer", "crossTransfers", "onCall"] as const;
 export type PresetId = (typeof presetIds)[number];
 
-/** Workloads from docs/lessons/isolation-anomalies.md. */
+/** Workloads from docs/lessons/databases/isolation-anomalies.md. */
 export const presets: Record<PresetId, TxInput> = {
   /** "Saldo" / "Balance": two deposits computed in the application. */
   balance: {
@@ -41,7 +41,7 @@ export const presets: Record<PresetId, TxInput> = {
     isolation: "read-committed",
     order: ["T1", "T2", "T2", "T2", "T2", "T2", "T1", "T1"],
   },
-  /** "Transferencias cruzadas" / "Crossed transfers" (docs/lessons/two-phase-locking.md). */
+  /** "Transferencias cruzadas" / "Crossed transfers" (docs/lessons/databases/two-phase-locking.md). */
   crossTransfers: {
     items: [100, 100],
     transactions: [
@@ -63,7 +63,7 @@ export const presets: Record<PresetId, TxInput> = {
     isolation: "serializable-2pl",
     order: ["T1", "T2", "T1", "T2", "T1", "T2", "T1", "T1"],
   },
-  /** "Guardia" / "On call": two doctors, at least one must stay (docs/lessons/mvcc-snapshots.md). */
+  /** "Guardia" / "On call": two doctors, at least one must stay (docs/lessons/databases/mvcc-snapshots.md). */
   onCall: {
     items: [1, 1],
     transactions: [

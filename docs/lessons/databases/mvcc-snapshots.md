@@ -92,7 +92,7 @@ By the end of the lesson the learner can:
 
 ## Engine behavior
 
-Defined in [`docs/engines/transactions.md`](../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `snapshot` and the operation `check`, compared with `read-committed` and `serializable-2pl`.
+Defined in [`docs/engines/transactions.md`](../../engines/transactions.md): rules, keys, state, result, edge cases and properties. This lesson uses the level `snapshot` and the operation `check`, compared with `read-committed` and `serializable-2pl`.
 
 ## Expected results (hand-computed)
 

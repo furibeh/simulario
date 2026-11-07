@@ -28,7 +28,7 @@ interface Thread {
 const inRange = (v: number, r: { min: number; max: number }) =>
   Number.isInteger(v) && v >= r.min && v <= r.max;
 
-/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/mutex-semaphores.md. */
+/** Throws a RangeError describing the first invalid field. Rules: docs/lessons/operating-systems/mutex-semaphores.md. */
 export function assertValidInput(input: BufferInput): void {
   if (!inRange(input.producers, limits.producers)) throw new RangeError("Invalid producers");
   if (!inRange(input.consumers, limits.consumers)) throw new RangeError("Invalid consumers");
